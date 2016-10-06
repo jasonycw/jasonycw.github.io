@@ -1,7 +1,7 @@
 # Development log
 
 ## 2016-10-06
-Start creating [jasonycw.github.io](jasonycw.github.io).
+Start creating [jasonycw.github.io](https://jasonycw.github.io/).
 
 Don't want to use CSS for layout but rather uses LESS or SCSS for simplier syntax.
 
