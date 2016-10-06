@@ -18,6 +18,6 @@ Good to know [Node.js](https://nodejs.org/) have a modal called "[http-server](h
 Yeay, I got my `localhost:8080` and LESS.js working with my main.less now~
 
 ### Flex centering
-Trying to center the content. Spent some time to make body tag full full height, and nee dot use `min-height: 100vh` instead of `min-height: 100%`
+Trying to center the content. Spent some time to make body tag full full height, and need to use `min-height: 100vh` instead of `min-height: 100%`
 
 Don't always trust auto complete, typo of `align-items` and `align-content` make me debug for no reason for 30 minutes....
