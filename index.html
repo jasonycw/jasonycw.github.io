@@ -15,18 +15,35 @@
 	<link rel="stylesheet/less" href="./less/main.less" />
 
     <!--less-->
+	<!-- set options before less.js script -->
+	<script>
+	  less = {
+		env: "development",
+		logLevel: 2,
+		async: false,
+		fileAsync: false,
+		poll: 1000,
+		dumpLineNumbers: "comments",
+		relativeUrls: false
+	  };
+	</script>
     <!--make sure include the less file before running this script-->
     <script src="./js/library/less.min.js"></script>
 </head>
 
 <body>
-  Hi, nothing to see here...
-  <br />
-  <a class="test" href="http://jasonycw.github.io/TyphoonTycoon/">What about play a game here?</a>
-  <br />
-  <div class='test'>
-  Have a nice day, bye~
-  </div>
-  
+	<div class='middle-container'>
+		<div class='middle-content'>
+			Hi, nothing to see here...
+			<br />
+			<a class="test" href="http://jasonycw.github.io/TyphoonTycoon/">What about play a game here?</a>
+			<br />
+			<div class='test'>
+				Have a nice day, bye~
+			</div>
+
+
+		</div>
+	</div>
 </body>
 </html>
