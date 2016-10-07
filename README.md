@@ -31,4 +31,10 @@ It seems that using browser's less.js cannot render the CSS properly by just put
 Right now, main.less import variable.lsee and global.less while global.less import function.less. But the weired thing is that main.less uses function.less functions and global.less use both variable.less and function.less.... Why the import works now? (Scratching my head)
 
 ### Making CSS words
-After trying using `:before` and `:after` for making difference icons during word, I always want to try making characters with it. Saw some articles back then when Google changed their logo where it can be render with CSS. Lets start having some CSS fun :)
+After trying using `:before` and `:after` for making difference icons during work, I always want to try making characters with it. 
+
+![All CSS](/Screenshots/oldExamples.png "No image has been used")
+
+Saw some articles back then when Google changed their logo which can be render with CSS made me interested in the idea. Lets start having some CSS fun :)
+
+![1 try](/Screenshots/1.png)
