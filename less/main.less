@@ -1,3 +1,6 @@
+@import 'variables.less';
+@import 'global.less';
+
 html{
 	min-height: 100vh;
 	margin: 0;
@@ -7,22 +10,63 @@ html{
 		padding: 0;
 		min-height: 100vh;
 		min-width: 100%;
-		position: fixed;
+		position: absolute;
 	}
 }
 
 
 .middle-container{
-    height: 100vh;
+	.flexbox();
+    .justify-content(center);
+    .align-items(center);
+    min-height: 100vh;
     min-width: 100%;
-	display: flex;
-    justify-content: center;
-    align-items: center;
+	
 	.middle-content{
-		
+		.flexbox();
+		.align-items(center);
+		.flex-direction(column);
+
+		.alphabet-test{
+			position: relative;
+			display: inline-block;
+			margin-right: 4px;
+			width: 8px;
+			height: 0;
+			border-top: transparent solid 0;
+			border-right: transparent solid 16px;
+			border-bottom: black solid 48px;
+			border-left: transparent solid 16px;
+
+			&:before{
+				content: '';
+				display: block;
+        		position: absolute;
+        		top: 8px;
+				border-top: transparent solid 0;
+				border-right: transparent solid 4px;
+				border-bottom: white solid 16px;
+				border-left: transparent solid 4px;
+			}
+
+			&:after{
+				content: '';
+				display: block;
+        		position: absolute;
+				top: 32px;
+				left: -4px;
+				width: 8px;
+				border-top: transparent solid 0;
+				border-right: transparent solid 4px;
+				border-bottom: white solid 16px;
+				border-left: transparent solid 4px;
+			}
+		}
 	}
 }
 
-.test {
-	color: green;
+.alphabet{
+	&>div{
+		background: gray;
+	}
 }
