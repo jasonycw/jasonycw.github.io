@@ -21,3 +21,14 @@ Yeay, I got my `localhost:8080` and LESS.js working with my main.less now~
 Trying to center the content. Spent some time to make body tag full full height, and need to use `min-height: 100vh` instead of `min-height: 100%`
 
 Don't always trust auto complete, typo of `align-items` and `align-content` make me debug for no reason for 30 minutes....
+
+## 2016-10-07
+Squeeze some time to try making something interesting, making words with CSS only
+
+### LESS import files
+It seems that using browser's less.js cannot render the CSS properly by just put multiple line of `<link rel="stylesheet/less" href="./blablabla.less" />`. It needs to use `@import 'blablabl.less` in the .less file. The  weired thing is that I am not sure why some import structure works now.
+
+Right now, main.less import variable.lsee and global.less while global.less import function.less. But the weired thing is that main.less uses function.less functions and global.less use both variable.less and function.less.... Why the import works now? (Scratching my head)
+
+### Making CSS words
+After trying using `:before` and `:after` for making difference icons during word, I always want to try making characters with it. Saw some articles back then when Google changed their logo where it can be render with CSS. Lets start having some CSS fun :)
