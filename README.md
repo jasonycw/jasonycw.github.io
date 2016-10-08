@@ -18,7 +18,7 @@ Good to know [Node.js](https://nodejs.org/) have a modal called "[http-server](h
 Yeay, I got my `localhost:8080` and LESS.js working with my main.less now~
 
 ### Flex centering
-Trying to center the content. Spent some time to make body tag full full height, and need to use `min-height: 100vh` instead of `min-height: 100%`
+Trying to center the content. Spent some time to make body tag fill full height, and need to use `min-height: 100vh` instead of `min-height: 100%`
 
 Don't always trust auto complete, typo of `align-items` and `align-content` make me debug for no reason for 30 minutes....
 
@@ -26,9 +26,13 @@ Don't always trust auto complete, typo of `align-items` and `align-content` make
 Squeeze some time to try making something interesting, making words with CSS only
 
 ### LESS import files
-It seems that using browser's less.js cannot render the CSS properly by just put multiple line of `<link rel="stylesheet/less" href="./blablabla.less" />`. It needs to use `@import 'blablabl.less` in the .less file. The  weired thing is that I am not sure why some import structure works now.
+It seems that using browser's less.js cannot render the CSS properly by just put multiple line of `<link rel="stylesheet/less" href="./blablabla.less" />` in the .html file. It needs to use `@import 'blablabl.less` in the .less file. The  weired thing is that I am not sure why some import structure works now.
 
-Right now, main.less import variable.lsee and global.less while global.less import function.less. But the weired thing is that main.less uses function.less functions and global.less use both variable.less and function.less.... Why the import works now? (Scratching my head)
+Right now, main.less import variable.lsee and global.less while global.less import function.less. But the weired thing is that main.less uses function.less functions and global.less use both variables.less and function.less.... 
+
+If I only import global.less in main.less and import varialbes.less and function.less in global.less, it will have compilation error from global.less...
+
+Why the import works now? (Scratching my head)
 
 ### Making CSS words
 After trying using `:before` and `:after` for making difference icons during work, I always want to try making characters with it. 
