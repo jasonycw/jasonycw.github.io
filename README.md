@@ -77,10 +77,14 @@ index.html
 
 ### Hot reload
 Webpack dev server supports hot reload for .css and .js by watching files' changes. So tried that a bit. But I didn't want to be more overwhelm by even more [loader](https://github.com/AriaFallah/WebpackTutorial/tree/master/part1/html-reload), I just use VSCode to create 2 terminals. 
+
 One running `webpack-dev-server`, one running `webpack`. 
+
 So `webpack-dev-server` will do hot reload of the page and `webpack` will help update the `dist` folder that allow index.html to load the files properly.
 
+
 Final result is that `http://localhost:8080/` will response to the .less and .js changes from editor and only need to F5 the page when update the .html file.
+
 
 Well, not doing front end for a year makes everything feels miles away.
 So many terms, libraries need to be learn to just get started. :\
