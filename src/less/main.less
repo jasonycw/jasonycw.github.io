@@ -1,0 +1,130 @@
+@import 'variables.less';
+@import 'global.less';
+
+html{
+	min-height: 100vh;
+	margin: 0;
+	padding: 0;
+	body{
+		margin: 0;
+		padding: 0;
+		min-height: 100vh;
+		min-width: 100%;
+		position: absolute;
+	}
+}
+
+
+.middle-container{
+	.flexbox();
+    .justify-content(center);
+    .align-items(center);
+    min-height: 100vh;
+    min-width: 100%;
+	
+	.middle-content{
+		.flexbox();
+		.align-items(center);
+		.flex-direction(column);
+
+		div{
+			position: relative;
+			display: inline-block;
+			margin-right: 4px;
+		}
+	}
+}
+
+.alphabet{
+	// &>div{
+	// 	background: red;
+	// }
+}
+
+.alphabet-0{
+	width: 0px;
+	height: 16px;
+	.rounded_corners(50%);
+	border: black solid 16px;
+
+	&:before{
+		content: '';
+		display: block;
+		position: absolute;
+		top: -8px;
+		left: -8px;
+		width: 0px;
+		height: 16px;
+		.rounded_corners(50%);
+		border: white solid 8px;
+	}
+}
+
+.alphabet-4{
+	width: 8px;
+	height: 0;
+	top: -8px;
+	left: -4px;
+	border-top: red solid 0;
+	border-right: green solid 0;
+	border-bottom: black solid 40px;
+	border-left: transparent solid 18px;
+
+	&:before{
+		content: '';
+		display: block;
+		position: absolute;
+		top: 13px;
+		left: -7px;
+		border-top: transparent solid 0;
+		border-right: transparent solid 0;
+		border-bottom: white solid 19px;
+		border-left: transparent solid 7px;
+	}
+
+	&:after{
+		content: '';
+		display: block;
+		position: absolute;
+		top: 32px;
+		height: 8px;
+		width: 4px;
+		border-top: black solid 8px;
+		border-right: transparent solid 0;
+		border-bottom: transparent solid 0;
+		border-left: black solid 8px;
+	}
+}
+
+.alphabet-A{
+	width: 8px;
+	height: 0;
+	border-top: transparent solid 0;
+	border-right: transparent solid 16px;
+	border-bottom: black solid 48px;
+	border-left: transparent solid 16px;
+
+	&:before{
+		content: '';
+		display: block;
+		position: absolute;
+		top: 8px;
+		border-top: transparent solid 0;
+		border-right: transparent solid 4px;
+		border-bottom: white solid 16px;
+		border-left: transparent solid 4px;
+	}
+
+	&:after{
+		content: '';
+		display: block;
+		position: absolute;
+		top: 32px;
+		left: -4px;
+		width: 8px;
+		border-top: transparent solid 0;
+		border-right: transparent solid 4px;
+		border-bottom: white solid 16px;
+		border-left: transparent solid 4px;
+	}
+}

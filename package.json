@@ -1,0 +1,29 @@
+{
+  "name": "github.io",
+  "version": "0.0.1",
+  "description": "Start creating [jasonycw.github.io](https://jasonycw.github.io/).",
+  "main": "webpack.config.js",
+  "scripts": {
+    "test": "webpack-dev-server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jasonycw/jasonycw.github.io.git"
+  },
+  "author": "Jason Yu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jasonycw/jasonycw.github.io/issues"
+  },
+  "homepage": "https://github.com/jasonycw/jasonycw.github.io#readme",
+  "devDependencies": {
+    "webpack": "^4.1.0",
+    "webpack-dev-server": "^3.1.0",
+    "css-loader": "^0.28.10",
+    "extract-text-webpack-plugin": "^4.0.0-beta.0",
+    "less": "^3.0.1",
+    "less-loader": "^4.0.6",
+    "style-loader": "^0.20.2",
+    "webpack-cli": "^2.0.10"
+  }
+}
