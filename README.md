@@ -42,3 +42,45 @@ After trying using `:before` and `:after` for making difference icons during wor
 Saw some articles back then when Google changed their logo which can be render with CSS made me interested in the idea. Lets start having some CSS fun :)
 
 ![1 try](/Screenshots/1.png)
+
+## 2018-03-08
+Was trying to include some node.js in this repo for future reference.
+Then come across gulp and then Webpack which is .... very non-beginner friendly...
+
+### Webpack
+Goolged some bacis info on Webpack. Read [Ahsan Ayaz's article](https://medium.com/@ahsan.ayaz/beginners-guide-to-webpack-how-to-start-a-basic-application-with-webpack-2-ebed3172fa8c) and [Andre Ray's article](https://blog.andrewray.me/webpack-when-to-use-and-why/) to get some basic idea.
+
+Stucked at installing npm packages for quite some time. Wanted to follow the article to make some basic hello world program, but the command wasn't working. 
+Spent a lot of time to figure out why webpack-dev-server not working, turns out webpack-cli is not install correctly due to some [fork issue recently on their git](https://github.com/webpack/webpack-cli/issues/182). But somehow it start pulling correctly after a few try, maybe my timing is just right.
+
+### Less loader
+Then tried to add the [`less-loader`](https://github.com/webpack-contrib/less-loader) to do the LESS to CSS convertion. But wasn't able to make the [`extract-text-webpack-plugin`](https://github.com/webpack-contrib/extract-text-webpack-plugin) working. Turn out latest Webpack is not supporting the current version of Extract Text Plugin... need to [`npm install extract-webpack-plugin@next`](https://github.com/webpack/webpack/issues/6568) and use the beta version...
+
+After making Extract Text Plugin working, have no clue why the .less files are still not converted. Turn out Webpack only do what is included from the entry .js file. So adding `require('your.less');` will make it compile and create .css in the dist folder.
+And no need to require all .less files, less-loader will also handle `@import 'parent.less';`.
+
+### Boilerplate
+Even making the server working, codes are a pile of mess. Files are everywhere. So read a few boilerplate on github and try to copy others' folder structure. [This](https://github.com/seebaermichi/simple-webpack-less-es6-boilerplate) and [this](https://libraries.io/github/davidpelayo/webpack-js-less-boilerplate) seems to be a good start?
+
+Final settled on the following sturcture
+```
+dist\
+   bundle.js
+   style.css
+src\
+   js\
+      main.js
+   less\
+      main.less
+index.html
+```
+
+### Hot reload
+Webpack dev server support hot reload for .css and .js by watching files changes. So tried that a bit. But I don't want to be more overwhelm by even more [loader](https://github.com/AriaFallah/WebpackTutorial/tree/master/part1/html-reload), I just use VSCode to create 2 terminals. 
+One running `webpack-dev-server`, one running `webpack`. 
+So `webpack-dev-server` will do hot reload of the server page and `webpack` will help update the `dist` folder that allow index.html to load the files properly.
+
+Final result is that `http://localhost:8080/` will response to the .less and .js changes from editor and only need to F5 the page when update the .html file.
+
+Well, not doing front end for a year makes everything feels miles away.
+So many terms, libraries need to be learn to just get started. :\
