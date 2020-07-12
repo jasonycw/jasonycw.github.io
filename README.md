@@ -1,8 +1,5 @@
 # Development log
 
-## 2020-07-12
-🤯 https://zerodivs.com/
-
 ## 2016-10-06
 Start creating [jasonycw.github.io](https://jasonycw.github.io/).
 
@@ -91,3 +88,7 @@ Final result is that `http://localhost:8080/` will response to the .less and .js
 
 Well, not doing front end for a year makes everything feels miles away.
 So many terms, libraries need to be learn to just get started. :\
+
+## 2020-07-12
+🤯 https://zerodivs.com/
+
