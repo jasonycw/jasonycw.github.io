@@ -1,5 +1,8 @@
 # Development log
 
+## 2020-07-12
+🤯 https://zerodivs.com/
+
 ## 2016-10-06
 Start creating [jasonycw.github.io](https://jasonycw.github.io/).
 
