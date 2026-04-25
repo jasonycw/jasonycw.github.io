@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="Whiter than white">
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="og-image.jpg">
+    <meta property="og:description" content="If your screen supports it.">
+    <meta property="og:site_name" content="Jason Yu">
+    <title>Whiter than white</title>
+    <style>
+        /* Reset margins and set the fully black background */
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100vh;
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* Using a system font stack that supports bold Chinese characters well */
+            font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans TC", sans-serif;
+            overflow: hidden;
+        }
+
+        /* Container to space the characters evenly */
+        .text-container {
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            width: 100%;
+            padding: 0 5%;
+            /* Slight padding to keep characters off the screen edges */
+        }
+
+        /* Base styling for the characters */
+        .char {
+            /* Responsive font size based on viewport width, keeping it large and bold */
+            font-size: clamp(4rem, 18vw, 25rem);
+            font-weight: 900;
+            /* Maximum boldness for better image visibility */
+
+            /* Make the actual text color transparent to reveal the background underneath */
+            color: transparent;
+
+            /* Clip the background to the shape of the text */
+            -webkit-background-clip: text;
+            background-clip: text;
+
+            /* Position the background nicely within the letter */
+            background-position: center;
+            background-size: cover;
+            background-repeat: no-repeat;
+
+            /* We add a white fallback color just in case the images haven't loaded yet */
+            background-color: white;
+
+            /* Ensure it remains highlightable as text */
+            user-select: text;
+            -webkit-user-select: text;
+            cursor: text;
+        }
+
+        /* Specific background images for each character */
+        /* Make sure 0.jpg, 1.jpg, 2.jpg, and 3.jpg are in the same folder as this HTML file */
+        .char-1 {
+            background-image: url('0.png');
+        }
+
+        .char-2 {
+            background-image: url('1.jpg');
+        }
+
+        .char-3 {
+            background-image: url('2.jpg');
+        }
+
+        .char-4 {
+            background-image: url('3.jpg');
+        }
+
+        /* Custom highlight color so it looks good when selecting transparent text */
+        ::selection {
+            background-color: rgba(255, 255, 255, 0.9);
+            -webkit-text-fill-color: black;
+            /* Fills the text with black when highlighted */
+            color: black;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="text-container">
+        <span class="char char-1">越</span>
+        <span class="char char-2">來</span>
+        <span class="char char-3">越</span>
+        <span class="char char-4">光</span>
+    </div>
+
+</body>
+
+</html>
