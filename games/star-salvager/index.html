@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Star Salvager</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="hud">
+      <h1>Star Salvager</h1>
+      <p>Score: <span id="score">0</span></p>
+      <p>Hull: <span id="health">100</span>%</p>
+      <p>Wave: <span id="wave">1</span></p>
+      <p class="hint">WASD / Arrow Keys to move • Mouse to aim • Click / Space to fire • Shift to boost</p>
+    </div>
+
+    <div id="overlay">
+      <div class="card">
+        <h2>Hold the Drift Lane</h2>
+        <p>
+          Rogue drones are stealing scrap from your station. Survive and clear waves to keep your lane open.
+        </p>
+        <button id="startBtn">Start Mission</button>
+      </div>
+    </div>
+
+    <script type="module" src="./game.js"></script>
+  </body>
+</html>
