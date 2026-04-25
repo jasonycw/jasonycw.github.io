@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Neon Asteroid Blitz</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main id="app">
+      <div id="hud">
+        <h1>Neon Asteroid Blitz</h1>
+        <p><strong>Score:</strong> <span id="score">0</span></p>
+        <p><strong>Lives:</strong> <span id="lives">3</span></p>
+        <p id="status">Survive and blast asteroids!</p>
+        <p class="hint">Move: WASD / Arrow Keys · Shoot: Left Click or Space · Restart: R</p>
+      </div>
+      <div id="crosshair"></div>
+    </main>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.163.0/build/three.module.js"
+        }
+      }
+    </script>
+    <script type="module" src="./game.js"></script>
+  </body>
+</html>
