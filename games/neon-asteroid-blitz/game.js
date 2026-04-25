@@ -23,7 +23,8 @@ camera.lookAt(0, 0, 0);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(initialWidth, initialHeight);
-appEl.appendChild(renderer.domElement);
+renderer.domElement.setAttribute('aria-label', 'Neon Asteroid Blitz game canvas');
+appEl.prepend(renderer.domElement);
 
 const hemiLight = new THREE.HemisphereLight(0x98ddff, 0x0f1527, 0.9);
 scene.add(hemiLight);
