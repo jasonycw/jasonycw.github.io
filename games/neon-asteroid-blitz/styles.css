@@ -21,6 +21,15 @@ canvas {
   display: block;
 }
 
+#app {
+  position: relative;
+}
+
+.game-canvas {
+  position: absolute;
+  inset: 0;
+}
+
 #hud {
   position: fixed;
   z-index: 5;
