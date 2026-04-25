@@ -4,18 +4,26 @@ const scoreEl = document.getElementById('score');
 const livesEl = document.getElementById('lives');
 const statusEl = document.getElementById('status');
 const crosshairEl = document.getElementById('crosshair');
+const appEl = document.getElementById('app');
+
+if (!appEl) {
+  throw new Error('Missing #app container for renderer mount.');
+}
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x050914, 0.045);
 
-const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 1000);
+const initialWidth = appEl.clientWidth || window.innerWidth;
+const initialHeight = appEl.clientHeight || window.innerHeight;
+
+const camera = new THREE.PerspectiveCamera(58, initialWidth / initialHeight, 0.1, 1000);
 camera.position.set(0, 26, 22);
 camera.lookAt(0, 0, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+renderer.setSize(initialWidth, initialHeight);
+appEl.appendChild(renderer.domElement);
 
 const hemiLight = new THREE.HemisphereLight(0x98ddff, 0x0f1527, 0.9);
 scene.add(hemiLight);
@@ -228,9 +236,11 @@ window.addEventListener('mousedown', (e) => {
 });
 
 window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
+  const width = appEl.clientWidth || window.innerWidth;
+  const height = appEl.clientHeight || window.innerHeight;
+  camera.aspect = width / height;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(width, height);
 });
 
 updateHUD();
