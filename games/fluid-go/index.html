@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>⚪ Fluid Go ⚫</title>
+    <style>
+        body {
+            background-color: #1e272e;
+            color: #ecf0f1;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+            user-select: none;
+        }
+
+        h1 {
+            margin: 0 0 15px 0;
+            color: #0fbcf9;
+        }
+
+        .canvas-container {
+            position: relative;
+            max-width: 100%;
+        }
+
+        canvas {
+            background-color: #DCB35C;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+            cursor: crosshair;
+            border-radius: 4px;
+            max-width: 100%;
+            height: auto;
+            touch-action: none;
+            /* Prevent scrolling while dragging on touch */
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 6px;
+            border: none;
+            background: #3c40c6;
+            color: white;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button:hover {
+            background: #575fcf;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .turn-display {
+            font-size: 20px;
+            font-weight: bold;
+            padding: 8px 16px;
+            background: #2f3640;
+            border-radius: 6px;
+            border: 2px solid #575fcf;
+        }
+
+        #message {
+            margin-top: 15px;
+            height: 24px;
+            color: #ff3f34;
+            font-weight: bold;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .panel {
+            background: #2f3640;
+            padding: 25px;
+            border-radius: 8px;
+            margin-top: 25px;
+            max-width: 600px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            font-size: 15px;
+        }
+
+        .panel h3 {
+            margin-top: 0;
+            color: #0fbcf9;
+        }
+
+        .panel ul {
+            padding-left: 20px;
+            margin-bottom: 0;
+        }
+
+        .panel li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>⚪ Fluid Go ⚫</h1>
+
+    <div class="canvas-container">
+        <canvas id="gameCanvas" width="600" height="600"></canvas>
+    </div>
+
+    <div class="controls">
+        <div id="turnDisplay" class="turn-display">Black's Turn</div>
+        <button id="snapToggle" onclick="toggleSnap()">Snap: ON</button>
+        <button onclick="passTurn()">Pass Turn</button>
+        <button onclick="resetGame()" style="background: #e15f41;">Reset</button>
+    </div>
+
+    <div id="message"></div>
+
+    <div class="panel">
+        <h3>How to Play</h3>
+        <ul>
+            <li><strong>Goal:</strong> Surround the opponent's stones with your continuous fluid influence to capture
+                them.</li>
+            <li><strong>Desktop:</strong> Left Click to place. Hold <code>Shift</code> to place continuously instead of
+                snapping to grid.</li>
+            <li><strong>Touch:</strong> Drag to preview placement, release to place. Use "Snap: ON/OFF" button to toggle
+                free placement.</li>
+            <li><strong>Connectivity:</strong> Stones close to each other merge into a single connected group.</li>
+            <li><strong>Capture Rule:</strong> A group survives as long as its boundary is not completely submerged by
+                the opponent's fluid force field.</li>
+        </ul>
+    </div>
+
+    <script>
+        window.onload = function () {
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const turnDisplay = document.getElementById('turnDisplay');
+            const msgDisplay = document.getElementById('message');
+            const snapToggleBtn = document.getElementById('snapToggle');
+
+            // Grid and Dimensions Configuration
+            const W = 600, H = 600;
+            const margin = 30;
+            const spacing = (W - 2 * margin) / 18; // 19x19 board
+
+            // Fluid Logic & Rules Configuration
+            const SIGMA = 25;                       // Standard deviation for influence spread
+            const RADIUS = SIGMA * 2.5;             // Max calculation radius per stone
+            const MAX_INF = 120;                    // Core influence intensity
+            const THRESHOLD = 50;                   // The threshold at which fluid visually begins
+            const CONNECT_DIST = 35;                // Maximum distance to form a connected group
+            const R_LIBERTY = 32;                   // Radius to sample perimeter points for liberties
+            const MIN_DIST = 20;                    // Minimum physical distance between any two stones
+
+            // Game State
+            let stones = [];
+            let turn = 1; // 1: Black, -1: White
+            let fluidNeedsUpdate = true;
+            let forceSnap = true;
+            let isShiftDown = false;
+
+            let mouseX = 0, mouseY = 0;
+            let mousePos = null;
+
+            // Offscreen Canvases for optimized fluid calculations
+            const offCanvas = document.createElement('canvas');
+            offCanvas.width = W; offCanvas.height = H;
+            const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
+
+            const fluidCacheCanvas = document.createElement('canvas');
+            fluidCacheCanvas.width = W; fluidCacheCanvas.height = H;
+            const fluidCacheCtx = fluidCacheCanvas.getContext('2d');
+
+            // --- Pre-bake the Gaussian Gradients for massive performance boost ---
+            function createStamp(color) {
+                const stamp = document.createElement('canvas');
+                stamp.width = RADIUS * 2;
+                stamp.height = RADIUS * 2;
+                const sCtx = stamp.getContext('2d');
+
+                let grad = sCtx.createRadialGradient(RADIUS, RADIUS, 0, RADIUS, RADIUS, RADIUS);
+
+                function getStop(d) {
+                    return Math.floor(MAX_INF * Math.exp(-((d * 2.5) ** 2) / 2));
+                }
+
+                if (color === 1) { // Black influence stores in RED channel
+                    for (let d = 0; d <= 1; d += 0.05) grad.addColorStop(d, `rgb(${getStop(d)}, 0, 0)`);
+                } else {           // White influence stores in GREEN channel
+                    for (let d = 0; d <= 1; d += 0.05) grad.addColorStop(d, `rgb(0, ${getStop(d)}, 0)`);
+                }
+
+                sCtx.fillStyle = grad;
+                sCtx.beginPath();
+                sCtx.arc(RADIUS, RADIUS, RADIUS, 0, Math.PI * 2);
+                sCtx.fill();
+                return stamp;
+            }
+            const blackStamp = createStamp(1);
+            const whiteStamp = createStamp(-1);
+
+
+            // --- Game Logistics ---
+
+            function showMessage(msg) {
+                msgDisplay.innerText = msg;
+                setTimeout(() => { if (msgDisplay.innerText === msg) msgDisplay.innerText = ''; }, 3000);
+            }
+
+            window.toggleSnap = function () {
+                forceSnap = !forceSnap;
+                snapToggleBtn.innerText = forceSnap ? "Snap: ON" : "Snap: OFF";
+                if (mousePos) {
+                    mousePos = getPlacementPos();
+                    render();
+                }
+            };
+
+            window.passTurn = function () {
+                turn = -turn;
+                turnDisplay.innerText = turn === 1 ? "Black's Turn" : "White's Turn";
+                turnDisplay.style.borderColor = turn === 1 ? "#575fcf" : "#f1c40f";
+                showMessage("Player passed.");
+                render();
+            };
+
+            window.resetGame = function () {
+                stones = [];
+                turn = 1;
+                turnDisplay.innerText = "Black's Turn";
+                turnDisplay.style.borderColor = "#575fcf";
+                fluidNeedsUpdate = true;
+                showMessage("Game reset.");
+                render();
+            };
+
+            function getGroups(color) {
+                let unvisited = stones.filter(s => s.color === color);
+                let groups = [];
+                while (unvisited.length > 0) {
+                    let group = [];
+                    let queue = [unvisited.pop()];
+                    while (queue.length > 0) {
+                        let curr = queue.pop();
+                        group.push(curr);
+                        for (let i = unvisited.length - 1; i >= 0; i--) {
+                            let other = unvisited[i];
+                            if (Math.hypot(curr.x - other.x, curr.y - other.y) <= CONNECT_DIST) {
+                                queue.push(other);
+                                unvisited.splice(i, 1);
+                            }
+                        }
+                    }
+                    groups.push(group);
+                }
+                return groups;
+            }
+
+            // Accurate analytical mathematical check for simulation mechanics
+            function getInfluenceAt(x, y, color) {
+                let sum = 0;
+                for (let s of stones) {
+                    if (s.color === color) {
+                        let distSq = (s.x - x) ** 2 + (s.y - y) ** 2;
+                        sum += MAX_INF * Math.exp(-distSq / (2 * SIGMA * SIGMA));
+                    }
+                }
+                return sum;
+            }
+
+            function hasLiberty(group) {
+                let color = group[0].color;
+                for (let s of group) {
+                    // Check a perimeter loop around every stone in the group
+                    for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
+                        let px = s.x + Math.cos(a) * R_LIBERTY;
+                        let py = s.y + Math.sin(a) * R_LIBERTY;
+
+                        // Rule: Wall-Adhesion Behavior
+                        if (px < margin - 15 || px > W - margin + 15 || py < margin - 15 || py > H - margin + 15) continue;
+
+                        // Ignore points embedded inside other stones of the exact same group
+                        let internal = false;
+                        for (let other of group) {
+                            if (other !== s && Math.hypot(other.x - px, other.y - py) < R_LIBERTY - 2) {
+                                internal = true; break;
+                            }
+                        }
+                        if (internal) continue;
+
+                        let myInf = getInfluenceAt(px, py, color);
+                        let opInf = getInfluenceAt(px, py, -color);
+
+                        // True liberty if perimeter is NOT submerged by opposing fluid
+                        if (opInf < THRESHOLD || myInf > opInf) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            function checkCaptures(color) {
+                let groups = getGroups(color);
+                let captured = [];
+                for (let g of groups) {
+                    if (!hasLiberty(g)) {
+                        captured.push(...g);
+                    }
+                }
+                stones = stones.filter(s => !captured.includes(s));
+                return captured.length;
+            }
+
+            function tryPlaceStone() {
+                let pos = getPlacementPos();
+
+                // Placement collision bounds
+                for (let s of stones) {
+                    if (Math.hypot(s.x - pos.x, s.y - pos.y) < MIN_DIST) {
+                        showMessage("Too close to another stone!");
+                        return;
+                    }
+                }
+
+                let backupStones = stones.map(s => ({ ...s }));
+                let newStone = { x: pos.x, y: pos.y, color: turn };
+                stones.push(newStone);
+
+                // Continuous Capture & Suicide Rule check
+                let opponentCaptured = checkCaptures(-turn);
+                let myCaptured = checkCaptures(turn);
+
+                if (myCaptured > 0 && opponentCaptured === 0) {
+                    stones = backupStones;
+                    showMessage("Suicide move is not allowed.");
+                    return;
+                }
+
+                if (opponentCaptured > 0) {
+                    showMessage(`Captured ${opponentCaptured} stone(s)!`);
+                }
+
+                fluidNeedsUpdate = true;
+                turn = -turn;
+                turnDisplay.innerText = turn === 1 ? "Black's Turn" : "White's Turn";
+                turnDisplay.style.borderColor = turn === 1 ? "#575fcf" : "#f1c40f";
+                render();
+            }
+
+
+            // --- Core Rendering & UI Event Handlers ---
+
+            function updateFluidCache() {
+                offCtx.fillStyle = 'black';
+                offCtx.fillRect(0, 0, W, H);
+                offCtx.globalCompositeOperation = 'lighter';
+
+                // Draw stamps
+                for (let s of stones) {
+                    let stamp = s.color === 1 ? blackStamp : whiteStamp;
+                    offCtx.drawImage(stamp, s.x - RADIUS, s.y - RADIUS);
+                }
+
+                // Convert overlap arrays to fluid Metaballs visualization
+                let imgData = offCtx.getImageData(0, 0, W, H);
+                let data = imgData.data;
+
+                let outData = fluidCacheCtx.createImageData(W, H);
+                let mData = outData.data;
+
+                for (let i = 0; i < data.length; i += 4) {
+                    let r = data[i];   // Black influence sum
+                    let g = data[i + 1]; // White influence sum
+
+                    let maxV = Math.max(r, g);
+                    if (maxV > THRESHOLD) {
+                        let alpha = Math.min(240, (maxV - THRESHOLD) * 8); // Sharp falloff
+                        if (r > g) {
+                            mData[i] = 30; mData[i + 1] = 30; mData[i + 2] = 30; mData[i + 3] = alpha;
+                        } else if (g > r) {
+                            mData[i] = 240; mData[i + 1] = 240; mData[i + 2] = 240; mData[i + 3] = alpha;
+                        } else {
+                            mData[i] = 135; mData[i + 1] = 135; mData[i + 2] = 135; mData[i + 3] = alpha;
+                        }
+                    }
+                }
+                fluidCacheCtx.putImageData(outData, 0, 0);
+                fluidNeedsUpdate = false;
+            }
+
+            function drawBoard() {
+                ctx.fillStyle = '#DCB35C';
+                ctx.fillRect(0, 0, W, H);
+
+                ctx.strokeStyle = '#222';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let i = 0; i <= 18; i++) {
+                    let pos = margin + i * spacing;
+                    ctx.moveTo(pos, margin); ctx.lineTo(pos, H - margin);
+                    ctx.moveTo(margin, pos); ctx.lineTo(W - margin, pos);
+                }
+                ctx.stroke();
+
+                ctx.fillStyle = '#222';
+                [3, 9, 15].forEach(i => {
+                    [3, 9, 15].forEach(j => {
+                        ctx.beginPath();
+                        ctx.arc(margin + i * spacing, margin + j * spacing, 3.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                });
+            }
+
+            function render() {
+                drawBoard();
+
+                // Draw Fluid Meta-balls (Cached unless stones mutated)
+                if (fluidNeedsUpdate) {
+                    updateFluidCache();
+                }
+                ctx.drawImage(fluidCacheCanvas, 0, 0);
+
+                // Draw placed stone physical hard cores
+                for (let s of stones) {
+                    ctx.fillStyle = s.color === 1 ? '#000' : '#fff';
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Draw Preview Reticle
+                if (mousePos) {
+                    ctx.globalAlpha = 0.6;
+                    ctx.fillStyle = turn === 1 ? '#000' : '#fff';
+                    ctx.beginPath();
+                    ctx.arc(mousePos.x, mousePos.y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.strokeStyle = turn === 1 ? '#000' : '#fff';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(mousePos.x, mousePos.y, CONNECT_DIST, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.globalAlpha = 1.0;
+                }
+            }
+
+            // Input handlers
+            function getMousePos(e) {
+                let rect = canvas.getBoundingClientRect();
+                let scaleX = canvas.width / rect.width;
+                let scaleY = canvas.height / rect.height;
+                return {
+                    x: (e.clientX - rect.left) * scaleX,
+                    y: (e.clientY - rect.top) * scaleY
+                };
+            }
+
+            function getPlacementPos() {
+                if (isShiftDown || !forceSnap) {
+                    let x = Math.max(margin, Math.min(W - margin, mouseX));
+                    let y = Math.max(margin, Math.min(H - margin, mouseY));
+                    return { x, y };
+                } else {
+                    let relX = mouseX - margin;
+                    let relY = mouseY - margin;
+                    let gridX = Math.max(0, Math.min(18, Math.round(relX / spacing)));
+                    let gridY = Math.max(0, Math.min(18, Math.round(relY / spacing)));
+                    return {
+                        x: margin + gridX * spacing,
+                        y: margin + gridY * spacing
+                    };
+                }
+            }
+
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Shift' && !isShiftDown) {
+                    isShiftDown = true;
+                    if (mousePos) mousePos = getPlacementPos();
+                    render();
+                }
+            });
+            window.addEventListener('keyup', (e) => {
+                if (e.key === 'Shift' && isShiftDown) {
+                    isShiftDown = false;
+                    if (mousePos) mousePos = getPlacementPos();
+                    render();
+                }
+            });
+
+            // Desktop Mouse controls
+            canvas.addEventListener('mousemove', (e) => {
+                let pos = getMousePos(e);
+                mouseX = pos.x; mouseY = pos.y;
+                mousePos = getPlacementPos();
+                render();
+            });
+
+            canvas.addEventListener('mouseleave', () => {
+                mousePos = null;
+                render();
+            });
+
+            canvas.addEventListener('mousedown', (e) => {
+                if (e.button === 0 && mousePos) tryPlaceStone();
+            });
+
+            // Mobile Touch controls
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                let pos = getMousePos(e.touches[0]);
+                mouseX = pos.x; mouseY = pos.y;
+                mousePos = getPlacementPos();
+                render();
+            }, { passive: false });
+
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                let pos = getMousePos(e.touches[0]);
+                mouseX = pos.x; mouseY = pos.y;
+                mousePos = getPlacementPos();
+                render();
+            }, { passive: false });
+
+            canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                if (mousePos) {
+                    tryPlaceStone();
+                    mousePos = null;
+                    render();
+                }
+            }, { passive: false });
+
+            // Initial Launch
+            render();
+        };
+    </script>
+</body>
+
+</html>
