@@ -30,7 +30,7 @@ It is a static web app: `index.html` includes the HTML, CSS, and JavaScript need
 - `index.html` — the complete game application, including UI, rules engine, AI, scoring, canvas rendering, and WebRTC/PeerJS networking.
 - `README.md` — this documentation file.
 
-A companion folder, `../blokud-online/`, exists only as a redirect for the misspelled path used in the original request. The playable canonical route is `../blokus-online/`.
+The canonical folder and playable route are both `blokus-online`.
 
 ## Public CDN libraries
 
