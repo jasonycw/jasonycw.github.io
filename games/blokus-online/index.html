@@ -546,6 +546,24 @@
             return unique;
         }
 
+        function matricesEqual(a, b) {
+            return Array.isArray(a) && Array.isArray(b) &&
+                a.length === b.length &&
+                a.every((row, r) => Array.isArray(row) && Array.isArray(b[r]) &&
+                    row.length === b[r].length && row.every((cell, c) => cell === b[r][c]));
+        }
+
+        function isLegalPieceRequest(playerNum, pieceIndex, matrix) {
+            const player = players[playerNum - 1];
+            return Boolean(
+                player &&
+                Number.isInteger(pieceIndex) &&
+                pieceIndex >= 0 && pieceIndex < SHAPES_DATA.length &&
+                player.pieces[pieceIndex] &&
+                getUniqueOrientations(SHAPES_DATA[pieceIndex]).some(orientation => matricesEqual(orientation, matrix))
+            );
+        }
+
         function runAITurn() {
             const p = players[currentTurnIdx];
             if (p.hasPassed) return nextTurn();
@@ -599,6 +617,7 @@
             }
 
             clearActivePiece();
+            renderBoard();
             renderPlayers();
             renderInventory();
 
@@ -1299,6 +1318,7 @@ ${standings}`;
                         if (
                             data.playerNum === assignedPlayerId &&
                             currentTurnIdx === data.playerNum - 1 &&
+                            isLegalPieceRequest(data.playerNum, data.pieceIndex, data.matrix) &&
                             isValidMove(data.playerNum, data.matrix, data.bX, data.bY)
                         ) {
                             placePiece(data.playerNum, data.matrix, data.bX, data.bY, data.pieceIndex);
@@ -1339,7 +1359,7 @@ ${standings}`;
 
         function broadcastState() {
             if (!isHost) return;
-            const state = { type: 'STATE_UPDATE', board, players, currentTurnIdx };
+            const state = { type: 'STATE_UPDATE', board, players, currentTurnIdx, isGameOver };
             hostConnections.forEach(c => c.send(state));
         }
 
@@ -1386,9 +1406,17 @@ ${standings}`;
                         board = data.board;
                         players = data.players;
                         let newTurn = data.currentTurnIdx;
+                        isGameOver = Boolean(data.isGameOver) || players.every(p => p.hasPassed);
 
                         renderBoard();
                         renderPlayers();
+
+                        if (isGameOver) {
+                            currentTurnIdx = newTurn;
+                            renderInventory();
+                            showGameOver();
+                            return;
+                        }
 
                         if (newTurn !== currentTurnIdx) {
                             currentTurnIdx = newTurn - 1;
