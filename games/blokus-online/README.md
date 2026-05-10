@@ -26,8 +26,8 @@ Public entry points:
 1. Host opens the game and selects **Host Online Game**.
 2. The page creates a `BLK-` prefixed room ID and displays it in the host lobby.
 3. The host lobby shows every color, who controls it, and whether an online player has joined before the game starts.
-4. Joining players open the game, choose **Join Online Game**, enter the suffix after the fixed `BLK-` prefix, and see their assigned color or a connection error.
-5. The host starts the match after seats are ready.
+4. Joining players open the game, choose **Join Online Game**, enter a valid six-character suffix after the fixed `BLK-` prefix, then choose one of the currently open colors or see a connection error.
+5. The host starts the match after every online-open color has been chosen, or switches any empty online slots to AI/local control first.
 6. The host remains authoritative for game state validation and broadcasts state updates to peers.
 
 ## Notes

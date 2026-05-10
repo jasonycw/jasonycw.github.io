@@ -185,7 +185,7 @@
                 <label for="join-id-input" class="block text-sm font-bold text-gray-700 mb-1">Room code</label>
                 <div class="flex rounded-lg border-2 border-gray-300 focus-within:border-purple-500 overflow-hidden mb-3 bg-white">
                     <span class="px-3 py-3 bg-purple-50 text-purple-800 font-mono font-bold border-r border-gray-300">BLK-</span>
-                    <input type="text" id="join-id-input" placeholder="ABC123" maxlength="10"
+                    <input type="text" id="join-id-input" placeholder="ABC123" maxlength="10" oninput="validateJoinCodeInput()"
                         class="flex-1 min-w-0 px-3 py-3 focus:outline-none uppercase font-mono text-xl tracking-widest">
                 </div>
 
@@ -196,8 +196,8 @@
                 <div class="flex gap-4">
                     <button onclick="navTo('main')"
                         class="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg shadow font-bold">Cancel</button>
-                    <button id="btn-join-connect" onclick="joinOnlineGame()"
-                        class="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 font-bold">Connect</button>
+                    <button id="btn-join-connect" onclick="joinOnlineGame()" disabled
+                        class="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 font-bold disabled:opacity-50 disabled:cursor-not-allowed">Connect</button>
                 </div>
             </div>
         </div>
@@ -673,7 +673,7 @@
                 document.getElementById('join-status').className = 'rounded-lg bg-blue-50 text-blue-700 border border-blue-100 px-3 py-2 text-center font-semibold text-sm mb-3';
                 document.getElementById('join-assignment-card').classList.add('hidden');
                 document.getElementById('join-lobby-list').classList.add('hidden');
-                document.getElementById('btn-join-connect').disabled = false;
+                validateJoinCodeInput();
             } else if (screen === 'game') {
                 document.getElementById('screen-game').classList.remove('hidden');
                 document.getElementById('game-over-overlay').classList.add('hidden');
@@ -786,16 +786,21 @@
             const target = document.getElementById(targetId);
             if (!target) return;
 
+            const canChooseSeat = targetId === 'join-lobby-list' && isClient && myPlayerIds.length === 0;
             target.innerHTML = '';
             seats.forEach(seat => {
                 const div = document.createElement('div');
                 div.className = `rounded-lg border p-2 bg-white ${seat.state === 'Joined' ? 'border-green-300' : seat.state === 'Waiting' ? 'border-yellow-300' : 'border-gray-200'}`;
+                const chooseButton = canChooseSeat && seat.type === 'open'
+                    ? `<button onclick="requestSeat(${seat.id})" class="mt-2 w-full px-2 py-1 rounded bg-purple-600 text-white font-bold hover:bg-purple-700">Choose ${escapeHtml(seat.color)}</button>`
+                    : '';
                 div.innerHTML = `
                     <div class="flex items-center justify-between gap-2">
                         <span class="font-bold bg-player-${seat.id} px-2 py-1 rounded">P${seat.id} ${escapeHtml(seat.color)}</span>
                         <span class="font-semibold ${seat.state === 'Joined' ? 'text-green-700' : seat.state === 'Waiting' ? 'text-yellow-700' : 'text-gray-600'}">${escapeHtml(seat.state)}</span>
                     </div>
                     <div class="mt-1 text-gray-700 truncate">${escapeHtml(seat.controller)}</div>
+                    ${chooseButton}
                 `;
                 target.appendChild(div);
             });
@@ -1183,6 +1188,21 @@ ${standings}`;
             return cleaned.startsWith(ROOM_ID_PREFIX) ? cleaned : ROOM_ID_PREFIX + cleaned.replace(/^BLK-?/, '');
         }
 
+        function isValidRoomId(value) {
+            return new RegExp(`^${ROOM_ID_PREFIX}[A-Z0-9]{6}$`).test(normalizeRoomId(value));
+        }
+
+        function validateJoinCodeInput() {
+            const input = document.getElementById('join-id-input');
+            const button = document.getElementById('btn-join-connect');
+            if (!input || !button) return false;
+
+            input.value = normalizeRoomId(input.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')).replace(ROOM_ID_PREFIX, '');
+            const isValid = isValidRoomId(input.value);
+            button.disabled = !isValid || Boolean(conn);
+            return isValid;
+        }
+
         function setJoinStatus(message, tone = 'info') {
             const el = document.getElementById('join-status');
             const tones = {
@@ -1198,13 +1218,22 @@ ${standings}`;
         function renderJoinAssignment(assignedId, message) {
             const card = document.getElementById('join-assignment-card');
             if (assignedId === -1) {
-                card.className = 'rounded-lg border border-red-200 bg-red-50 text-red-700 p-3 mb-3 text-sm';
-                card.innerHTML = `<strong>Not joined:</strong> ${escapeHtml(message || 'No open online colors are available.')}`;
+                const canChoose = !message || /choose|pick|no longer open/i.test(message);
+                card.className = canChoose
+                    ? 'rounded-lg border border-yellow-200 bg-yellow-50 text-yellow-800 p-3 mb-3 text-sm'
+                    : 'rounded-lg border border-red-200 bg-red-50 text-red-700 p-3 mb-3 text-sm';
+                card.innerHTML = `<strong>${canChoose ? 'Choose a color' : 'Not joined'}:</strong> ${escapeHtml(message || 'Pick an open online color below.')}`;
             } else {
                 card.className = 'rounded-lg border border-green-200 bg-green-50 text-green-800 p-3 mb-3 text-sm';
                 card.innerHTML = `<strong>Joined as Player ${assignedId} (${PLAYER_COLOR_NAMES[assignedId - 1]}).</strong><br>Wait here until the host starts the game.`;
             }
             card.classList.remove('hidden');
+        }
+
+        function requestSeat(playerId) {
+            if (!conn || myPlayerIds.length > 0) return;
+            conn.send({ type: 'SLOT_REQ', playerNum: playerId });
+            setJoinStatus(`Requesting Player ${playerId} (${PLAYER_COLOR_NAMES[playerId - 1]})...`, 'waiting');
         }
 
         function hostOnlineGame() {
@@ -1227,30 +1256,18 @@ ${standings}`;
                 hostConnections.push(connection);
 
                 connection.on('open', () => {
-                    let assignedSlot = -1;
-                    let welcomeMessage = '';
+                    let welcomeMessage = 'Choose an open color below.';
 
                     if (onlineGameStarted) {
                         welcomeMessage = 'This game has already started.';
-                    } else {
-                        for (let i = 1; i <= 4; i++) {
-                            let sel = document.getElementById(`setup-p${i}`);
-                            if (sel.value === 'open') {
-                                sel.value = 'remote';
-                                sel.disabled = true;
-                                assignedSlot = i;
-                                break;
-                            }
-                        }
-                        if (assignedSlot === -1) {
-                            welcomeMessage = 'The lobby has no open online colors.';
-                        }
+                    } else if (!getHostLobbySeats().some(seat => seat.type === 'open')) {
+                        welcomeMessage = 'The lobby has no open online colors.';
                     }
 
-                    connection.assignedPlayerId = assignedSlot;
-                    connection.displayName = assignedSlot === -1 ? 'Spectator' : `Remote Player ${assignedSlot}`;
+                    connection.assignedPlayerId = -1;
+                    connection.displayName = 'Choosing color';
                     const seats = updateLobbyState();
-                    connection.send({ type: 'WELCOME', assignedId: assignedSlot, roomId: networkId, seats, message: welcomeMessage });
+                    connection.send({ type: 'WELCOME', assignedId: -1, roomId: networkId, seats, message: welcomeMessage });
                 });
 
                 connection.on('data', data => {
@@ -1259,6 +1276,25 @@ ${standings}`;
                     if (data.type === 'JOIN_INFO') {
                         connection.displayName = (data.name || '').trim().slice(0, 18) || connection.displayName;
                         updateLobbyState();
+                    } else if (data.type === 'SLOT_REQ') {
+                        const requestedSlot = Number(data.playerNum);
+                        const sel = document.getElementById(`setup-p${requestedSlot}`);
+
+                        if (
+                            !onlineGameStarted &&
+                            connection.assignedPlayerId === -1 &&
+                            requestedSlot >= 1 && requestedSlot <= 4 &&
+                            sel && sel.value === 'open'
+                        ) {
+                            sel.value = 'remote';
+                            sel.disabled = true;
+                            connection.assignedPlayerId = requestedSlot;
+                            const seats = updateLobbyState();
+                            connection.send({ type: 'WELCOME', assignedId: requestedSlot, roomId: networkId, seats, message: '' });
+                        } else {
+                            const seats = updateLobbyState();
+                            connection.send({ type: 'WELCOME', assignedId: -1, roomId: networkId, seats, message: onlineGameStarted ? 'This game has already started.' : 'That color is no longer open. Choose another open color.' });
+                        }
                     } else if (data.type === 'MOVE_REQ') {
                         if (
                             data.playerNum === assignedPlayerId &&
@@ -1309,8 +1345,9 @@ ${standings}`;
 
         function joinOnlineGame() {
             const id = normalizeRoomId(document.getElementById('join-id-input').value);
-            if (!id || id === ROOM_ID_PREFIX) {
-                setJoinStatus('Enter the room code after BLK-.', 'error');
+            if (!isValidRoomId(id)) {
+                setJoinStatus('Room codes must match BLK-ABC123 using 6 letters or numbers.', 'error');
+                validateJoinCodeInput();
                 return;
             }
 
@@ -1334,7 +1371,9 @@ ${standings}`;
                         currentTurnIdx = -1;
                         myPlayerIds = data.assignedId !== -1 ? [data.assignedId] : [];
                         renderJoinAssignment(data.assignedId, data.message);
-                        setJoinStatus(data.assignedId === -1 ? (data.message || 'Connected, but no open color is available.') : 'Joined successfully. Waiting for the host to start...', data.assignedId === -1 ? 'error' : 'success');
+                        const hasOpenSeat = data.seats && data.seats.some(seat => seat.type === 'open');
+                        const unassignedTone = hasOpenSeat ? 'waiting' : 'error';
+                        setJoinStatus(data.assignedId === -1 ? (data.message || 'Choose an open color below.') : 'Joined successfully. Waiting for the host to start...', data.assignedId === -1 ? unassignedTone : 'success');
                         if (data.seats) renderLobbySeats(data.seats, 'join-lobby-list');
                     }
                     else if (data.type === 'LOBBY_UPDATE') {
@@ -1367,8 +1406,9 @@ ${standings}`;
             });
 
             peer.on('error', err => {
+                conn = null;
                 setJoinStatus(`Connection failed (${err.type || 'unknown error'}). Check the BLK- room code and ask the host to keep the lobby open.`, 'error');
-                document.getElementById('btn-join-connect').disabled = false;
+                validateJoinCodeInput();
             });
         }
 
