@@ -575,8 +575,8 @@
                 let moves = getAllValidMoves(p.id);
                 if (moves.length === 0) {
                     p.hasPassed = true;
-                    broadcastState();
                     nextTurn();
+                    broadcastState();
                     return;
                 }
             }
@@ -606,8 +606,19 @@
         }
 
         function playerPass() {
-            if (!myPlayerIds.includes(players[currentTurnIdx].id)) return;
-            players[currentTurnIdx].hasPassed = true;
+            if (currentTurnIdx < 0 || !players[currentTurnIdx]) return;
+
+            const p = players[currentTurnIdx];
+            if (!myPlayerIds.includes(p.id)) return;
+
+            if (isClient) {
+                conn.send({ type: 'PASS_REQ', playerNum: p.id });
+                clearActivePiece();
+                updateStatus("Sending pass...");
+                return;
+            }
+
+            p.hasPassed = true;
             nextTurn();
             broadcastState();
         }
@@ -1084,14 +1095,29 @@ ${standings}`;
                             break;
                         }
                     }
+                    connection.assignedPlayerId = assignedSlot;
                     connection.send({ type: 'WELCOME', assignedId: assignedSlot });
                     updateLobbyState();
                 });
 
                 connection.on('data', data => {
+                    const assignedPlayerId = connection.assignedPlayerId;
+
                     if (data.type === 'MOVE_REQ') {
-                        if (currentTurnIdx === data.playerNum - 1 && isValidMove(data.playerNum, data.matrix, data.bX, data.bY)) {
+                        if (
+                            data.playerNum === assignedPlayerId &&
+                            currentTurnIdx === data.playerNum - 1 &&
+                            isValidMove(data.playerNum, data.matrix, data.bX, data.bY)
+                        ) {
                             placePiece(data.playerNum, data.matrix, data.bX, data.bY, data.pieceIndex);
+                            nextTurn();
+                            broadcastState();
+                        } else {
+                            connection.send({ type: 'STATE_UPDATE', board, players, currentTurnIdx });
+                        }
+                    } else if (data.type === 'PASS_REQ') {
+                        if (data.playerNum === assignedPlayerId && currentTurnIdx === data.playerNum - 1) {
+                            players[currentTurnIdx].hasPassed = true;
                             nextTurn();
                             broadcastState();
                         } else {
