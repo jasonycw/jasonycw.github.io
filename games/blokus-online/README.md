@@ -11,8 +11,6 @@ Public entry points:
 - `index.html` — the full Blokus application: UI, rules engine, local AI, canvas rendering, touch/mouse interactions, and WebRTC peer-to-peer multiplayer.
 - `README.md` — this implementation note.
 
-The social preview metadata points at the existing public image `https://jasonycw.github.io/games/blokus/og-image.jpg`, so this folder does not add binary assets.
-
 ## Features
 
 - **Standard 4-color Blokus:** 20×20 grid, 21 polyominoes per color, fixed Blue → Yellow → Red → Green turn order, corner-only same-color contact, and no same-color edge contact.
@@ -26,9 +24,9 @@ The social preview metadata points at the existing public image `https://jasonyc
 ## Online connection flow
 
 1. Host opens the game and selects **Host Online Game**.
-2. The page creates a short room ID and displays it in the lobby.
-3. The host marks seats as **Open (Network)**, **Local Human on Host**, or **Local AI**.
-4. Joining players open the game, choose **Join Online Game**, and enter the host room ID.
+2. The page creates a `BLK-` prefixed room ID and displays it in the host lobby.
+3. The host lobby shows every color, who controls it, and whether an online player has joined before the game starts.
+4. Joining players open the game, choose **Join Online Game**, enter the suffix after the fixed `BLK-` prefix, and see their assigned color or a connection error.
 5. The host starts the match after seats are ready.
 6. The host remains authoritative for game state validation and broadcasts state updates to peers.
 

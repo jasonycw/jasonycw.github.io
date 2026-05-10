@@ -14,14 +14,10 @@
     <meta property="og:title" content="🟥🟨 Blokus 🟦🟩">
     <meta property="og:description"
         content="Play Blokus locally with 1-4 people sharing one device, against local AI, or online with serverless peer-to-peer browser connections.">
-    <meta property="og:image" content="https://jasonycw.github.io/games/blokus/og-image.jpg">
-
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://jasonycw.github.io/games/blokus-online/">
     <meta property="twitter:title" content="🟥🟨 Blokus 🟦🟩">
     <meta property="twitter:description" content="A responsive local, AI, and serverless P2P web version of Blokus.">
-    <meta property="twitter:image" content="https://jasonycw.github.io/games/blokus/og-image.jpg">
-
     <meta name="theme-color" content="#0052cc">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -138,15 +134,18 @@
             <p id="lobby-help" class="text-sm text-gray-600 text-center max-w-md mb-5">Configure who controls each Blokus color.</p>
 
             <div id="host-info"
-                class="hidden mb-6 p-4 bg-purple-100 rounded-lg border border-purple-300 text-center w-full max-w-md">
-                <p class="text-sm text-purple-800 font-semibold uppercase tracking-wide">Your Room ID</p>
+                class="hidden mb-6 p-4 bg-purple-100 rounded-xl border border-purple-300 text-left w-full max-w-md">
+                <p class="text-sm text-purple-800 font-semibold uppercase tracking-wide text-center">Your Room ID</p>
                 <div class="flex items-center justify-center gap-2 mt-2">
                     <code id="room-id-display"
                         class="text-2xl font-mono font-bold bg-white px-3 py-1 rounded select-all">Connecting...</code>
                     <button onclick="copyRoomId()"
                         class="p-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm">Copy</button>
                 </div>
-                <p class="text-xs text-purple-600 mt-2">Share this ID with friends to let them join.</p>
+                <p class="text-xs text-purple-700 mt-2 text-center">Share this exact ID. Joined players appear by color below before you start.</p>
+                <div id="host-seat-summary" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <!-- Injected via JS -->
+                </div>
             </div>
 
             <div id="local-count-panel" class="hidden w-full max-w-md mb-4 bg-blue-50 border border-blue-100 rounded-xl p-3">
@@ -174,17 +173,31 @@
 
         <!-- Join Lobby -->
         <div id="screen-join"
-            class="hidden absolute inset-0 flex flex-col items-center justify-center bg-white z-40 p-4">
-            <h2 class="text-3xl font-bold mb-6">Join Game</h2>
-            <div class="w-full max-w-sm flex flex-col gap-4">
-                <input type="text" id="join-id-input" placeholder="Enter Room ID"
-                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none uppercase font-mono text-center text-xl">
-                <div id="join-status" class="text-center font-semibold text-blue-600 h-6 text-sm"></div>
+            class="hidden absolute inset-0 flex flex-col items-center justify-center bg-white z-40 p-4 overflow-y-auto">
+            <div class="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-xl p-5">
+                <h2 class="text-3xl font-bold mb-2 text-center">Join Online Lobby</h2>
+                <p class="text-sm text-gray-600 text-center mb-5">Enter the host's room code. The <span class="font-mono font-bold">BLK-</span> prefix is fixed for Blokus Online rooms.</p>
+
+                <label for="join-name-input" class="block text-sm font-bold text-gray-700 mb-1">Your display name</label>
+                <input type="text" id="join-name-input" maxlength="18" placeholder="Player name"
+                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none mb-4">
+
+                <label for="join-id-input" class="block text-sm font-bold text-gray-700 mb-1">Room code</label>
+                <div class="flex rounded-lg border-2 border-gray-300 focus-within:border-purple-500 overflow-hidden mb-3 bg-white">
+                    <span class="px-3 py-3 bg-purple-50 text-purple-800 font-mono font-bold border-r border-gray-300">BLK-</span>
+                    <input type="text" id="join-id-input" placeholder="ABC123" maxlength="10"
+                        class="flex-1 min-w-0 px-3 py-3 focus:outline-none uppercase font-mono text-xl tracking-widest">
+                </div>
+
+                <div id="join-status" class="rounded-lg bg-blue-50 text-blue-700 border border-blue-100 px-3 py-2 text-center font-semibold text-sm mb-3">Enter a room code to connect.</div>
+                <div id="join-assignment-card" class="hidden rounded-lg border p-3 mb-3 text-sm"></div>
+                <div id="join-lobby-list" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4 text-xs"></div>
+
                 <div class="flex gap-4">
                     <button onclick="navTo('main')"
                         class="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg shadow font-bold">Cancel</button>
                     <button id="btn-join-connect" onclick="joinOnlineGame()"
-                        class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 font-bold">Connect</button>
+                        class="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 font-bold">Connect</button>
                 </div>
             </div>
         </div>
@@ -321,6 +334,8 @@
 
         const TILE_SIZE = 20; // Internal canvas resolution unit
         const BOARD_SIZE = 20;
+        const ROOM_ID_PREFIX = 'BLK-';
+        const PLAYER_COLOR_NAMES = ['Blue', 'Yellow', 'Red', 'Green'];
 
         /* ==========================================================================
            STATE
@@ -337,6 +352,8 @@
         let isHost = false;
         let isClient = false;
         let networkId = null;
+        let onlineGameStarted = false;
+        let lastLobbySeats = [];
 
         // UI Interaction State
         let myPlayerIds = []; // Which players am I controlling locally?
@@ -639,7 +656,7 @@
 
             if (screen === 'main') {
                 if (peer) { peer.destroy(); peer = null; }
-                conn = null; hostConnections = []; isHost = false; isClient = false;
+                conn = null; hostConnections = []; isHost = false; isClient = false; onlineGameStarted = false;
                 document.getElementById('screen-main').classList.remove('hidden');
             } else if (screen === 'lobby-local') {
                 document.getElementById('host-info').classList.add('hidden');
@@ -652,7 +669,11 @@
                 document.getElementById('screen-lobby').classList.remove('hidden');
             } else if (screen === 'lobby-join') {
                 document.getElementById('screen-join').classList.remove('hidden');
-                document.getElementById('join-status').innerText = "";
+                document.getElementById('join-status').innerText = "Enter a room code to connect.";
+                document.getElementById('join-status').className = 'rounded-lg bg-blue-50 text-blue-700 border border-blue-100 px-3 py-2 text-center font-semibold text-sm mb-3';
+                document.getElementById('join-assignment-card').classList.add('hidden');
+                document.getElementById('join-lobby-list').classList.add('hidden');
+                document.getElementById('btn-join-connect').disabled = false;
             } else if (screen === 'game') {
                 document.getElementById('screen-game').classList.remove('hidden');
                 document.getElementById('game-over-overlay').classList.add('hidden');
@@ -667,11 +688,10 @@
             const localPanel = document.getElementById('local-count-panel');
             const lobbyHelp = document.getElementById('lobby-help');
             list.innerHTML = '';
-            const colors = ['Blue', 'Yellow', 'Red', 'Green'];
 
             localPanel.classList.toggle('hidden', forHost);
             lobbyHelp.innerText = forHost
-                ? 'Share the room ID, mark seats as Open (Network), or fill seats with local AI before starting.'
+                ? 'Host lobby: keep your color as Local Host, leave colors Open for friends, or switch empty colors to AI before starting.'
                 : 'Choose 1-4 local people sharing this screen. AI automatically fills the remaining colors.';
 
             if (!forHost) {
@@ -680,32 +700,44 @@
 
             for (let i = 1; i <= 4; i++) {
                 let row = document.createElement('div');
-                row.className = 'flex justify-between items-center bg-gray-50 p-2 md:p-3 rounded border';
+                row.className = 'flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-gray-50 p-3 rounded-xl border';
+
+                let labelWrap = document.createElement('div');
+                labelWrap.className = 'flex items-center gap-2';
 
                 let label = document.createElement('span');
                 label.className = `font-bold bg-player-${i} px-2 py-1 rounded text-xs md:text-sm`;
-                label.innerText = `P${i} (${colors[i - 1]})`;
+                label.innerText = `P${i} (${PLAYER_COLOR_NAMES[i - 1]})`;
+
+                let status = document.createElement('span');
+                status.id = `setup-p${i}-status`;
+                status.className = 'text-xs font-semibold text-gray-500';
+                status.innerText = forHost && i === 1 ? 'Host (you)' : 'Waiting';
+
+                labelWrap.appendChild(label);
+                labelWrap.appendChild(status);
 
                 let select = document.createElement('select');
                 select.id = `setup-p${i}`;
-                select.className = 'border p-1 rounded text-sm md:text-base bg-white';
+                select.className = 'border p-2 rounded text-sm md:text-base bg-white';
                 select.innerHTML = forHost ? `
-                    <option value="human">Local Human on Host</option>
-                    <option value="ai" ${i > 1 ? 'selected' : ''}>Local AI</option>
-                    <option value="open">Open (Network)</option>
-                    <option value="remote" disabled class="hidden">Remote Player</option>
+                    <option value="human" ${i === 1 ? 'selected' : ''}>Local Host</option>
+                    <option value="open" ${i > 1 ? 'selected' : ''}>Open for Online Player</option>
+                    <option value="ai">Local AI</option>
+                    <option value="remote" disabled class="hidden">Remote Player Joined</option>
                 ` : `
                     <option value="human">Local Human</option>
                     <option value="ai">Local AI</option>
                 `;
                 select.onchange = updateLobbyState;
 
-                row.appendChild(label);
+                row.appendChild(labelWrap);
                 row.appendChild(select);
                 list.appendChild(row);
             }
 
             if (!forHost) applyLocalHumanCount();
+            updateLobbyState();
         }
 
         function applyLocalHumanCount() {
@@ -718,11 +750,80 @@
             updateLobbyState();
         }
 
+        function getHostLobbySeats() {
+            return [1, 2, 3, 4].map(i => {
+                const seat = document.getElementById(`setup-p${i}`);
+                const type = seat ? seat.value : 'ai';
+                const remote = hostConnections.find(c => c.assignedPlayerId === i);
+
+                let controller = 'Local AI';
+                let state = 'Ready';
+                if (type === 'human') {
+                    controller = i === 1 ? 'Host (you)' : 'Local Host';
+                } else if (type === 'open') {
+                    controller = 'Open for online player';
+                    state = 'Waiting';
+                } else if (type === 'remote') {
+                    controller = remote ? (remote.displayName || `Remote Player ${i}`) : 'Remote player';
+                    state = remote ? 'Joined' : 'Disconnected';
+                }
+
+                return { id: i, color: PLAYER_COLOR_NAMES[i - 1], type, controller, state };
+            });
+        }
+
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>"']/g, ch => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[ch]));
+        }
+
+        function renderLobbySeats(seats, targetId) {
+            const target = document.getElementById(targetId);
+            if (!target) return;
+
+            target.innerHTML = '';
+            seats.forEach(seat => {
+                const div = document.createElement('div');
+                div.className = `rounded-lg border p-2 bg-white ${seat.state === 'Joined' ? 'border-green-300' : seat.state === 'Waiting' ? 'border-yellow-300' : 'border-gray-200'}`;
+                div.innerHTML = `
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-bold bg-player-${seat.id} px-2 py-1 rounded">P${seat.id} ${escapeHtml(seat.color)}</span>
+                        <span class="font-semibold ${seat.state === 'Joined' ? 'text-green-700' : seat.state === 'Waiting' ? 'text-yellow-700' : 'text-gray-600'}">${escapeHtml(seat.state)}</span>
+                    </div>
+                    <div class="mt-1 text-gray-700 truncate">${escapeHtml(seat.controller)}</div>
+                `;
+                target.appendChild(div);
+            });
+            target.classList.toggle('hidden', seats.length === 0);
+        }
+
+        function refreshHostLobby() {
+            const seats = getHostLobbySeats();
+            lastLobbySeats = seats;
+            renderLobbySeats(seats, 'host-seat-summary');
+
+            seats.forEach(seat => {
+                const status = document.getElementById(`setup-p${seat.id}-status`);
+                if (!status) return;
+                status.innerText = seat.controller;
+                status.className = `text-xs font-semibold ${seat.state === 'Joined' ? 'text-green-700' : seat.state === 'Waiting' ? 'text-yellow-700' : 'text-gray-500'}`;
+            });
+
+            return seats;
+        }
+
         function updateLobbyState() {
             if (isHost) {
-                let types = [1, 2, 3, 4].map(i => document.getElementById(`setup-p${i}`).value);
-                hostConnections.forEach(c => c.send({ type: 'LOBBY_UPDATE', types }));
+                const seats = refreshHostLobby();
+                hostConnections.forEach(c => c.send({ type: 'LOBBY_UPDATE', seats }));
+                return seats;
             }
+            return [];
         }
 
         function renderPlayers() {
@@ -1034,7 +1135,16 @@ ${standings}`;
         }
 
         function startGame() {
+            if (isHost) {
+                const openSeats = [1, 2, 3, 4].filter(i => document.getElementById(`setup-p${i}`)?.value === 'open');
+                if (openSeats.length > 0) {
+                    alert('Assign every open online color before starting. Wait for players to join or switch empty colors to Local AI.');
+                    return;
+                }
+            }
+
             players = [];
+            onlineGameStarted = true;
             myPlayerIds = [];
             board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(0));
             currentTurnIdx = -1;
@@ -1067,9 +1177,40 @@ ${standings}`;
             }
         }
 
+        function normalizeRoomId(value) {
+            const cleaned = value.trim().toUpperCase().replace(/\s+/g, '');
+            if (!cleaned) return '';
+            return cleaned.startsWith(ROOM_ID_PREFIX) ? cleaned : ROOM_ID_PREFIX + cleaned.replace(/^BLK-?/, '');
+        }
+
+        function setJoinStatus(message, tone = 'info') {
+            const el = document.getElementById('join-status');
+            const tones = {
+                info: 'bg-blue-50 text-blue-700 border-blue-100',
+                success: 'bg-green-50 text-green-700 border-green-200',
+                error: 'bg-red-50 text-red-700 border-red-200',
+                waiting: 'bg-yellow-50 text-yellow-800 border-yellow-200'
+            };
+            el.className = `rounded-lg ${tones[tone]} border px-3 py-2 text-center font-semibold text-sm mb-3`;
+            el.innerText = message;
+        }
+
+        function renderJoinAssignment(assignedId, message) {
+            const card = document.getElementById('join-assignment-card');
+            if (assignedId === -1) {
+                card.className = 'rounded-lg border border-red-200 bg-red-50 text-red-700 p-3 mb-3 text-sm';
+                card.innerHTML = `<strong>Not joined:</strong> ${escapeHtml(message || 'No open online colors are available.')}`;
+            } else {
+                card.className = 'rounded-lg border border-green-200 bg-green-50 text-green-800 p-3 mb-3 text-sm';
+                card.innerHTML = `<strong>Joined as Player ${assignedId} (${PLAYER_COLOR_NAMES[assignedId - 1]}).</strong><br>Wait here until the host starts the game.`;
+            }
+            card.classList.remove('hidden');
+        }
+
         function hostOnlineGame() {
             isHost = true;
-            networkId = 'BLK-' + generateId();
+            onlineGameStarted = false;
+            networkId = ROOM_ID_PREFIX + generateId();
             navTo('lobby-host');
 
             document.getElementById('host-info').classList.remove('hidden');
@@ -1087,23 +1228,38 @@ ${standings}`;
 
                 connection.on('open', () => {
                     let assignedSlot = -1;
-                    for (let i = 1; i <= 4; i++) {
-                        let sel = document.getElementById(`setup-p${i}`);
-                        if (sel.value === 'open') {
-                            sel.value = 'remote';
-                            assignedSlot = i;
-                            break;
+                    let welcomeMessage = '';
+
+                    if (onlineGameStarted) {
+                        welcomeMessage = 'This game has already started.';
+                    } else {
+                        for (let i = 1; i <= 4; i++) {
+                            let sel = document.getElementById(`setup-p${i}`);
+                            if (sel.value === 'open') {
+                                sel.value = 'remote';
+                                sel.disabled = true;
+                                assignedSlot = i;
+                                break;
+                            }
+                        }
+                        if (assignedSlot === -1) {
+                            welcomeMessage = 'The lobby has no open online colors.';
                         }
                     }
+
                     connection.assignedPlayerId = assignedSlot;
-                    connection.send({ type: 'WELCOME', assignedId: assignedSlot });
-                    updateLobbyState();
+                    connection.displayName = assignedSlot === -1 ? 'Spectator' : `Remote Player ${assignedSlot}`;
+                    const seats = updateLobbyState();
+                    connection.send({ type: 'WELCOME', assignedId: assignedSlot, roomId: networkId, seats, message: welcomeMessage });
                 });
 
                 connection.on('data', data => {
                     const assignedPlayerId = connection.assignedPlayerId;
 
-                    if (data.type === 'MOVE_REQ') {
+                    if (data.type === 'JOIN_INFO') {
+                        connection.displayName = (data.name || '').trim().slice(0, 18) || connection.displayName;
+                        updateLobbyState();
+                    } else if (data.type === 'MOVE_REQ') {
                         if (
                             data.playerNum === assignedPlayerId &&
                             currentTurnIdx === data.playerNum - 1 &&
@@ -1128,6 +1284,14 @@ ${standings}`;
 
                 connection.on('close', () => {
                     hostConnections = hostConnections.filter(c => c !== connection);
+                    if (!onlineGameStarted && connection.assignedPlayerId > 0) {
+                        const sel = document.getElementById(`setup-p${connection.assignedPlayerId}`);
+                        if (sel && sel.value === 'remote') {
+                            sel.disabled = false;
+                            sel.value = 'open';
+                        }
+                    }
+                    updateLobbyState();
                 });
             });
 
@@ -1144,10 +1308,14 @@ ${standings}`;
         }
 
         function joinOnlineGame() {
-            const id = document.getElementById('join-id-input').value.trim().toUpperCase();
-            if (!id) return;
+            const id = normalizeRoomId(document.getElementById('join-id-input').value);
+            if (!id || id === ROOM_ID_PREFIX) {
+                setJoinStatus('Enter the room code after BLK-.', 'error');
+                return;
+            }
 
-            document.getElementById('join-status').innerText = "Connecting...";
+            const displayName = document.getElementById('join-name-input').value.trim().slice(0, 18) || 'Remote Player';
+            setJoinStatus(`Connecting to ${id}...`, 'waiting');
             document.getElementById('btn-join-connect').disabled = true;
 
             peer = new Peer();
@@ -1156,13 +1324,21 @@ ${standings}`;
 
                 conn.on('open', () => {
                     isClient = true;
-                    document.getElementById('join-status').innerText = "Connected! Waiting for host to start...";
+                    conn.send({ type: 'JOIN_INFO', name: displayName });
+                    setJoinStatus('Connected to host. Waiting for seat assignment...', 'waiting');
                     document.getElementById('network-status').innerText = `Connected to: ${id}`;
                 });
 
                 conn.on('data', data => {
                     if (data.type === 'WELCOME') {
+                        currentTurnIdx = -1;
                         myPlayerIds = data.assignedId !== -1 ? [data.assignedId] : [];
+                        renderJoinAssignment(data.assignedId, data.message);
+                        setJoinStatus(data.assignedId === -1 ? (data.message || 'Connected, but no open color is available.') : 'Joined successfully. Waiting for the host to start...', data.assignedId === -1 ? 'error' : 'success');
+                        if (data.seats) renderLobbySeats(data.seats, 'join-lobby-list');
+                    }
+                    else if (data.type === 'LOBBY_UPDATE') {
+                        if (data.seats) renderLobbySeats(data.seats, 'join-lobby-list');
                     }
                     else if (data.type === 'STATE_UPDATE') {
                         if (document.getElementById('screen-game').classList.contains('hidden')) {
@@ -1191,7 +1367,7 @@ ${standings}`;
             });
 
             peer.on('error', err => {
-                document.getElementById('join-status').innerText = "Connection failed. Check ID.";
+                setJoinStatus(`Connection failed (${err.type || 'unknown error'}). Check the BLK- room code and ask the host to keep the lobby open.`, 'error');
                 document.getElementById('btn-join-connect').disabled = false;
             });
         }
