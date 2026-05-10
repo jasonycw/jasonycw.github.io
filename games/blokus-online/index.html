@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🟥🟨 Blokus 🟦🟩</title>
+    <meta name="title" content="🟥🟨 Blokus 🟦🟩">
+    <meta name="description"
+        content="A zero-build, serverless, P2P web implementation of the classic strategy board game. Play locally or online with friends.">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://jasonycw.github.io/games/blokus-online/">
+    <meta property="og:title" content="🟥🟨 Blokus 🟦🟩">
+    <meta property="og:description"
+        content="Play Blokus locally with 1-4 people sharing one device, against local AI, or online with serverless peer-to-peer browser connections.">
+    <meta property="og:image" content="https://jasonycw.github.io/games/blokus/og-image.jpg">
+
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://jasonycw.github.io/games/blokus-online/">
+    <meta property="twitter:title" content="🟥🟨 Blokus 🟦🟩">
+    <meta property="twitter:description" content="A responsive local, AI, and serverless P2P web version of Blokus.">
+    <meta property="twitter:image" content="https://jasonycw.github.io/games/blokus/og-image.jpg">
+
+    <meta name="theme-color" content="#0052cc">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        body {
+            touch-action: manipulation;
+            background-color: #f3f4f6;
+        }
+
+        /* Only prevent touch actions when we explicitly override it in JS */
+        canvas {
+            touch-action: auto;
+        }
+
+        .piece-canvas {
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .piece-canvas:hover {
+            transform: scale(1.05);
+        }
+
+        .piece-canvas.selected {
+            outline: 3px solid #10b981;
+            background-color: #d1fae5;
+            border-radius: 4px;
+        }
+
+        .used {
+            opacity: 0.25;
+            filter: grayscale(100%);
+            pointer-events: none;
+        }
+
+        .player-card.active {
+            border: 4px solid #10b981;
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.5);
+        }
+
+        .bg-player-1 {
+            background-color: #0052cc;
+            color: white;
+        }
+
+        .bg-player-2 {
+            background-color: #ffcc00;
+            color: black;
+        }
+
+        .bg-player-3 {
+            background-color: #e60000;
+            color: white;
+        }
+
+        .bg-player-4 {
+            background-color: #008f11;
+            color: white;
+        }
+
+        /* Custom scrollbar for inventory */
+        .inventory-scroll::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .inventory-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .inventory-scroll::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body class="text-gray-800 font-sans h-screen flex flex-col overflow-hidden">
+
+    <!-- Screens Container -->
+    <div id="app" class="w-full h-full relative">
+
+        <!-- Main Menu -->
+        <div id="screen-main"
+            class="absolute inset-0 flex flex-col items-center justify-center bg-white z-50 overflow-y-auto p-4">
+            <h1 class="text-5xl md:text-6xl font-bold mb-8 tracking-tighter text-gray-900">BLOKUS<span
+                    class="text-blue-600">.</span></h1>
+            <div class="w-full max-w-md bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-4">
+                <h2 class="text-lg font-bold text-blue-900 mb-1">Local pass-and-play</h2>
+                <p class="text-sm text-blue-800 mb-3">Choose how many people are sharing this device. Empty seats are filled by local AI so every game has 4 colors.</p>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button onclick="startLocalSetup(1)" class="px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 font-bold">1P + AI</button>
+                    <button onclick="startLocalSetup(2)" class="px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 font-bold">2P + AI</button>
+                    <button onclick="startLocalSetup(3)" class="px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 font-bold">3P + AI</button>
+                    <button onclick="startLocalSetup(4)" class="px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 font-bold">4P Local</button>
+                </div>
+            </div>
+            <div class="w-full max-w-md bg-purple-50 border border-purple-100 rounded-2xl p-4">
+                <h2 class="text-lg font-bold text-purple-900 mb-1">Online peer-to-peer</h2>
+                <p class="text-sm text-purple-800 mb-3">No game server is required. The host creates a WebRTC room ID, friends join from their browsers, and the host can fill any remaining seats with AI.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button onclick="hostOnlineGame()" class="px-6 py-3 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 font-bold">Host Online Game</button>
+                    <button onclick="navTo('lobby-join')" class="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg shadow hover:bg-gray-300 font-bold">Join Online Game</button>
+                </div>
+            </div>
+            <p class="mt-6 text-xs md:text-sm text-gray-500 max-w-md text-center">Place each piece corner-to-corner with your own color, never edge-to-edge with your own color. Opponent colors may touch freely.</p>
+        </div>
+
+        <!-- Lobby (Local & Host) -->
+        <div id="screen-lobby"
+            class="hidden absolute inset-0 flex flex-col items-center p-6 bg-white z-40 overflow-y-auto">
+            <h2 class="text-3xl font-bold mb-3 mt-4">Game Setup</h2>
+            <p id="lobby-help" class="text-sm text-gray-600 text-center max-w-md mb-5">Configure who controls each Blokus color.</p>
+
+            <div id="host-info"
+                class="hidden mb-6 p-4 bg-purple-100 rounded-lg border border-purple-300 text-center w-full max-w-md">
+                <p class="text-sm text-purple-800 font-semibold uppercase tracking-wide">Your Room ID</p>
+                <div class="flex items-center justify-center gap-2 mt-2">
+                    <code id="room-id-display"
+                        class="text-2xl font-mono font-bold bg-white px-3 py-1 rounded select-all">Connecting...</code>
+                    <button onclick="copyRoomId()"
+                        class="p-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm">Copy</button>
+                </div>
+                <p class="text-xs text-purple-600 mt-2">Share this ID with friends to let them join.</p>
+            </div>
+
+            <div id="local-count-panel" class="hidden w-full max-w-md mb-4 bg-blue-50 border border-blue-100 rounded-xl p-3">
+                <label for="local-human-count" class="block text-sm font-bold text-blue-900 mb-2">People sharing this device</label>
+                <select id="local-human-count" onchange="applyLocalHumanCount()" class="w-full border-2 border-blue-200 rounded-lg px-3 py-2 bg-white font-semibold">
+                    <option value="1">1 local player + 3 AI</option>
+                    <option value="2">2 local players + 2 AI</option>
+                    <option value="3">3 local players + 1 AI</option>
+                    <option value="4">4 local players, no AI</option>
+                </select>
+            </div>
+
+            <div class="w-full max-w-md flex flex-col gap-3 mb-8" id="player-setup-list">
+                <!-- Injected via JS -->
+            </div>
+
+            <div class="flex gap-4 w-full max-w-md">
+                <button onclick="navTo('main')"
+                    class="flex-1 py-3 bg-gray-200 text-gray-800 rounded-lg shadow font-bold">Back</button>
+                <button id="btn-start-game" onclick="startGame()"
+                    class="flex-1 py-3 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 font-bold">Start
+                    Game</button>
+            </div>
+        </div>
+
+        <!-- Join Lobby -->
+        <div id="screen-join"
+            class="hidden absolute inset-0 flex flex-col items-center justify-center bg-white z-40 p-4">
+            <h2 class="text-3xl font-bold mb-6">Join Game</h2>
+            <div class="w-full max-w-sm flex flex-col gap-4">
+                <input type="text" id="join-id-input" placeholder="Enter Room ID"
+                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none uppercase font-mono text-center text-xl">
+                <div id="join-status" class="text-center font-semibold text-blue-600 h-6 text-sm"></div>
+                <div class="flex gap-4">
+                    <button onclick="navTo('main')"
+                        class="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg shadow font-bold">Cancel</button>
+                    <button id="btn-join-connect" onclick="joinOnlineGame()"
+                        class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 font-bold">Connect</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Interface -->
+        <!-- Added overflow-y-auto overflow-x-hidden for mobile scrolling -->
+        <div id="screen-game"
+            class="hidden absolute inset-0 flex flex-col md:flex-row bg-gray-100 z-30 overflow-y-auto overflow-x-hidden md:overflow-hidden">
+
+            <!-- Left/Top Sidebar: Players & Scores -->
+            <div
+                class="w-full md:w-64 bg-white shadow-md p-2 md:p-4 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-y-auto shrink-0 border-b md:border-r border-gray-200 sticky top-0 z-20 md:static">
+                <div class="hidden md:block text-xl font-bold mb-2">Scores</div>
+                <div id="players-container" class="flex flex-row md:flex-col gap-2 w-full min-w-max md:min-w-0">
+                    <!-- Injected via JS -->
+                </div>
+                <div class="mt-auto hidden md:block text-xs text-gray-400 p-2">
+                    <p id="network-status">Local Game</p>
+                </div>
+            </div>
+
+            <!-- Center: Game Board -->
+            <!-- Changed to shrink-0 and removed hard flex-1 on mobile so it can scroll -->
+            <div
+                class="w-full md:flex-1 flex flex-col items-center justify-start md:justify-center p-3 relative shrink-0 z-10">
+
+                <!-- Game Over Overlay -->
+                <div id="game-over-overlay"
+                    class="hidden absolute inset-0 bg-black/70 z-30 flex flex-col items-center justify-center text-white backdrop-blur-sm">
+                    <h2 class="text-4xl md:text-5xl font-bold mb-4">Game Over</h2>
+                    <div id="winner-display" class="text-xl md:text-2xl mb-8 font-semibold text-center px-4"></div>
+                    <button onclick="location.reload()"
+                        class="px-8 py-4 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold text-lg shadow-lg">Main
+                        Menu</button>
+                </div>
+
+                <!-- Responsive Canvas Wrapper -->
+                <div class="bg-white p-1 md:p-2 rounded-lg shadow-lg relative w-full max-w-[400px]">
+                    <!-- Added aspect-square and w-full for mobile scaling -->
+                    <canvas id="board-canvas" width="400" height="400"
+                        class="block bg-gray-200 rounded w-full h-auto aspect-square touch-none"></canvas>
+                </div>
+
+                <!-- Ghost Piece Controls (Visible only when a piece is active) -->
+                <div id="piece-controls"
+                    class="mt-3 md:mt-4 flex flex-wrap justify-center items-center gap-2 p-2 md:p-3 bg-white rounded-xl shadow border border-gray-200 transition-opacity opacity-50 pointer-events-none w-full max-w-[400px]">
+                    <div
+                        class="w-12 h-12 md:w-16 md:h-16 bg-gray-100 rounded border border-gray-200 flex items-center justify-center p-1 shrink-0">
+                        <canvas id="preview-canvas" width="48" height="48" class="w-full h-full"></canvas>
+                    </div>
+                    <button onclick="mutateActivePiece('rotR')"
+                        class="p-2 md:px-3 bg-gray-200 rounded hover:bg-gray-300 text-sm font-semibold flex-1 md:flex-none">↻
+                        Rot</button>
+                    <button onclick="mutateActivePiece('flipH')"
+                        class="p-2 md:px-3 bg-gray-200 rounded hover:bg-gray-300 text-sm font-semibold flex-1 md:flex-none">↔
+                        Flip</button>
+                    <button onclick="clearActivePiece()"
+                        class="p-2 md:px-3 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm font-semibold flex-1 md:flex-none">Cancel</button>
+                    <button id="btn-confirm-move" onclick="confirmPlacement()"
+                        class="p-2 md:px-4 bg-green-500 text-white rounded font-bold hover:bg-green-600 opacity-50 cursor-not-allowed text-sm flex-1 md:flex-none">Place</button>
+                </div>
+            </div>
+
+            <!-- Right/Bottom Sidebar: Inventory -->
+            <!-- Fixed height on mobile to ensure sufficient space, allows container scrolling -->
+            <div
+                class="w-full md:w-80 bg-white shadow-md flex flex-col shrink-0 border-t md:border-l border-gray-200 h-[320px] md:h-full z-10 relative">
+                <div class="p-2 md:p-3 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <h3 class="font-bold text-gray-700 text-sm md:text-base">Your Pieces</h3>
+                    <button onclick="playerPass()" id="btn-pass"
+                        class="px-3 py-1 bg-yellow-500 text-white text-xs md:text-sm font-bold rounded hover:bg-yellow-600 hidden">Pass
+                        Turn</button>
+                </div>
+                <div class="p-2 bg-blue-50 text-blue-800 text-xs font-semibold text-center border-b border-blue-100"
+                    id="turn-status-bar">
+                    Waiting for game to start...
+                </div>
+                <div class="relative flex-1 flex flex-col min-h-0">
+                    <!-- Overlay when not your turn -->
+                    <div id="inventory-overlay" class="absolute inset-0 bg-white/60 z-10 hidden"></div>
+                    <div id="inventory-container"
+                        class="flex-1 p-3 md:p-4 flex flex-wrap content-start gap-2 overflow-y-auto inventory-scroll bg-gray-50">
+                        <!-- Pieces injected here -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           GAME CONSTANTS & DATA
+           ========================================================================== */
+        const COLORS = [
+            null,
+            '#0052cc', // 1: Blue
+            '#ffcc00', // 2: Yellow
+            '#e60000', // 3: Red
+            '#008f11'  // 4: Green
+        ];
+
+        const CORNERS = {
+            1: { x: 0, y: 0 },
+            2: { x: 19, y: 0 },
+            3: { x: 19, y: 19 },
+            4: { x: 0, y: 19 }
+        };
+
+        // 21 Standard Blokus Pieces
+        const SHAPES_DATA = [
+            [[1]], // 1: I1
+            [[1, 1]], // 2: I2
+            [[1, 1, 1]], // 3: I3
+            [[1, 1], [1, 0]], // 4: V3
+            [[1, 1, 1, 1]], // 5: I4
+            [[1, 1, 1], [0, 0, 1]], // 6: L4
+            [[0, 1, 0], [1, 1, 1]], // 7: T4
+            [[1, 1], [1, 1]], // 8: O4
+            [[1, 1, 0], [0, 1, 1]], // 9: Z4
+            [[1, 1, 1, 1, 1]], // 10: I5
+            [[1, 1, 1, 1], [0, 0, 0, 1]], // 11: L5
+            [[1, 1, 1], [1, 0, 0], [1, 0, 0]], // 12: V5
+            [[1, 1, 1], [0, 1, 0], [0, 1, 0]], // 13: T5
+            [[1, 1, 0], [0, 1, 0], [0, 1, 1]], // 14: Z5
+            [[0, 1, 1], [1, 1, 0], [0, 1, 0]], // 15: F
+            [[0, 1, 0], [1, 1, 1], [0, 1, 0]], // 16: X
+            [[1, 1], [1, 1], [1, 0]], // 17: P
+            [[1, 0, 0], [1, 1, 0], [0, 1, 1]], // 18: W
+            [[1, 0, 1], [1, 1, 1]], // 19: U
+            [[1, 1, 0, 0], [0, 1, 1, 1]], // 20: N
+            [[0, 1, 0, 0], [1, 1, 1, 1]]  // 21: Y
+        ];
+
+        const TILE_SIZE = 20; // Internal canvas resolution unit
+        const BOARD_SIZE = 20;
+
+        /* ==========================================================================
+           STATE
+           ========================================================================== */
+        let board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(0));
+        let players = [];
+        let currentTurnIdx = 0; // 0-3
+        let isGameOver = false;
+
+        // Network State
+        let peer = null;
+        let conn = null; // Client's connection to host
+        let hostConnections = []; // Host's connections to clients
+        let isHost = false;
+        let isClient = false;
+        let networkId = null;
+
+        // UI Interaction State
+        let myPlayerIds = []; // Which players am I controlling locally?
+        let activePieceIndex = null;
+        let activePieceMatrix = null;
+        let ghostX = -1;
+        let ghostY = -1;
+        let pendingLocalHumans = 1;
+        let validPlacementCache = false;
+
+        /* ==========================================================================
+           CORE LOGIC: MATRIX MATH
+           ========================================================================== */
+        function rotateMatrix(matrix) {
+            const rows = matrix.length, cols = matrix[0].length;
+            const res = Array(cols).fill(null).map(() => Array(rows).fill(0));
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    res[c][rows - 1 - r] = matrix[r][c];
+                }
+            }
+            return res;
+        }
+
+        function flipMatrixH(matrix) {
+            return matrix.map(row => [...row].reverse());
+        }
+
+        function getPieceArea(matrix) {
+            let count = 0;
+            for (let r = 0; r < matrix.length; r++)
+                for (let c = 0; c < matrix[0].length; c++)
+                    if (matrix[r][c]) count++;
+            return count;
+        }
+
+        /* ==========================================================================
+           CORE LOGIC: GAME RULES
+           ========================================================================== */
+        function playerHasPiecesOnBoard(playerNum) {
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (board[r][c] === playerNum) return true;
+                }
+            }
+            return false;
+        }
+
+        function isValidMove(playerNum, pieceMatrix, bX, bY) {
+            const isFirstMove = !playerHasPiecesOnBoard(playerNum);
+            let touchesCorner = false;
+            const rows = pieceMatrix.length;
+            const cols = pieceMatrix[0].length;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (!pieceMatrix[r][c]) continue;
+
+                    let x = bX + c;
+                    let y = bY + r;
+
+                    // Bounds
+                    if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) return false;
+                    // Overlap
+                    if (board[y][x] !== 0) return false;
+
+                    if (isFirstMove) {
+                        const corner = CORNERS[playerNum];
+                        if (x === corner.x && y === corner.y) touchesCorner = true;
+                    } else {
+                        // Edge Check (Must NOT touch same color on edge)
+                        if ((x > 0 && board[y][x - 1] === playerNum) ||
+                            (x < BOARD_SIZE - 1 && board[y][x + 1] === playerNum) ||
+                            (y > 0 && board[y - 1][x] === playerNum) ||
+                            (y < BOARD_SIZE - 1 && board[y + 1][x] === playerNum)) {
+                            return false;
+                        }
+                        // Corner Check (Must touch at least one same color corner)
+                        if ((x > 0 && y > 0 && board[y - 1][x - 1] === playerNum) ||
+                            (x < BOARD_SIZE - 1 && y > 0 && board[y - 1][x + 1] === playerNum) ||
+                            (x > 0 && y < BOARD_SIZE - 1 && board[y + 1][x - 1] === playerNum) ||
+                            (x < BOARD_SIZE - 1 && y < BOARD_SIZE - 1 && board[y + 1][x + 1] === playerNum)) {
+                            touchesCorner = true;
+                        }
+                    }
+                }
+            }
+            return touchesCorner;
+        }
+
+        function placePiece(playerNum, pieceMatrix, bX, bY, pieceIndex) {
+            const rows = pieceMatrix.length;
+            const cols = pieceMatrix[0].length;
+            let placedSquares = 0;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (pieceMatrix[r][c]) {
+                        board[bY + r][bX + c] = playerNum;
+                        placedSquares++;
+                    }
+                }
+            }
+
+            const p = players[playerNum - 1];
+            p.pieces[pieceIndex] = false; // Mark used
+            p.score += placedSquares;
+
+            // Check full clear bonus
+            if (p.pieces.every(x => x === false)) {
+                p.score += 15;
+                // Monomino bonus rule (index 0 is the 1x1 piece)
+                if (pieceIndex === 0) p.score += 5;
+            }
+        }
+
+        /* ==========================================================================
+           AI LOGIC
+           ========================================================================== */
+        function getAllValidMoves(playerNum) {
+            const p = players[playerNum - 1];
+            let moves = [];
+
+            // Optimization: find all valid target cells to try placing instead of brute forcing 20x20
+            let targetCells = [];
+            if (!playerHasPiecesOnBoard(playerNum)) {
+                targetCells.push(CORNERS[playerNum]);
+            } else {
+                // Find all diagonal corners of existing pieces
+                for (let y = 0; y < BOARD_SIZE; y++) {
+                    for (let x = 0; x < BOARD_SIZE; x++) {
+                        if (board[y][x] === playerNum) {
+                            const diagonals = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+                            for (let [dx, dy] of diagonals) {
+                                let nx = x + dx, ny = y + dy;
+                                if (nx >= 0 && nx < BOARD_SIZE && ny >= 0 && ny < BOARD_SIZE && board[ny][nx] === 0) {
+                                    // Ensure no edge touching
+                                    if (!((nx > 0 && board[ny][nx - 1] === playerNum) ||
+                                        (nx < BOARD_SIZE - 1 && board[ny][nx + 1] === playerNum) ||
+                                        (ny > 0 && board[ny - 1][nx] === playerNum) ||
+                                        (ny < BOARD_SIZE - 1 && board[ny + 1][nx] === playerNum))) {
+                                        targetCells.push({ x: nx, y: ny });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (targetCells.length === 0) return moves;
+
+            for (let i = 0; i < p.pieces.length; i++) {
+                if (!p.pieces[i]) continue;
+
+                let baseMatrix = SHAPES_DATA[i];
+                let orientations = getUniqueOrientations(baseMatrix);
+
+                for (let matrix of orientations) {
+                    for (let target of targetCells) {
+                        for (let r = 0; r < matrix.length; r++) {
+                            for (let c = 0; c < matrix[0].length; c++) {
+                                if (matrix[r][c]) {
+                                    let bX = target.x - c;
+                                    let bY = target.y - r;
+                                    if (isValidMove(playerNum, matrix, bX, bY)) {
+                                        moves.push({ pieceIndex: i, matrix, x: bX, y: bY, size: getPieceArea(matrix) });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return moves;
+        }
+
+        function getUniqueOrientations(matrix) {
+            let set = new Set();
+            let unique = [];
+            let cur = matrix;
+            for (let i = 0; i < 4; i++) {
+                let str = JSON.stringify(cur);
+                if (!set.has(str)) { set.add(str); unique.push(cur); }
+                let flipped = flipMatrixH(cur);
+                str = JSON.stringify(flipped);
+                if (!set.has(str)) { set.add(str); unique.push(flipped); }
+                cur = rotateMatrix(cur);
+            }
+            return unique;
+        }
+
+        function runAITurn() {
+            const p = players[currentTurnIdx];
+            if (p.hasPassed) return nextTurn();
+
+            updateStatus(`AI Player ${p.id} is thinking...`);
+
+            setTimeout(() => {
+                let validMoves = getAllValidMoves(p.id);
+                if (validMoves.length === 0) {
+                    p.hasPassed = true;
+                    broadcastState(); // Sync pass
+                    nextTurn();
+                    return;
+                }
+
+                // Sort by size descending, pick from top largest
+                validMoves.sort((a, b) => b.size - a.size);
+                const maxSize = validMoves[0].size;
+                const bestMoves = validMoves.filter(m => m.size === maxSize);
+                const selectedMove = bestMoves[Math.floor(Math.random() * bestMoves.length)];
+
+                placePiece(p.id, selectedMove.matrix, selectedMove.x, selectedMove.y, selectedMove.pieceIndex);
+                broadcastState();
+                nextTurn();
+            }, 500);
+        }
+
+        /* ==========================================================================
+           TURN & GAME FLOW MANAGEMENT
+           ========================================================================== */
+        function nextTurn() {
+            checkGameOver();
+            if (isGameOver) return;
+
+            currentTurnIdx = (currentTurnIdx + 1) % 4;
+            let p = players[currentTurnIdx];
+
+            if (p.hasPassed) {
+                nextTurn(); // Skip passed players
+                return;
+            }
+
+            if (p.type === 'human') {
+                let moves = getAllValidMoves(p.id);
+                if (moves.length === 0) {
+                    p.hasPassed = true;
+                    broadcastState();
+                    nextTurn();
+                    return;
+                }
+            }
+
+            clearActivePiece();
+            renderPlayers();
+            renderInventory();
+
+            if (p.type === 'ai' && isHost) {
+                runAITurn();
+            } else if (p.type === 'ai' && !isHost && !isClient) {
+                runAITurn();
+            } else {
+                const isMyTurn = myPlayerIds.includes(p.id);
+                updateStatus(isMyTurn ? "Your Turn! Select a piece below." : `Waiting for Player ${p.id}...`);
+
+                document.getElementById('inventory-overlay').style.display = isMyTurn ? 'none' : 'block';
+                document.getElementById('btn-pass').style.display = isMyTurn ? 'block' : 'none';
+            }
+        }
+
+        function checkGameOver() {
+            if (players.every(p => p.hasPassed)) {
+                isGameOver = true;
+                showGameOver();
+            }
+        }
+
+        function playerPass() {
+            if (!myPlayerIds.includes(players[currentTurnIdx].id)) return;
+            players[currentTurnIdx].hasPassed = true;
+            broadcastState();
+            nextTurn();
+        }
+
+        /* ==========================================================================
+           UI RENDERING
+           ========================================================================== */
+        function startLocalSetup(count) {
+            pendingLocalHumans = Math.max(1, Math.min(4, Number(count) || 1));
+            navTo('lobby-local');
+        }
+
+        function navTo(screen) {
+            document.getElementById('screen-main').classList.add('hidden');
+            document.getElementById('screen-lobby').classList.add('hidden');
+            document.getElementById('screen-join').classList.add('hidden');
+            document.getElementById('screen-game').classList.add('hidden');
+
+            if (screen === 'main') {
+                if (peer) { peer.destroy(); peer = null; }
+                conn = null; hostConnections = []; isHost = false; isClient = false;
+                document.getElementById('screen-main').classList.remove('hidden');
+            } else if (screen === 'lobby-local') {
+                document.getElementById('host-info').classList.add('hidden');
+                document.getElementById('btn-start-game').disabled = false;
+                buildLobby(false);
+                document.getElementById('screen-lobby').classList.remove('hidden');
+            } else if (screen === 'lobby-host') {
+                document.getElementById('local-count-panel').classList.add('hidden');
+                buildLobby(true);
+                document.getElementById('screen-lobby').classList.remove('hidden');
+            } else if (screen === 'lobby-join') {
+                document.getElementById('screen-join').classList.remove('hidden');
+                document.getElementById('join-status').innerText = "";
+            } else if (screen === 'game') {
+                document.getElementById('screen-game').classList.remove('hidden');
+                document.getElementById('game-over-overlay').classList.add('hidden');
+                renderBoard();
+                renderPlayers();
+                renderInventory();
+            }
+        }
+
+        function buildLobby(forHost) {
+            const list = document.getElementById('player-setup-list');
+            const localPanel = document.getElementById('local-count-panel');
+            const lobbyHelp = document.getElementById('lobby-help');
+            list.innerHTML = '';
+            const colors = ['Blue', 'Yellow', 'Red', 'Green'];
+
+            localPanel.classList.toggle('hidden', forHost);
+            lobbyHelp.innerText = forHost
+                ? 'Share the room ID, mark seats as Open (Network), or fill seats with local AI before starting.'
+                : 'Choose 1-4 local people sharing this screen. AI automatically fills the remaining colors.';
+
+            if (!forHost) {
+                document.getElementById('local-human-count').value = String(pendingLocalHumans);
+            }
+
+            for (let i = 1; i <= 4; i++) {
+                let row = document.createElement('div');
+                row.className = 'flex justify-between items-center bg-gray-50 p-2 md:p-3 rounded border';
+
+                let label = document.createElement('span');
+                label.className = `font-bold bg-player-${i} px-2 py-1 rounded text-xs md:text-sm`;
+                label.innerText = `P${i} (${colors[i - 1]})`;
+
+                let select = document.createElement('select');
+                select.id = `setup-p${i}`;
+                select.className = 'border p-1 rounded text-sm md:text-base bg-white';
+                select.innerHTML = forHost ? `
+                    <option value="human">Local Human on Host</option>
+                    <option value="ai" ${i > 1 ? 'selected' : ''}>Local AI</option>
+                    <option value="open">Open (Network)</option>
+                    <option value="remote" disabled class="hidden">Remote Player</option>
+                ` : `
+                    <option value="human">Local Human</option>
+                    <option value="ai">Local AI</option>
+                `;
+                select.onchange = updateLobbyState;
+
+                row.appendChild(label);
+                row.appendChild(select);
+                list.appendChild(row);
+            }
+
+            if (!forHost) applyLocalHumanCount();
+        }
+
+        function applyLocalHumanCount() {
+            const select = document.getElementById('local-human-count');
+            if (select) pendingLocalHumans = Math.max(1, Math.min(4, Number(select.value) || 1));
+            for (let i = 1; i <= 4; i++) {
+                const seat = document.getElementById(`setup-p${i}`);
+                if (seat) seat.value = i <= pendingLocalHumans ? 'human' : 'ai';
+            }
+            updateLobbyState();
+        }
+
+        function updateLobbyState() {
+            if (isHost) {
+                let types = [1, 2, 3, 4].map(i => document.getElementById(`setup-p${i}`).value);
+                hostConnections.forEach(c => c.send({ type: 'LOBBY_UPDATE', types }));
+            }
+        }
+
+        function renderPlayers() {
+            const container = document.getElementById('players-container');
+            container.innerHTML = '';
+            players.forEach((p, idx) => {
+                let isTurn = idx === currentTurnIdx;
+                let isMe = myPlayerIds.includes(p.id);
+
+                let div = document.createElement('div');
+                div.className = `player-card flex flex-row md:flex-row items-center justify-between p-2 rounded bg-player-${p.id} ${isTurn ? 'active scale-105 mx-1 md:mx-0' : 'opacity-80 scale-100'} transition-transform min-w-[120px] md:min-w-0 flex-1 md:flex-none`;
+                if (p.hasPassed) div.classList.add('opacity-40');
+
+                div.innerHTML = `
+            <div class="font-bold text-xs md:text-base leading-tight">P${p.id} ${isMe ? '<br class="md:hidden"><span class="text-[10px] md:text-xs font-normal">(You)</span>' : ''}</div>
+            <div class="text-sm md:text-lg font-mono bg-black/20 px-2 py-0.5 rounded">${p.score}</div>
+        `;
+                container.appendChild(div);
+            });
+        }
+
+        function renderInventory() {
+            const container = document.getElementById('inventory-container');
+            container.innerHTML = '';
+
+            if (currentTurnIdx < 0 || !players[currentTurnIdx]) return;
+
+            const p = players[currentTurnIdx];
+
+            if (p.type !== 'human' || !myPlayerIds.includes(p.id)) return;
+
+            p.pieces.forEach((available, idx) => {
+                const matrix = SHAPES_DATA[idx];
+
+                const rows = matrix.length;
+                const cols = matrix[0].length;
+                const cw = cols * 10; // slightly smaller pieces on mobile
+                const ch = rows * 10;
+
+                let wrapper = document.createElement('div');
+                wrapper.className = `p-1.5 bg-white rounded border border-gray-200 shadow-sm ${!available ? 'used' : 'piece-canvas'} ${activePieceIndex === idx ? 'selected scale-110' : ''}`;
+
+                if (available) {
+                    wrapper.onclick = () => {
+                        selectPiece(idx);
+                        // Auto-scroll up to show the board on mobile when a piece is clicked
+                        if (window.innerWidth < 768) {
+                            document.getElementById('screen-game').scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                    };
+                }
+
+                let cvs = document.createElement('canvas');
+                cvs.width = cw;
+                cvs.height = ch;
+                let ctx = cvs.getContext('2d');
+                ctx.fillStyle = COLORS[p.id];
+
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        if (matrix[r][c]) {
+                            ctx.fillRect(c * 10, r * 10, 9, 9);
+                        }
+                    }
+                }
+
+                wrapper.appendChild(cvs);
+                container.appendChild(wrapper);
+            });
+        }
+
+        function updateStatus(msg) {
+            document.getElementById('turn-status-bar').innerText = msg;
+        }
+
+        function finalScore(player) {
+            // Advanced Blokus scoring: each unplayed square is -1; clearing all pieces is +15,
+            // or +20 total if the one-square monomino was the final placement. During play
+            // player.score tracks placed squares plus any clear bonus, so subtract the full
+            // 89-square inventory at game end to convert to the official advanced score.
+            return player.score - 89;
+        }
+
+        function showGameOver() {
+            document.getElementById('game-over-overlay').classList.remove('hidden');
+            let maxScore = -Infinity;
+            let winners = [];
+            players.forEach(p => {
+                const score = finalScore(p);
+                if (score > maxScore) { maxScore = score; winners = [p.id]; }
+                else if (score === maxScore) { winners.push(p.id); }
+            });
+            let standings = players.map(p => `P${p.id}: ${finalScore(p)} pts`).join(' · ');
+            let text = winners.length > 1 ? "Tie between Players " + winners.join(" & ") : "Player " + winners[0] + " Wins!";
+            document.getElementById('winner-display').innerText = `${text} (${maxScore} pts)
+${standings}`;
+        }
+
+        /* ==========================================================================
+           USER INTERACTION (PLAYING)
+           ========================================================================== */
+        function selectPiece(idx) {
+            activePieceIndex = idx;
+            activePieceMatrix = SHAPES_DATA[idx];
+            ghostX = Math.floor(BOARD_SIZE / 2) - Math.floor(activePieceMatrix[0].length / 2);
+            ghostY = Math.floor(BOARD_SIZE / 2) - Math.floor(activePieceMatrix.length / 2);
+
+            document.getElementById('piece-controls').classList.remove('opacity-50', 'pointer-events-none');
+            renderInventory();
+            updatePreviewIcon();
+            renderBoard();
+        }
+
+        function clearActivePiece() {
+            activePieceIndex = null;
+            activePieceMatrix = null;
+            ghostX = -1; ghostY = -1;
+            document.getElementById('piece-controls').classList.add('opacity-50', 'pointer-events-none');
+            if (document.getElementById('inventory-container').innerHTML !== '') renderInventory();
+            renderBoard();
+        }
+
+        function mutateActivePiece(action) {
+            if (!activePieceMatrix) return;
+            if (action === 'rotR') activePieceMatrix = rotateMatrix(activePieceMatrix);
+            if (action === 'flipH') activePieceMatrix = flipMatrixH(activePieceMatrix);
+            updatePreviewIcon();
+            renderBoard();
+        }
+
+        function updatePreviewIcon() {
+            if (!activePieceMatrix) return;
+            const cvs = document.getElementById('preview-canvas');
+            const ctx = cvs.getContext('2d');
+            ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+            const rows = activePieceMatrix.length;
+            const cols = activePieceMatrix[0].length;
+            const s = 8;
+            const ox = (cvs.width - cols * s) / 2;
+            const oy = (cvs.height - rows * s) / 2;
+
+            ctx.fillStyle = COLORS[players[currentTurnIdx].id];
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (activePieceMatrix[r][c]) {
+                        ctx.fillRect(ox + c * s, oy + r * s, s - 1, s - 1);
+                    }
+                }
+            }
+        }
+
+        // Canvas Setup & Interaction
+        const boardCanvas = document.getElementById('board-canvas');
+        const ctx = boardCanvas.getContext('2d');
+
+        function getGridPos(evt) {
+            const rect = boardCanvas.getBoundingClientRect();
+            const scaleX = boardCanvas.width / rect.width;
+            const scaleY = boardCanvas.height / rect.height;
+
+            let clientX = evt.clientX;
+            let clientY = evt.clientY;
+
+            if (evt.touches && evt.touches.length > 0) {
+                clientX = evt.touches[0].clientX;
+                clientY = evt.touches[0].clientY;
+            }
+
+            const x = (clientX - rect.left) * scaleX;
+            const y = (clientY - rect.top) * scaleY;
+
+            return {
+                c: Math.floor(x / TILE_SIZE),
+                r: Math.floor(y / TILE_SIZE)
+            };
+        }
+
+        function handleBoardInteraction(evt) {
+            if (currentTurnIdx < 0 || isGameOver) return;
+            const p = players[currentTurnIdx];
+            if (p.type !== 'human' || !myPlayerIds.includes(p.id)) return;
+
+            // IMPORTANT FIX: If no piece is selected, allow default touch behavior (scrolling)
+            if (activePieceIndex === null) return;
+
+            // Once a piece is selected, we block scrolling over the board so the user can easily drag/position
+            evt.preventDefault();
+
+            const pos = getGridPos(evt);
+
+            const rows = activePieceMatrix.length;
+            const cols = activePieceMatrix[0].length;
+            ghostX = pos.c - Math.floor(cols / 2);
+            ghostY = pos.r - Math.floor(rows / 2);
+
+            renderBoard();
+        }
+
+        boardCanvas.addEventListener('mousedown', handleBoardInteraction);
+        boardCanvas.addEventListener('touchstart', handleBoardInteraction, { passive: false });
+        boardCanvas.addEventListener('touchmove', handleBoardInteraction, { passive: false }); // Allow dragging to position
+
+        function confirmPlacement() {
+            if (!validPlacementCache || activePieceIndex === null) return;
+
+            const p = players[currentTurnIdx];
+
+            if (isClient) {
+                conn.send({
+                    type: 'MOVE_REQ',
+                    playerNum: p.id,
+                    pieceIndex: activePieceIndex,
+                    matrix: activePieceMatrix,
+                    bX: ghostX,
+                    bY: ghostY
+                });
+                clearActivePiece();
+                updateStatus("Sending move...");
+            } else {
+                placePiece(p.id, activePieceMatrix, ghostX, ghostY, activePieceIndex);
+                broadcastState();
+                clearActivePiece();
+                nextTurn();
+            }
+        }
+
+        function renderBoard() {
+            ctx.clearRect(0, 0, boardCanvas.width, boardCanvas.height);
+
+            ctx.strokeStyle = '#d1d5db';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= BOARD_SIZE; i++) {
+                ctx.beginPath(); ctx.moveTo(i * TILE_SIZE, 0); ctx.lineTo(i * TILE_SIZE, 400); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i * TILE_SIZE); ctx.lineTo(400, i * TILE_SIZE); ctx.stroke();
+            }
+
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (board[r][c] !== 0) {
+                        drawTile(c, r, COLORS[board[r][c]], false);
+                    }
+                }
+            }
+
+            validPlacementCache = false;
+            const btnConfirm = document.getElementById('btn-confirm-move');
+            btnConfirm.classList.add('opacity-50', 'cursor-not-allowed');
+
+            if (activePieceIndex !== null && activePieceMatrix && ghostX !== -1 && ghostY !== -1) {
+                const p = players[currentTurnIdx];
+                const isValid = isValidMove(p.id, activePieceMatrix, ghostX, ghostY);
+                validPlacementCache = isValid;
+
+                if (isValid) btnConfirm.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                const ghostColor = isValid ? COLORS[p.id] : '#ff0000';
+                ctx.globalAlpha = 0.6;
+                for (let r = 0; r < activePieceMatrix.length; r++) {
+                    for (let c = 0; c < activePieceMatrix[0].length; c++) {
+                        if (activePieceMatrix[r][c]) {
+                            drawTile(ghostX + c, ghostY + r, ghostColor, !isValid);
+                        }
+                    }
+                }
+                ctx.globalAlpha = 1.0;
+
+                if (!playerHasPiecesOnBoard(p.id)) {
+                    const corner = CORNERS[p.id];
+                    ctx.strokeStyle = COLORS[p.id];
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(corner.x * TILE_SIZE + 2, corner.y * TILE_SIZE + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+                }
+            }
+        }
+
+        function drawTile(c, r, color, isError) {
+            if (c < 0 || c >= BOARD_SIZE || r < 0 || r >= BOARD_SIZE) return;
+            const x = c * TILE_SIZE;
+            const y = r * TILE_SIZE;
+
+            ctx.fillStyle = color;
+            ctx.fillRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fillRect(x + 1, y + 1, TILE_SIZE - 2, 3);
+            ctx.fillRect(x + 1, y + 1, 3, TILE_SIZE - 2);
+
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.fillRect(x + 1, y + TILE_SIZE - 4, TILE_SIZE - 2, 3);
+            ctx.fillRect(x + TILE_SIZE - 4, y + 1, 3, TILE_SIZE - 2);
+
+            if (isError) {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x + 4, y + 4); ctx.lineTo(x + TILE_SIZE - 4, y + TILE_SIZE - 4);
+                ctx.moveTo(x + TILE_SIZE - 4, y + 4); ctx.lineTo(x + 4, y + TILE_SIZE - 4);
+                ctx.stroke();
+            }
+        }
+
+
+        /* ==========================================================================
+           NETWORK & INITIALIZATION (PEERJS)
+           ========================================================================== */
+        function generateId() {
+            return Math.random().toString(36).substr(2, 6).toUpperCase();
+        }
+
+        function startGame() {
+            players = [];
+            myPlayerIds = [];
+            board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(0));
+            currentTurnIdx = -1;
+            isGameOver = false;
+
+            for (let i = 1; i <= 4; i++) {
+                let typeVal = 'ai';
+                if (document.getElementById(`setup-p${i}`)) {
+                    typeVal = document.getElementById(`setup-p${i}`).value;
+                }
+
+                players.push({
+                    id: i,
+                    type: typeVal === 'human' || typeVal === 'open' ? 'human' : 'ai',
+                    score: 0,
+                    hasPassed: false,
+                    pieces: Array(21).fill(true)
+                });
+
+                if (typeVal === 'human') myPlayerIds.push(i);
+            }
+
+            if (isHost) {
+                broadcastState();
+            }
+
+            navTo('game');
+            nextTurn();
+        }
+
+        function hostOnlineGame() {
+            isHost = true;
+            networkId = 'BLK-' + generateId();
+            navTo('lobby-host');
+
+            document.getElementById('host-info').classList.remove('hidden');
+            document.getElementById('room-id-display').innerText = networkId;
+            document.getElementById('btn-start-game').disabled = true;
+
+            peer = new Peer(networkId);
+            peer.on('open', id => {
+                document.getElementById('btn-start-game').disabled = false;
+                document.getElementById('network-status').innerText = `Hosting Room: ${id}`;
+            });
+
+            peer.on('connection', connection => {
+                hostConnections.push(connection);
+
+                connection.on('open', () => {
+                    let assignedSlot = -1;
+                    for (let i = 1; i <= 4; i++) {
+                        let sel = document.getElementById(`setup-p${i}`);
+                        if (sel.value === 'open') {
+                            sel.value = 'remote';
+                            assignedSlot = i;
+                            break;
+                        }
+                    }
+                    connection.send({ type: 'WELCOME', assignedId: assignedSlot });
+                    updateLobbyState();
+                });
+
+                connection.on('data', data => {
+                    if (data.type === 'MOVE_REQ') {
+                        if (currentTurnIdx === data.playerNum - 1 && isValidMove(data.playerNum, data.matrix, data.bX, data.bY)) {
+                            placePiece(data.playerNum, data.matrix, data.bX, data.bY, data.pieceIndex);
+                            broadcastState();
+                            nextTurn();
+                        } else {
+                            connection.send({ type: 'STATE_UPDATE', board, players, currentTurnIdx });
+                        }
+                    }
+                });
+
+                connection.on('close', () => {
+                    hostConnections = hostConnections.filter(c => c !== connection);
+                });
+            });
+
+            peer.on('error', err => {
+                alert("Network error: " + err.type);
+                navTo('main');
+            });
+        }
+
+        function broadcastState() {
+            if (!isHost) return;
+            const state = { type: 'STATE_UPDATE', board, players, currentTurnIdx };
+            hostConnections.forEach(c => c.send(state));
+        }
+
+        function joinOnlineGame() {
+            const id = document.getElementById('join-id-input').value.trim().toUpperCase();
+            if (!id) return;
+
+            document.getElementById('join-status').innerText = "Connecting...";
+            document.getElementById('btn-join-connect').disabled = true;
+
+            peer = new Peer();
+            peer.on('open', myId => {
+                conn = peer.connect(id);
+
+                conn.on('open', () => {
+                    isClient = true;
+                    document.getElementById('join-status').innerText = "Connected! Waiting for host to start...";
+                    document.getElementById('network-status').innerText = `Connected to: ${id}`;
+                });
+
+                conn.on('data', data => {
+                    if (data.type === 'WELCOME') {
+                        myPlayerIds = data.assignedId !== -1 ? [data.assignedId] : [];
+                    }
+                    else if (data.type === 'STATE_UPDATE') {
+                        if (document.getElementById('screen-game').classList.contains('hidden')) {
+                            navTo('game');
+                        }
+                        board = data.board;
+                        players = data.players;
+                        let newTurn = data.currentTurnIdx;
+
+                        renderBoard();
+                        renderPlayers();
+
+                        if (newTurn !== currentTurnIdx) {
+                            currentTurnIdx = newTurn - 1;
+                            nextTurn();
+                        } else {
+                            renderInventory();
+                        }
+                    }
+                });
+
+                conn.on('close', () => {
+                    alert("Host disconnected.");
+                    navTo('main');
+                });
+            });
+
+            peer.on('error', err => {
+                document.getElementById('join-status').innerText = "Connection failed. Check ID.";
+                document.getElementById('btn-join-connect').disabled = false;
+            });
+        }
+
+        function copyRoomId() {
+            navigator.clipboard.writeText(networkId);
+            let btn = document.querySelector('#host-info button');
+            btn.innerText = "Copied!";
+            setTimeout(() => btn.innerText = "Copy", 2000);
+        }
+
+        // Start app
+        navTo('main');
+
+    </script>
+</body>
+
+</html>
