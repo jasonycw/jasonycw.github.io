@@ -539,8 +539,8 @@
                 let validMoves = getAllValidMoves(p.id);
                 if (validMoves.length === 0) {
                     p.hasPassed = true;
-                    broadcastState(); // Sync pass
                     nextTurn();
+                    broadcastState(); // Sync pass
                     return;
                 }
 
@@ -551,8 +551,8 @@
                 const selectedMove = bestMoves[Math.floor(Math.random() * bestMoves.length)];
 
                 placePiece(p.id, selectedMove.matrix, selectedMove.x, selectedMove.y, selectedMove.pieceIndex);
-                broadcastState();
                 nextTurn();
+                broadcastState();
             }, 500);
         }
 
@@ -608,8 +608,8 @@
         function playerPass() {
             if (!myPlayerIds.includes(players[currentTurnIdx].id)) return;
             players[currentTurnIdx].hasPassed = true;
-            broadcastState();
             nextTurn();
+            broadcastState();
         }
 
         /* ==========================================================================
@@ -933,9 +933,9 @@ ${standings}`;
                 updateStatus("Sending move...");
             } else {
                 placePiece(p.id, activePieceMatrix, ghostX, ghostY, activePieceIndex);
-                broadcastState();
                 clearActivePiece();
                 nextTurn();
+                broadcastState();
             }
         }
 
@@ -1035,9 +1035,11 @@ ${standings}`;
                     typeVal = document.getElementById(`setup-p${i}`).value;
                 }
 
+                const isHumanSeat = typeVal === 'human' || typeVal === 'open' || typeVal === 'remote';
+
                 players.push({
                     id: i,
-                    type: typeVal === 'human' || typeVal === 'open' ? 'human' : 'ai',
+                    type: isHumanSeat ? 'human' : 'ai',
                     score: 0,
                     hasPassed: false,
                     pieces: Array(21).fill(true)
@@ -1046,12 +1048,12 @@ ${standings}`;
                 if (typeVal === 'human') myPlayerIds.push(i);
             }
 
+            navTo('game');
+            nextTurn();
+
             if (isHost) {
                 broadcastState();
             }
-
-            navTo('game');
-            nextTurn();
         }
 
         function hostOnlineGame() {
@@ -1090,8 +1092,8 @@ ${standings}`;
                     if (data.type === 'MOVE_REQ') {
                         if (currentTurnIdx === data.playerNum - 1 && isValidMove(data.playerNum, data.matrix, data.bX, data.bY)) {
                             placePiece(data.playerNum, data.matrix, data.bX, data.bY, data.pieceIndex);
-                            broadcastState();
                             nextTurn();
+                            broadcastState();
                         } else {
                             connection.send({ type: 'STATE_UPDATE', board, players, currentTurnIdx });
                         }
