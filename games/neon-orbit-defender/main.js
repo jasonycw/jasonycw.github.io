@@ -57,6 +57,7 @@ scene.add(player);
 const bulletGeometry = new THREE.SphereGeometry(0.12, 8, 8);
 const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
 const enemyGeometry = new THREE.OctahedronGeometry(0.52);
+const enemyMaterial = new THREE.MeshStandardMaterial({ color: 0xff6b6b, emissive: 0xff2a56, emissiveIntensity: 0.75, roughness: 0.33, metalness: 0.2 });
 
 const keys = new Set();
 const bullets = [];
@@ -98,13 +99,7 @@ function spawnEnemy() {
   const distance = arenaRadius - 0.7;
   const enemy = new THREE.Mesh(
     enemyGeometry,
-    new THREE.MeshStandardMaterial({
-      color: 0xff6b6b,
-      emissive: 0xff2a56,
-      emissiveIntensity: 0.75,
-      roughness: 0.33,
-      metalness: 0.2
-    })
+    enemyMaterial
   );
   enemy.position.set(Math.cos(angle) * distance, 0.65, Math.sin(angle) * distance);
   scene.add(enemy);
