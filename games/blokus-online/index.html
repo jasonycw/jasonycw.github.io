@@ -7,21 +7,17 @@
     <title>🟥🟨 Blokus 🟦🟩</title>
     <meta name="title" content="🟥🟨 Blokus 🟦🟩">
     <meta name="description"
-        content="A zero-build, responsive, P2P web implementation of the classic strategy board game. Play locally or online with friends.">
+        content="A zero-build, serverless, P2P web implementation of the classic strategy board game. Play locally or online with friends.">
 
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://jasonycw.github.io/games/blokus-online/">
     <meta property="og:title" content="🟥🟨 Blokus 🟦🟩">
     <meta property="og:description"
-        content="Play Blokus locally with AI or online with friends through peer-to-peer WebRTC.">
-    <meta property="og:image" content="https://jasonycw.github.io/games/blokus-online/og-image.jpg">
-
+        content="Play Blokus locally with 1-4 people sharing one device, against local AI, or online with serverless peer-to-peer browser connections.">
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://jasonycw.github.io/games/blokus-online/">
     <meta property="twitter:title" content="🟥🟨 Blokus 🟦🟩">
-    <meta property="twitter:description" content="A responsive local and peer-to-peer web version of Blokus.">
-    <meta property="twitter:image" content="https://jasonycw.github.io/games/blokus-online/og-image.jpg">
-
+    <meta property="twitter:description" content="A responsive local, AI, and serverless P2P web version of Blokus.">
     <meta name="theme-color" content="#0052cc">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -110,46 +106,56 @@
             class="absolute inset-0 flex flex-col items-center justify-center bg-white z-50 overflow-y-auto p-4">
             <h1 class="text-5xl md:text-6xl font-bold mb-8 tracking-tighter text-gray-900">BLOKUS<span
                     class="text-blue-600">.</span></h1>
-            <div class="flex flex-col gap-4 w-full max-w-xs">
-                <button onclick="navTo('lobby-local')"
-                    class="px-6 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 font-bold">Local / AI
-                    Play</button>
-                <button onclick="hostOnlineGame()"
-                    class="px-6 py-3 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 font-bold">Host
-                    Online Game</button>
-                <button onclick="navTo('lobby-join')"
-                    class="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg shadow hover:bg-gray-300 font-bold">Join
-                    Online Game</button>
+            <div class="w-full max-w-md bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-4">
+                <h2 class="text-lg font-bold text-blue-900 mb-1">Local pass-and-play</h2>
+                <p class="text-sm text-blue-800 mb-3">Choose how many people are sharing this device. Empty seats are filled by local AI so every game has 4 colors.</p>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button onclick="startLocalSetup(1)" class="px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 font-bold">1P + AI</button>
+                    <button onclick="startLocalSetup(2)" class="px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 font-bold">2P + AI</button>
+                    <button onclick="startLocalSetup(3)" class="px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 font-bold">3P + AI</button>
+                    <button onclick="startLocalSetup(4)" class="px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 font-bold">4P Local</button>
+                </div>
             </div>
-            <p class="mt-8 text-xs md:text-sm text-gray-500 max-w-md text-center">Choose 1–4 people sharing this device, fill the rest with local AI, or connect browsers online with peer-to-peer WebRTC. Each new piece must touch your color only at corners, never along edges.</p>
+            <div class="w-full max-w-md bg-purple-50 border border-purple-100 rounded-2xl p-4">
+                <h2 class="text-lg font-bold text-purple-900 mb-1">Online peer-to-peer</h2>
+                <p class="text-sm text-purple-800 mb-3">No game server is required. The host creates a WebRTC room ID, friends join from their browsers, and the host can fill any remaining seats with AI.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button onclick="hostOnlineGame()" class="px-6 py-3 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 font-bold">Host Online Game</button>
+                    <button onclick="navTo('lobby-join')" class="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg shadow hover:bg-gray-300 font-bold">Join Online Game</button>
+                </div>
+            </div>
+            <p class="mt-6 text-xs md:text-sm text-gray-500 max-w-md text-center">Place each piece corner-to-corner with your own color, never edge-to-edge with your own color. Opponent colors may touch freely.</p>
         </div>
 
         <!-- Lobby (Local & Host) -->
         <div id="screen-lobby"
             class="hidden absolute inset-0 flex flex-col items-center p-6 bg-white z-40 overflow-y-auto">
-            <h2 class="text-3xl font-bold mb-6 mt-4">Game Setup</h2>
+            <h2 class="text-3xl font-bold mb-3 mt-4">Game Setup</h2>
+            <p id="lobby-help" class="text-sm text-gray-600 text-center max-w-md mb-5">Configure who controls each Blokus color.</p>
 
             <div id="host-info"
-                class="hidden mb-6 p-4 bg-purple-100 rounded-lg border border-purple-300 text-center w-full max-w-md">
-                <p class="text-sm text-purple-800 font-semibold uppercase tracking-wide">Your Room ID</p>
+                class="hidden mb-6 p-4 bg-purple-100 rounded-xl border border-purple-300 text-left w-full max-w-md">
+                <p class="text-sm text-purple-800 font-semibold uppercase tracking-wide text-center">Your Room ID</p>
                 <div class="flex items-center justify-center gap-2 mt-2">
                     <code id="room-id-display"
                         class="text-2xl font-mono font-bold bg-white px-3 py-1 rounded select-all">Connecting...</code>
                     <button onclick="copyRoomId()"
                         class="p-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm">Copy</button>
                 </div>
-                <p class="text-xs text-purple-600 mt-2">Share this ID with friends. Mark slots as Open (Network) before they connect; remaining slots can be local humans or AI.</p>
+                <p class="text-xs text-purple-700 mt-2 text-center">Share this exact ID. Joined players appear by color below before you start.</p>
+                <div id="host-seat-summary" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <!-- Injected via JS -->
+                </div>
             </div>
 
-            <div id="local-count-panel" class="w-full max-w-md mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div id="local-count-panel" class="hidden w-full max-w-md mb-4 bg-blue-50 border border-blue-100 rounded-xl p-3">
                 <label for="local-human-count" class="block text-sm font-bold text-blue-900 mb-2">People sharing this device</label>
-                <select id="local-human-count" class="w-full border p-2 rounded bg-white" onchange="applyLocalHumanCount()">
-                    <option value="1">1 player + 3 AI</option>
-                    <option value="2">2 players + 2 AI</option>
-                    <option value="3">3 players + 1 AI</option>
-                    <option value="4">4 players, no AI</option>
+                <select id="local-human-count" onchange="applyLocalHumanCount()" class="w-full border-2 border-blue-200 rounded-lg px-3 py-2 bg-white font-semibold">
+                    <option value="1">1 local player + 3 AI</option>
+                    <option value="2">2 local players + 2 AI</option>
+                    <option value="3">3 local players + 1 AI</option>
+                    <option value="4">4 local players, no AI</option>
                 </select>
-                <p class="text-xs text-blue-700 mt-2">You can still edit each color below. Turn order is always Blue → Yellow → Red → Green.</p>
             </div>
 
             <div class="w-full max-w-md flex flex-col gap-3 mb-8" id="player-setup-list">
@@ -167,17 +173,31 @@
 
         <!-- Join Lobby -->
         <div id="screen-join"
-            class="hidden absolute inset-0 flex flex-col items-center justify-center bg-white z-40 p-4">
-            <h2 class="text-3xl font-bold mb-6">Join Game</h2>
-            <div class="w-full max-w-sm flex flex-col gap-4">
-                <input type="text" id="join-id-input" placeholder="Enter Room ID"
-                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none uppercase font-mono text-center text-xl">
-                <div id="join-status" class="text-center font-semibold text-blue-600 h-6 text-sm"></div>
+            class="hidden absolute inset-0 flex flex-col items-center justify-center bg-white z-40 p-4 overflow-y-auto">
+            <div class="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-xl p-5">
+                <h2 class="text-3xl font-bold mb-2 text-center">Join Online Lobby</h2>
+                <p class="text-sm text-gray-600 text-center mb-5">Enter the host's room code. The <span class="font-mono font-bold">BLK-</span> prefix is fixed for Blokus Online rooms.</p>
+
+                <label for="join-name-input" class="block text-sm font-bold text-gray-700 mb-1">Your display name</label>
+                <input type="text" id="join-name-input" maxlength="18" placeholder="Player name"
+                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none mb-4">
+
+                <label for="join-id-input" class="block text-sm font-bold text-gray-700 mb-1">Room code</label>
+                <div class="flex rounded-lg border-2 border-gray-300 focus-within:border-purple-500 overflow-hidden mb-3 bg-white">
+                    <span class="px-3 py-3 bg-purple-50 text-purple-800 font-mono font-bold border-r border-gray-300">BLK-</span>
+                    <input type="text" id="join-id-input" placeholder="ABC123" maxlength="10" oninput="validateJoinCodeInput()"
+                        class="flex-1 min-w-0 px-3 py-3 focus:outline-none uppercase font-mono text-xl tracking-widest">
+                </div>
+
+                <div id="join-status" class="rounded-lg bg-blue-50 text-blue-700 border border-blue-100 px-3 py-2 text-center font-semibold text-sm mb-3">Enter a room code to connect.</div>
+                <div id="join-assignment-card" class="hidden rounded-lg border p-3 mb-3 text-sm"></div>
+                <div id="join-lobby-list" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4 text-xs"></div>
+
                 <div class="flex gap-4">
                     <button onclick="navTo('main')"
                         class="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg shadow font-bold">Cancel</button>
-                    <button id="btn-join-connect" onclick="joinOnlineGame()"
-                        class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 font-bold">Connect</button>
+                    <button id="btn-join-connect" onclick="joinOnlineGame()" disabled
+                        class="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 font-bold disabled:opacity-50 disabled:cursor-not-allowed">Connect</button>
                 </div>
             </div>
         </div>
@@ -314,6 +334,8 @@
 
         const TILE_SIZE = 20; // Internal canvas resolution unit
         const BOARD_SIZE = 20;
+        const ROOM_ID_PREFIX = 'BLK-';
+        const PLAYER_COLOR_NAMES = ['Blue', 'Yellow', 'Red', 'Green'];
 
         /* ==========================================================================
            STATE
@@ -330,6 +352,8 @@
         let isHost = false;
         let isClient = false;
         let networkId = null;
+        let onlineGameStarted = false;
+        let lastLobbySeats = [];
 
         // UI Interaction State
         let myPlayerIds = []; // Which players am I controlling locally?
@@ -337,6 +361,7 @@
         let activePieceMatrix = null;
         let ghostX = -1;
         let ghostY = -1;
+        let pendingLocalHumans = 1;
         let validPlacementCache = false;
 
         /* ==========================================================================
@@ -363,21 +388,6 @@
                 for (let c = 0; c < matrix[0].length; c++)
                     if (matrix[r][c]) count++;
             return count;
-        }
-
-        const PIECE_AREAS = SHAPES_DATA.map(getPieceArea);
-
-        function remainingSquares(player) {
-            return player.pieces.reduce((sum, available, idx) => sum + (available ? PIECE_AREAS[idx] : 0), 0);
-        }
-
-        function officialScore(player) {
-            let score = -remainingSquares(player);
-            if (player.pieces.every(available => !available)) {
-                score += 15;
-                if (player.lastPieceIndex === 0) score += 5;
-            }
-            return score;
         }
 
         /* ==========================================================================
@@ -450,8 +460,14 @@
 
             const p = players[playerNum - 1];
             p.pieces[pieceIndex] = false; // Mark used
-            p.lastPieceIndex = pieceIndex;
-            p.score = officialScore(p);
+            p.score += placedSquares;
+
+            // Check full clear bonus
+            if (p.pieces.every(x => x === false)) {
+                p.score += 15;
+                // Monomino bonus rule (index 0 is the 1x1 piece)
+                if (pieceIndex === 0) p.score += 5;
+            }
         }
 
         /* ==========================================================================
@@ -530,6 +546,24 @@
             return unique;
         }
 
+        function matricesEqual(a, b) {
+            return Array.isArray(a) && Array.isArray(b) &&
+                a.length === b.length &&
+                a.every((row, r) => Array.isArray(row) && Array.isArray(b[r]) &&
+                    row.length === b[r].length && row.every((cell, c) => cell === b[r][c]));
+        }
+
+        function isLegalPieceRequest(playerNum, pieceIndex, matrix) {
+            const player = players[playerNum - 1];
+            return Boolean(
+                player &&
+                Number.isInteger(pieceIndex) &&
+                pieceIndex >= 0 && pieceIndex < SHAPES_DATA.length &&
+                player.pieces[pieceIndex] &&
+                getUniqueOrientations(SHAPES_DATA[pieceIndex]).some(orientation => matricesEqual(orientation, matrix))
+            );
+        }
+
         function runAITurn() {
             const p = players[currentTurnIdx];
             if (p.hasPassed) return nextTurn();
@@ -540,8 +574,8 @@
                 let validMoves = getAllValidMoves(p.id);
                 if (validMoves.length === 0) {
                     p.hasPassed = true;
-                    broadcastState(); // Sync pass
                     nextTurn();
+                    broadcastState(); // Sync pass
                     return;
                 }
 
@@ -576,13 +610,14 @@
                 let moves = getAllValidMoves(p.id);
                 if (moves.length === 0) {
                     p.hasPassed = true;
-                    broadcastState();
                     nextTurn();
+                    broadcastState();
                     return;
                 }
             }
 
             clearActivePiece();
+            renderBoard();
             renderPlayers();
             renderInventory();
 
@@ -607,20 +642,31 @@
         }
 
         function playerPass() {
-            if (!myPlayerIds.includes(players[currentTurnIdx].id)) return;
+            if (currentTurnIdx < 0 || !players[currentTurnIdx]) return;
+
             const p = players[currentTurnIdx];
-            if (getAllValidMoves(p.id).length > 0) {
-                updateStatus("You still have at least one legal move; passing is only allowed when blocked.");
+            if (!myPlayerIds.includes(p.id)) return;
+
+            if (isClient) {
+                conn.send({ type: 'PASS_REQ', playerNum: p.id });
+                clearActivePiece();
+                updateStatus("Sending pass...");
                 return;
             }
+
             p.hasPassed = true;
-            broadcastState();
             nextTurn();
+            broadcastState();
         }
 
         /* ==========================================================================
            UI RENDERING
            ========================================================================== */
+        function startLocalSetup(count) {
+            pendingLocalHumans = Math.max(1, Math.min(4, Number(count) || 1));
+            navTo('lobby-local');
+        }
+
         function navTo(screen) {
             document.getElementById('screen-main').classList.add('hidden');
             document.getElementById('screen-lobby').classList.add('hidden');
@@ -629,19 +675,24 @@
 
             if (screen === 'main') {
                 if (peer) { peer.destroy(); peer = null; }
-                conn = null; hostConnections = []; isHost = false; isClient = false;
-                document.getElementById('host-info').classList.add('hidden');
+                conn = null; hostConnections = []; isHost = false; isClient = false; onlineGameStarted = false;
                 document.getElementById('screen-main').classList.remove('hidden');
             } else if (screen === 'lobby-local') {
                 document.getElementById('host-info').classList.add('hidden');
+                document.getElementById('btn-start-game').disabled = false;
                 buildLobby(false);
                 document.getElementById('screen-lobby').classList.remove('hidden');
             } else if (screen === 'lobby-host') {
+                document.getElementById('local-count-panel').classList.add('hidden');
                 buildLobby(true);
                 document.getElementById('screen-lobby').classList.remove('hidden');
             } else if (screen === 'lobby-join') {
                 document.getElementById('screen-join').classList.remove('hidden');
-                document.getElementById('join-status').innerText = "";
+                document.getElementById('join-status').innerText = "Enter a room code to connect.";
+                document.getElementById('join-status').className = 'rounded-lg bg-blue-50 text-blue-700 border border-blue-100 px-3 py-2 text-center font-semibold text-sm mb-3';
+                document.getElementById('join-assignment-card').classList.add('hidden');
+                document.getElementById('join-lobby-list').classList.add('hidden');
+                validateJoinCodeInput();
             } else if (screen === 'game') {
                 document.getElementById('screen-game').classList.remove('hidden');
                 document.getElementById('game-over-overlay').classList.add('hidden');
@@ -653,61 +704,150 @@
 
         function buildLobby(forHost) {
             const list = document.getElementById('player-setup-list');
-            const countPanel = document.getElementById('local-count-panel');
+            const localPanel = document.getElementById('local-count-panel');
+            const lobbyHelp = document.getElementById('lobby-help');
             list.innerHTML = '';
-            countPanel.classList.toggle('hidden', forHost);
-            const colors = ['Blue', 'Yellow', 'Red', 'Green'];
 
-            if (forHost) {
-                const help = document.createElement('div');
-                help.className = 'p-3 bg-purple-50 border border-purple-200 rounded text-sm text-purple-900';
-                help.innerHTML = '<b>Online host setup:</b> choose Local Human for colors played on this device, Open (Network) for joining browsers, and Local AI for computer colors.';
-                list.appendChild(help);
+            localPanel.classList.toggle('hidden', forHost);
+            lobbyHelp.innerText = forHost
+                ? 'Host lobby: keep your color as Local Host, leave colors Open for friends, or switch empty colors to AI before starting.'
+                : 'Choose 1-4 local people sharing this screen. AI automatically fills the remaining colors.';
+
+            if (!forHost) {
+                document.getElementById('local-human-count').value = String(pendingLocalHumans);
             }
 
             for (let i = 1; i <= 4; i++) {
                 let row = document.createElement('div');
-                row.className = 'flex justify-between items-center bg-gray-50 p-2 md:p-3 rounded border';
+                row.className = 'flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-gray-50 p-3 rounded-xl border';
+
+                let labelWrap = document.createElement('div');
+                labelWrap.className = 'flex items-center gap-2';
 
                 let label = document.createElement('span');
                 label.className = `font-bold bg-player-${i} px-2 py-1 rounded text-xs md:text-sm`;
-                label.innerText = `P${i} (${colors[i - 1]})`;
+                label.innerText = `P${i} (${PLAYER_COLOR_NAMES[i - 1]})`;
+
+                let status = document.createElement('span');
+                status.id = `setup-p${i}-status`;
+                status.className = 'text-xs font-semibold text-gray-500';
+                status.innerText = forHost && i === 1 ? 'Host (you)' : 'Waiting';
+
+                labelWrap.appendChild(label);
+                labelWrap.appendChild(status);
 
                 let select = document.createElement('select');
                 select.id = `setup-p${i}`;
-                select.className = 'border p-1 rounded text-sm md:text-base bg-white';
-                select.innerHTML = `
-            <option value="human">Local Human</option>
-            <option value="ai">Local AI</option>
-            ${forHost ? '<option value="open">Open (Network)</option>' : ''}
-            ${forHost ? '<option value="remote" disabled class="hidden">Remote Player</option>' : ''}
-        `;
-                select.value = i === 1 ? 'human' : 'ai';
+                select.className = 'border p-2 rounded text-sm md:text-base bg-white';
+                select.innerHTML = forHost ? `
+                    <option value="human" ${i === 1 ? 'selected' : ''}>Local Host</option>
+                    <option value="open" ${i > 1 ? 'selected' : ''}>Open for Online Player</option>
+                    <option value="ai">Local AI</option>
+                    <option value="remote" disabled class="hidden">Remote Player Joined</option>
+                ` : `
+                    <option value="human">Local Human</option>
+                    <option value="ai">Local AI</option>
+                `;
                 select.onchange = updateLobbyState;
 
-                row.appendChild(label);
+                row.appendChild(labelWrap);
                 row.appendChild(select);
                 list.appendChild(row);
             }
+
             if (!forHost) applyLocalHumanCount();
+            updateLobbyState();
         }
 
         function applyLocalHumanCount() {
-            const selector = document.getElementById('local-human-count');
-            if (!selector) return;
-            const count = Number(selector.value || 1);
+            const select = document.getElementById('local-human-count');
+            if (select) pendingLocalHumans = Math.max(1, Math.min(4, Number(select.value) || 1));
             for (let i = 1; i <= 4; i++) {
-                const slot = document.getElementById(`setup-p${i}`);
-                if (slot) slot.value = i <= count ? 'human' : 'ai';
+                const seat = document.getElementById(`setup-p${i}`);
+                if (seat) seat.value = i <= pendingLocalHumans ? 'human' : 'ai';
             }
             updateLobbyState();
         }
 
+        function getHostLobbySeats() {
+            return [1, 2, 3, 4].map(i => {
+                const seat = document.getElementById(`setup-p${i}`);
+                const type = seat ? seat.value : 'ai';
+                const remote = hostConnections.find(c => c.assignedPlayerId === i);
+
+                let controller = 'Local AI';
+                let state = 'Ready';
+                if (type === 'human') {
+                    controller = i === 1 ? 'Host (you)' : 'Local Host';
+                } else if (type === 'open') {
+                    controller = 'Open for online player';
+                    state = 'Waiting';
+                } else if (type === 'remote') {
+                    controller = remote ? (remote.displayName || `Remote Player ${i}`) : 'Remote player';
+                    state = remote ? 'Joined' : 'Disconnected';
+                }
+
+                return { id: i, color: PLAYER_COLOR_NAMES[i - 1], type, controller, state };
+            });
+        }
+
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>"']/g, ch => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[ch]));
+        }
+
+        function renderLobbySeats(seats, targetId) {
+            const target = document.getElementById(targetId);
+            if (!target) return;
+
+            const canChooseSeat = targetId === 'join-lobby-list' && isClient && myPlayerIds.length === 0;
+            target.innerHTML = '';
+            seats.forEach(seat => {
+                const div = document.createElement('div');
+                div.className = `rounded-lg border p-2 bg-white ${seat.state === 'Joined' ? 'border-green-300' : seat.state === 'Waiting' ? 'border-yellow-300' : 'border-gray-200'}`;
+                const chooseButton = canChooseSeat && seat.type === 'open'
+                    ? `<button onclick="requestSeat(${seat.id})" class="mt-2 w-full px-2 py-1 rounded bg-purple-600 text-white font-bold hover:bg-purple-700">Choose ${escapeHtml(seat.color)}</button>`
+                    : '';
+                div.innerHTML = `
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-bold bg-player-${seat.id} px-2 py-1 rounded">P${seat.id} ${escapeHtml(seat.color)}</span>
+                        <span class="font-semibold ${seat.state === 'Joined' ? 'text-green-700' : seat.state === 'Waiting' ? 'text-yellow-700' : 'text-gray-600'}">${escapeHtml(seat.state)}</span>
+                    </div>
+                    <div class="mt-1 text-gray-700 truncate">${escapeHtml(seat.controller)}</div>
+                    ${chooseButton}
+                `;
+                target.appendChild(div);
+            });
+            target.classList.toggle('hidden', seats.length === 0);
+        }
+
+        function refreshHostLobby() {
+            const seats = getHostLobbySeats();
+            lastLobbySeats = seats;
+            renderLobbySeats(seats, 'host-seat-summary');
+
+            seats.forEach(seat => {
+                const status = document.getElementById(`setup-p${seat.id}-status`);
+                if (!status) return;
+                status.innerText = seat.controller;
+                status.className = `text-xs font-semibold ${seat.state === 'Joined' ? 'text-green-700' : seat.state === 'Waiting' ? 'text-yellow-700' : 'text-gray-500'}`;
+            });
+
+            return seats;
+        }
+
         function updateLobbyState() {
             if (isHost) {
-                let types = [1, 2, 3, 4].map(i => document.getElementById(`setup-p${i}`).value);
-                hostConnections.forEach(c => c.send({ type: 'LOBBY_UPDATE', types }));
+                const seats = refreshHostLobby();
+                hostConnections.forEach(c => c.send({ type: 'LOBBY_UPDATE', seats }));
+                return seats;
             }
+            return [];
         }
 
         function renderPlayers() {
@@ -723,7 +863,7 @@
 
                 div.innerHTML = `
             <div class="font-bold text-xs md:text-base leading-tight">P${p.id} ${isMe ? '<br class="md:hidden"><span class="text-[10px] md:text-xs font-normal">(You)</span>' : ''}</div>
-            <div class="text-sm md:text-lg font-mono bg-black/20 px-2 py-0.5 rounded" title="Official score; unplaced squares count negative">${officialScore(p)}</div>
+            <div class="text-sm md:text-lg font-mono bg-black/20 px-2 py-0.5 rounded">${p.score}</div>
         `;
                 container.appendChild(div);
             });
@@ -783,20 +923,27 @@
             document.getElementById('turn-status-bar').innerText = msg;
         }
 
+        function finalScore(player) {
+            // Advanced Blokus scoring: each unplayed square is -1; clearing all pieces is +15,
+            // or +20 total if the one-square monomino was the final placement. During play
+            // player.score tracks placed squares plus any clear bonus, so subtract the full
+            // 89-square inventory at game end to convert to the official advanced score.
+            return player.score - 89;
+        }
+
         function showGameOver() {
             document.getElementById('game-over-overlay').classList.remove('hidden');
             let maxScore = -Infinity;
             let winners = [];
             players.forEach(p => {
-                const score = officialScore(p);
+                const score = finalScore(p);
                 if (score > maxScore) { maxScore = score; winners = [p.id]; }
                 else if (score === maxScore) { winners.push(p.id); }
             });
-
-            const scoreLines = players.map(p => `P${p.id}: ${officialScore(p)} (${remainingSquares(p)} squares left)`).join(' • ');
+            let standings = players.map(p => `P${p.id}: ${finalScore(p)} pts`).join(' · ');
             let text = winners.length > 1 ? "Tie between Players " + winners.join(" & ") : "Player " + winners[0] + " Wins!";
             document.getElementById('winner-display').innerText = `${text} (${maxScore} pts)
-${scoreLines}`;
+${standings}`;
         }
 
         /* ==========================================================================
@@ -1012,7 +1159,16 @@ ${scoreLines}`;
         }
 
         function startGame() {
+            if (isHost) {
+                const openSeats = [1, 2, 3, 4].filter(i => document.getElementById(`setup-p${i}`)?.value === 'open');
+                if (openSeats.length > 0) {
+                    alert('Assign every open online color before starting. Wait for players to join or switch empty colors to Local AI.');
+                    return;
+                }
+            }
+
             players = [];
+            onlineGameStarted = true;
             myPlayerIds = [];
             board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(0));
             currentTurnIdx = -1;
@@ -1024,14 +1180,14 @@ ${scoreLines}`;
                     typeVal = document.getElementById(`setup-p${i}`).value;
                 }
 
-                const isHumanSeat = typeVal === 'human' || typeVal === 'remote';
+                const isHumanSeat = typeVal === 'human' || typeVal === 'open' || typeVal === 'remote';
+
                 players.push({
                     id: i,
                     type: isHumanSeat ? 'human' : 'ai',
-                    score: -89,
+                    score: 0,
                     hasPassed: false,
-                    pieces: Array(21).fill(true),
-                    lastPieceIndex: null
+                    pieces: Array(21).fill(true)
                 });
 
                 if (typeVal === 'human') myPlayerIds.push(i);
@@ -1039,14 +1195,70 @@ ${scoreLines}`;
 
             navTo('game');
             nextTurn();
+
             if (isHost) {
                 broadcastState();
             }
         }
 
+        function normalizeRoomId(value) {
+            const cleaned = value.trim().toUpperCase().replace(/\s+/g, '');
+            if (!cleaned) return '';
+            return cleaned.startsWith(ROOM_ID_PREFIX) ? cleaned : ROOM_ID_PREFIX + cleaned.replace(/^BLK-?/, '');
+        }
+
+        function isValidRoomId(value) {
+            return new RegExp(`^${ROOM_ID_PREFIX}[A-Z0-9]{6}$`).test(normalizeRoomId(value));
+        }
+
+        function validateJoinCodeInput() {
+            const input = document.getElementById('join-id-input');
+            const button = document.getElementById('btn-join-connect');
+            if (!input || !button) return false;
+
+            input.value = normalizeRoomId(input.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')).replace(ROOM_ID_PREFIX, '');
+            const isValid = isValidRoomId(input.value);
+            button.disabled = !isValid || Boolean(conn);
+            return isValid;
+        }
+
+        function setJoinStatus(message, tone = 'info') {
+            const el = document.getElementById('join-status');
+            const tones = {
+                info: 'bg-blue-50 text-blue-700 border-blue-100',
+                success: 'bg-green-50 text-green-700 border-green-200',
+                error: 'bg-red-50 text-red-700 border-red-200',
+                waiting: 'bg-yellow-50 text-yellow-800 border-yellow-200'
+            };
+            el.className = `rounded-lg ${tones[tone]} border px-3 py-2 text-center font-semibold text-sm mb-3`;
+            el.innerText = message;
+        }
+
+        function renderJoinAssignment(assignedId, message) {
+            const card = document.getElementById('join-assignment-card');
+            if (assignedId === -1) {
+                const canChoose = !message || /choose|pick|no longer open/i.test(message);
+                card.className = canChoose
+                    ? 'rounded-lg border border-yellow-200 bg-yellow-50 text-yellow-800 p-3 mb-3 text-sm'
+                    : 'rounded-lg border border-red-200 bg-red-50 text-red-700 p-3 mb-3 text-sm';
+                card.innerHTML = `<strong>${canChoose ? 'Choose a color' : 'Not joined'}:</strong> ${escapeHtml(message || 'Pick an open online color below.')}`;
+            } else {
+                card.className = 'rounded-lg border border-green-200 bg-green-50 text-green-800 p-3 mb-3 text-sm';
+                card.innerHTML = `<strong>Joined as Player ${assignedId} (${PLAYER_COLOR_NAMES[assignedId - 1]}).</strong><br>Wait here until the host starts the game.`;
+            }
+            card.classList.remove('hidden');
+        }
+
+        function requestSeat(playerId) {
+            if (!conn || myPlayerIds.length > 0) return;
+            conn.send({ type: 'SLOT_REQ', playerNum: playerId });
+            setJoinStatus(`Requesting Player ${playerId} (${PLAYER_COLOR_NAMES[playerId - 1]})...`, 'waiting');
+        }
+
         function hostOnlineGame() {
             isHost = true;
-            networkId = 'BLK-' + generateId();
+            onlineGameStarted = false;
+            networkId = ROOM_ID_PREFIX + generateId();
             navTo('lobby-host');
 
             document.getElementById('host-info').classList.remove('hidden');
@@ -1063,23 +1275,61 @@ ${scoreLines}`;
                 hostConnections.push(connection);
 
                 connection.on('open', () => {
-                    let assignedSlot = -1;
-                    for (let i = 1; i <= 4; i++) {
-                        let sel = document.getElementById(`setup-p${i}`);
-                        if (sel.value === 'open') {
-                            sel.value = 'remote';
-                            assignedSlot = i;
-                            break;
-                        }
+                    let welcomeMessage = 'Choose an open color below.';
+
+                    if (onlineGameStarted) {
+                        welcomeMessage = 'This game has already started.';
+                    } else if (!getHostLobbySeats().some(seat => seat.type === 'open')) {
+                        welcomeMessage = 'The lobby has no open online colors.';
                     }
-                    connection.send({ type: 'WELCOME', assignedId: assignedSlot });
-                    updateLobbyState();
+
+                    connection.assignedPlayerId = -1;
+                    connection.displayName = 'Choosing color';
+                    const seats = updateLobbyState();
+                    connection.send({ type: 'WELCOME', assignedId: -1, roomId: networkId, seats, message: welcomeMessage });
                 });
 
                 connection.on('data', data => {
-                    if (data.type === 'MOVE_REQ') {
-                        if (currentTurnIdx === data.playerNum - 1 && players[data.playerNum - 1].pieces[data.pieceIndex] && isValidMove(data.playerNum, data.matrix, data.bX, data.bY)) {
+                    const assignedPlayerId = connection.assignedPlayerId;
+
+                    if (data.type === 'JOIN_INFO') {
+                        connection.displayName = (data.name || '').trim().slice(0, 18) || connection.displayName;
+                        updateLobbyState();
+                    } else if (data.type === 'SLOT_REQ') {
+                        const requestedSlot = Number(data.playerNum);
+                        const sel = document.getElementById(`setup-p${requestedSlot}`);
+
+                        if (
+                            !onlineGameStarted &&
+                            connection.assignedPlayerId === -1 &&
+                            requestedSlot >= 1 && requestedSlot <= 4 &&
+                            sel && sel.value === 'open'
+                        ) {
+                            sel.value = 'remote';
+                            sel.disabled = true;
+                            connection.assignedPlayerId = requestedSlot;
+                            const seats = updateLobbyState();
+                            connection.send({ type: 'WELCOME', assignedId: requestedSlot, roomId: networkId, seats, message: '' });
+                        } else {
+                            const seats = updateLobbyState();
+                            connection.send({ type: 'WELCOME', assignedId: -1, roomId: networkId, seats, message: onlineGameStarted ? 'This game has already started.' : 'That color is no longer open. Choose another open color.' });
+                        }
+                    } else if (data.type === 'MOVE_REQ') {
+                        if (
+                            data.playerNum === assignedPlayerId &&
+                            currentTurnIdx === data.playerNum - 1 &&
+                            isLegalPieceRequest(data.playerNum, data.pieceIndex, data.matrix) &&
+                            isValidMove(data.playerNum, data.matrix, data.bX, data.bY)
+                        ) {
                             placePiece(data.playerNum, data.matrix, data.bX, data.bY, data.pieceIndex);
+                            nextTurn();
+                            broadcastState();
+                        } else {
+                            connection.send({ type: 'STATE_UPDATE', board, players, currentTurnIdx });
+                        }
+                    } else if (data.type === 'PASS_REQ') {
+                        if (data.playerNum === assignedPlayerId && currentTurnIdx === data.playerNum - 1) {
+                            players[currentTurnIdx].hasPassed = true;
                             nextTurn();
                             broadcastState();
                         } else {
@@ -1090,6 +1340,14 @@ ${scoreLines}`;
 
                 connection.on('close', () => {
                     hostConnections = hostConnections.filter(c => c !== connection);
+                    if (!onlineGameStarted && connection.assignedPlayerId > 0) {
+                        const sel = document.getElementById(`setup-p${connection.assignedPlayerId}`);
+                        if (sel && sel.value === 'remote') {
+                            sel.disabled = false;
+                            sel.value = 'open';
+                        }
+                    }
+                    updateLobbyState();
                 });
             });
 
@@ -1101,15 +1359,20 @@ ${scoreLines}`;
 
         function broadcastState() {
             if (!isHost) return;
-            const state = { type: 'STATE_UPDATE', board, players, currentTurnIdx };
+            const state = { type: 'STATE_UPDATE', board, players, currentTurnIdx, isGameOver };
             hostConnections.forEach(c => c.send(state));
         }
 
         function joinOnlineGame() {
-            const id = document.getElementById('join-id-input').value.trim().toUpperCase();
-            if (!id) return;
+            const id = normalizeRoomId(document.getElementById('join-id-input').value);
+            if (!isValidRoomId(id)) {
+                setJoinStatus('Room codes must match BLK-ABC123 using 6 letters or numbers.', 'error');
+                validateJoinCodeInput();
+                return;
+            }
 
-            document.getElementById('join-status').innerText = "Connecting...";
+            const displayName = document.getElementById('join-name-input').value.trim().slice(0, 18) || 'Remote Player';
+            setJoinStatus(`Connecting to ${id}...`, 'waiting');
             document.getElementById('btn-join-connect').disabled = true;
 
             peer = new Peer();
@@ -1118,13 +1381,23 @@ ${scoreLines}`;
 
                 conn.on('open', () => {
                     isClient = true;
-                    document.getElementById('join-status').innerText = "Connected! Waiting for host to start...";
+                    conn.send({ type: 'JOIN_INFO', name: displayName });
+                    setJoinStatus('Connected to host. Waiting for seat assignment...', 'waiting');
                     document.getElementById('network-status').innerText = `Connected to: ${id}`;
                 });
 
                 conn.on('data', data => {
                     if (data.type === 'WELCOME') {
+                        currentTurnIdx = -1;
                         myPlayerIds = data.assignedId !== -1 ? [data.assignedId] : [];
+                        renderJoinAssignment(data.assignedId, data.message);
+                        const hasOpenSeat = data.seats && data.seats.some(seat => seat.type === 'open');
+                        const unassignedTone = hasOpenSeat ? 'waiting' : 'error';
+                        setJoinStatus(data.assignedId === -1 ? (data.message || 'Choose an open color below.') : 'Joined successfully. Waiting for the host to start...', data.assignedId === -1 ? unassignedTone : 'success');
+                        if (data.seats) renderLobbySeats(data.seats, 'join-lobby-list');
+                    }
+                    else if (data.type === 'LOBBY_UPDATE') {
+                        if (data.seats) renderLobbySeats(data.seats, 'join-lobby-list');
                     }
                     else if (data.type === 'STATE_UPDATE') {
                         if (document.getElementById('screen-game').classList.contains('hidden')) {
@@ -1132,22 +1405,24 @@ ${scoreLines}`;
                         }
                         board = data.board;
                         players = data.players;
-                        currentTurnIdx = data.currentTurnIdx;
-                        clearActivePiece();
+                        let newTurn = data.currentTurnIdx;
+                        isGameOver = Boolean(data.isGameOver) || players.every(p => p.hasPassed);
+
                         renderBoard();
                         renderPlayers();
-                        renderInventory();
-                        if (isGameOver || players.every(p => p.hasPassed)) {
-                            isGameOver = true;
+
+                        if (isGameOver) {
+                            currentTurnIdx = newTurn;
+                            renderInventory();
                             showGameOver();
                             return;
                         }
-                        const p = players[currentTurnIdx];
-                        if (p) {
-                            const isMyTurn = myPlayerIds.includes(p.id);
-                            updateStatus(isMyTurn ? "Your Turn! Select a piece below." : `Waiting for Player ${p.id}...`);
-                            document.getElementById('inventory-overlay').style.display = isMyTurn ? 'none' : 'block';
-                            document.getElementById('btn-pass').style.display = isMyTurn ? 'block' : 'none';
+
+                        if (newTurn !== currentTurnIdx) {
+                            currentTurnIdx = newTurn - 1;
+                            nextTurn();
+                        } else {
+                            renderInventory();
                         }
                     }
                 });
@@ -1159,8 +1434,9 @@ ${scoreLines}`;
             });
 
             peer.on('error', err => {
-                document.getElementById('join-status').innerText = "Connection failed. Check ID.";
-                document.getElementById('btn-join-connect').disabled = false;
+                conn = null;
+                setJoinStatus(`Connection failed (${err.type || 'unknown error'}). Check the BLK- room code and ask the host to keep the lobby open.`, 'error');
+                validateJoinCodeInput();
             });
         }
 
