@@ -83,7 +83,7 @@ function fireBullet() {
   state.fireCooldown = 0.2;
 }
 
-function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
+import { clamp } from '../shared/utils.js';
 
 function resetGame() {
   state.running = true;

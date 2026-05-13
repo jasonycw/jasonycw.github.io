@@ -1,4 +1,5 @@
 import * as THREE from 'https://unpkg.com/three@0.164.1/build/three.module.js';
+import { clamp } from '../shared/utils.js';
 
 // DOM Elements
 const scoreEl = document.querySelector('#score');
@@ -90,7 +91,6 @@ function fireBullet() {
 }
 
 // Helper functions
-function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
 
 function resetGame() {
   state.running = true;
@@ -120,7 +120,7 @@ function updateHud() {
 }
 
 // Player setup
-const playerGeometry = new THREE.GeosphereGeometry(1, 4, 4);
+const playerGeometry = new THREE.SphereGeometry(1, 8, 8);
 const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, emissive: 0x00ff00 });
 const playerGroup = new THREE.Group();
 scene.add(playerGroup);
