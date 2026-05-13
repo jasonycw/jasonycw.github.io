@@ -132,6 +132,12 @@ for (let i = 0; i < 8; i++) {
 }
 
 function tick() {
+  // Spawn enemies periodically
+  state.spawnTimer -= dt;
+  if (state.spawnTimer <= 0) {
+    spawnEnemy();
+    state.spawnTimer = 2; // spawn every 2 seconds
+  }
   const dt = Math.min(clock.getDelta(), 0.033);
 
   state.fireCooldown = Math.max(0, state.fireCooldown - dt);
