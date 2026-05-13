@@ -48,10 +48,10 @@ starGeo.setAttribute('position', new THREE.Float32BufferAttribute(stars, 3));
 const starField = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xa3c2ff, size: 0.25 }));
 scene.add(starField);
 
-const bulletGeo = new THREE.BufferGeometry();
+const bulletGeo = new THREE.SphereGeometry(0.13, 8, 8);
 const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffea88 });
 const bullets = [];
-const enemyGeo = new THREE.BufferGeometry();
+const enemyGeo = new THREE.BoxGeometry(1,1,1);
 const enemyMat = new THREE.MeshBasicMaterial({ color: 0xff6959 });
 
 const clock = new THREE.Clock();
@@ -102,7 +102,7 @@ function updateHud() {
   waveEl.textContent = `${state.wave}`;
 }
 
-const playerGeometry = new THREE.GeosphereGeometry(1, 4, 4);
+const playerGeometry = new THREE.SphereGeometry(1, 8, 8);
 const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, emissive: 0x00ff00 });
 const playerGroup = new THREE.Group();
 scene.add(playerGroup);
