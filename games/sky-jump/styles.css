@@ -1,0 +1,83 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #000;
+  font-family: Arial, sans-serif;
+}
+
+#hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 15px;
+  color: white;
+  background: rgba(0, 0, 0, 0.6);
+  text-align: center;
+  z-index: 10;
+}
+
+#hud h1 {
+  margin: 0 0 5px 0;
+  font-size: 1.4em;
+}
+
+#hud p {
+  margin: 2px 0;
+  font-size: 0.95em;
+}
+
+.hint {
+  font-size: 0.75em;
+  opacity: 0.7;
+}
+
+#overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 20;
+}
+
+.card {
+  background: #1a1f2e;
+  border: 1px solid #3a4a5e;
+  border-radius: 8px;
+  padding: 30px 40px;
+  text-align: center;
+  color: white;
+  max-width: 400px;
+}
+
+.card h2 {
+  margin: 0 0 10px 0;
+  color: #35d3ff;
+  font-size: 1.4em;
+}
+
+.card p {
+  margin: 10px 0 20px 0;
+  opacity: 0.8;
+  line-height: 1.4;
+}
+
+button {
+  background: #35d3ff;
+  color: #02060f;
+  border: none;
+  padding: 10px 30px;
+  font-size: 1em;
+  font-weight: bold;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #8ef8ff;
+}

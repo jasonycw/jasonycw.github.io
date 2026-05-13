@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cube Shooter</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="hud">
+      <h1>Cube Shooter</h1>
+      <p>Score: <span id="score">0</span></p>
+      <p>Health: <span id="health">100</span>%</p>
+      <p>Wave: <span id="wave">1</span></p>
+      <p>Time: <span id="time">60</span>s</p>
+      <p class="hint">WASD / Arrow Keys to move • Mouse to look • Click / Space to fire • Shift to boost</p>
+    </div>
+
+    <div id="overlay">
+      <div class="card">
+        <h2>Training Simulation</h2>
+        <p>
+          Destroy the colored cubes before they reach you. Survive as long as possible.
+        </p>
+        <button id="startBtn">Start Simulation</button>
+      </div>
+    </div>
+
+    <script type="module" src="./game.js"></script>
+  </body>
+</html>
