@@ -58,6 +58,7 @@ scene.add(starField);
 const bulletGeo = new THREE.SphereGeometry(0.13, 8, 8);
 const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffea88 });
 const bullets = [];
+const enemies = [];
 const enemyGeo = new THREE.BoxGeometry(1,1,1);
 const enemyMat = new THREE.MeshBasicMaterial({ color: 0xff6959 });
 
@@ -132,13 +133,14 @@ for (let i = 0; i < 8; i++) {
 }
 
 function tick() {
+  const dt = Math.min(clock.getDelta(), 0.033);
+
   // Spawn enemies periodically
   state.spawnTimer -= dt;
   if (state.spawnTimer <= 0) {
     spawnEnemy();
     state.spawnTimer = 2; // spawn every 2 seconds
   }
-  const dt = Math.min(clock.getDelta(), 0.033);
 
   state.fireCooldown = Math.max(0, state.fireCooldown - dt);
   state.timeLeft = Math.max(0, state.timeLeft - dt);

@@ -51,6 +51,7 @@ scene.add(starField);
 const bulletGeo = new THREE.SphereGeometry(0.13, 8, 8);
 const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffea88 });
 const bullets = [];
+const enemies = [];
 const enemyGeo = new THREE.BoxGeometry(1,1,1);
 const enemyMat = new THREE.MeshBasicMaterial({ color: 0xff6959 });
 
@@ -83,8 +84,6 @@ function fireBullet() {
   state.fireCooldown = 0.2;
 }
 
-import { clamp } from '../shared/utils.js';
-
 function resetGame() {
   state.running = true;
   state.score = 0;
@@ -116,6 +115,11 @@ for (let i = 0; i < 8; i++) {
 function tick() {
   const dt = Math.min(clock.getDelta(), 0.033);
 
+  state.spawnTimer -= dt;
+  if (state.spawnTimer <= 0) {
+    spawnEnemy();
+    state.spawnTimer = 2; // spawn every 2 seconds
+  }
   state.fireCooldown = Math.max(0, state.fireCooldown - dt);
 
   if (state.running) {
