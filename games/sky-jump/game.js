@@ -57,11 +57,12 @@ scene.add(player);
 
 const clock = new THREE.Clock();
 
+const platformGeo = new THREE.BoxGeometry(6, 1, 6);
+const platformMat = new THREE.MeshStandardMaterial({ color: 0x2f8cff });
+
 let platforms = [];
 function createPlatform(x, z) {
-  const geo = new THREE.BoxGeometry(6, 1, 6);
-  const mat = new THREE.MeshStandardMaterial({ color: 0x2f8cff });
-  const p = new THREE.Mesh(geo, mat);
+  const p = new THREE.Mesh(platformGeo, platformMat);
   p.position.set(x, 0, z);
   scene.add(p);
   platforms.push(p);
