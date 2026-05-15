@@ -1,217 +1,415 @@
 import * as THREE from 'https://unpkg.com/three@0.164.1/build/three.module.js';
 
-// DOM Elements
 const scoreEl = document.querySelector('#score');
 const healthEl = document.querySelector('#health');
 const waveEl = document.querySelector('#wave');
 const overlayEl = document.querySelector('#overlay');
 const startBtn = document.querySelector('#startBtn');
 
+const ARENA_LIMIT = 24;
+const BASE_RADIUS = 2.3;
+const TURRET_COST = 50;
+const STARTING_RESOURCES = 100;
+const ENEMY_REWARD = 10;
+
 const state = {
   running: false,
   score: 0,
+  resources: STARTING_RESOURCES,
   health: 100,
   wave: 1,
-  fireCooldown: 0,
   spawnTimer: 0,
-  boostEnergy: 1,
+  spawnedThisWave: 0,
+  nextWaveDelay: 0,
 };
 
 const keys = new Set();
-const mouseNdc = new THREE.Vector2();
+const enemies = [];
+const turrets = [];
+const projectiles = [];
+
+const pointer = new THREE.Vector2();
+const targetPoint = new THREE.Vector3(0, 0, -4);
+const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const raycaster = new THREE.Raycaster();
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x02060f, 40, 120);
+scene.fog = new THREE.Fog(0x02060f, 42, 120);
 
-const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 200);
-camera.position.set(0, 8, 12);
-camera.lookAt(0, 5, 0);
+const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(0, 28, 30);
+camera.lookAt(0, 0, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 document.body.appendChild(renderer.domElement);
 
-const hemi = new THREE.HemisphereLight(0x8ec5ff, 0x0b0f21, 0.95);
+const hemi = new THREE.HemisphereLight(0x9ed5ff, 0x07111f, 0.95);
 scene.add(hemi);
 
-const dir = new THREE.DirectionalLight(0x8dc5ff, 1);
-dir.position.set(8, 5, 5);
+const dir = new THREE.DirectionalLight(0xb2e8ff, 1.2);
+dir.position.set(8, 16, 10);
 scene.add(dir);
 
 const starGeo = new THREE.BufferGeometry();
 const stars = [];
 for (let i = 0; i < 500; i += 1) {
-  stars.push((Math.random() - 0.5) * 80, Math.random() * 20 - 10, (Math.random() - 0.5) * 80);
+  stars.push((Math.random() - 0.5) * 120, Math.random() * 45 + 6, (Math.random() - 0.5) * 120);
 }
 starGeo.setAttribute('position', new THREE.Float32BufferAttribute(stars, 3));
-const starField = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xa3c2ff, size: 0.25 }));
-scene.add(starField);
+scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xa3c2ff, size: 0.25 })));
 
-const bulletGeo = new THREE.SphereGeometry(0.13, 8, 8);
-const bulletMat = new THREE.MeshBasicMaterial({ color: 0xffea88 });
-const bullets = [];
-const enemies = [];
-const enemyGeo = new THREE.BoxGeometry(1,1,1);
-const enemyMat = new THREE.MeshBasicMaterial({ color: 0xff6959 });
+const island = new THREE.Mesh(
+  new THREE.CylinderGeometry(28, 23, 1.2, 72),
+  new THREE.MeshStandardMaterial({ color: 0x10273b, roughness: 0.75, metalness: 0.1, emissive: 0x04101c }),
+);
+island.position.y = -0.65;
+scene.add(island);
+
+const path = new THREE.Mesh(
+  new THREE.PlaneGeometry(48, 3.2),
+  new THREE.MeshBasicMaterial({ color: 0x25425f, transparent: true, opacity: 0.72 }),
+);
+path.rotation.x = -Math.PI / 2;
+path.position.z = 0;
+scene.add(path);
+
+const base = new THREE.Group();
+const baseCore = new THREE.Mesh(
+  new THREE.CylinderGeometry(BASE_RADIUS, BASE_RADIUS * 1.25, 1.8, 32),
+  new THREE.MeshStandardMaterial({ color: 0x35d3ff, emissive: 0x0a5f7a, emissiveIntensity: 0.6 }),
+);
+baseCore.position.y = 0.9;
+base.add(baseCore);
+const baseRing = new THREE.Mesh(
+  new THREE.RingGeometry(BASE_RADIUS + 0.25, BASE_RADIUS + 0.55, 48),
+  new THREE.MeshBasicMaterial({ color: 0x8ef8ff, transparent: true, opacity: 0.5 }),
+);
+baseRing.rotation.x = -Math.PI / 2;
+baseRing.position.y = 0.04;
+base.add(baseRing);
+scene.add(base);
+
+const cursor = new THREE.Group();
+const cursorPad = new THREE.Mesh(
+  new THREE.RingGeometry(0.9, 1.25, 28),
+  new THREE.MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.75 }),
+);
+cursorPad.rotation.x = -Math.PI / 2;
+cursor.add(cursorPad);
+const cursorBarrel = new THREE.Mesh(
+  new THREE.ConeGeometry(0.32, 1.25, 16),
+  new THREE.MeshBasicMaterial({ color: 0xffd166 }),
+);
+cursorBarrel.rotation.x = Math.PI / 2;
+cursorBarrel.position.set(0, 0.55, -0.45);
+cursor.add(cursorBarrel);
+cursor.position.set(-7, 0.08, 7);
+scene.add(cursor);
+
+const enemyGeo = new THREE.IcosahedronGeometry(0.75, 0);
+const enemyMat = new THREE.MeshStandardMaterial({ color: 0xff6959, emissive: 0x72160f, emissiveIntensity: 0.55 });
+const projectileGeo = new THREE.SphereGeometry(0.18, 10, 10);
+const projectileMat = new THREE.MeshBasicMaterial({ color: 0xfff1a3 });
 
 const clock = new THREE.Clock();
 
+function waveSize() {
+  return 5 + state.wave * 2;
+}
+
+function spawnEvery() {
+  return Math.max(0.55, 1.65 - state.wave * 0.08);
+}
+
 function spawnEnemy() {
-  const mesh = new THREE.Mesh(enemyGeo, enemyMat);
-  const radius = 30 + Math.random() * 10;
-  const angle = Math.random() * Math.PI * 2;
-  mesh.position.set(Math.cos(angle) * radius, 0.5, Math.sin(angle) * radius);
+  if (!state.running || state.spawnedThisWave >= waveSize()) return;
+
+  const z = (Math.random() - 0.5) * 8;
+  const mesh = new THREE.Mesh(enemyGeo, enemyMat.clone());
+  mesh.position.set(-ARENA_LIMIT, 0.75, z);
   scene.add(mesh);
 
   enemies.push({
     mesh,
-    speed: 1 + Math.random() * 2,
-    hp: 1,
+    hp: 24 + state.wave * 6,
+    maxHp: 24 + state.wave * 6,
+    speed: 2.1 + state.wave * 0.12,
   });
+  state.spawnedThisWave += 1;
 }
 
-function fireBullet() {
-  if (state.fireCooldown > 0 || !state.running) return;
+function makeTurret(position) {
+  const group = new THREE.Group();
+  const baseMesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.85, 1.05, 0.55, 24),
+    new THREE.MeshStandardMaterial({ color: 0x68d391, emissive: 0x124d2d, emissiveIntensity: 0.28 }),
+  );
+  baseMesh.position.y = 0.28;
+  group.add(baseMesh);
 
-  const mesh = new THREE.Mesh(bulletGeo, bulletMat);
-  mesh.position.copy(playerGroup.position);
-  scene.add(mesh);
+  const barrel = new THREE.Mesh(
+    new THREE.BoxGeometry(0.32, 0.32, 1.45),
+    new THREE.MeshStandardMaterial({ color: 0xd9fff0, emissive: 0x1f6b4a, emissiveIntensity: 0.24 }),
+  );
+  barrel.position.set(0, 0.75, -0.62);
+  group.add(barrel);
 
-  const dir = new THREE.Vector3(Math.sin(playerGroup.rotation.y), 0, Math.cos(playerGroup.rotation.y));
-  bullets.push({ mesh, velocity: dir.multiplyScalar(25), life: 1 });
+  group.position.copy(position).setY(0);
+  scene.add(group);
+  turrets.push({ group, barrel, range: 10, cooldown: 0 });
+}
 
-  state.fireCooldown = 0.2;
+function canPlaceTurret(position) {
+  if (position.length() > ARENA_LIMIT - 2) return false;
+  if (position.distanceTo(base.position) < BASE_RADIUS + 2) return false;
+  return !turrets.some((turret) => turret.group.position.distanceTo(position) < 2.2);
+}
+
+function tryPlaceTurret() {
+  if (!state.running || state.resources < TURRET_COST) return;
+
+  const position = cursor.position.clone().setY(0);
+  if (!canPlaceTurret(position)) return;
+
+  state.resources -= TURRET_COST;
+  makeTurret(position);
+  updateHud();
+}
+
+function clearActors() {
+  for (const enemy of enemies) scene.remove(enemy.mesh);
+  for (const turret of turrets) scene.remove(turret.group);
+  for (const projectile of projectiles) scene.remove(projectile.mesh);
+  enemies.length = 0;
+  turrets.length = 0;
+  projectiles.length = 0;
 }
 
 function resetGame() {
+  clearActors();
   state.running = true;
   state.score = 0;
+  state.resources = STARTING_RESOURCES;
   state.health = 100;
   state.wave = 1;
-  state.fireCooldown = 0;
-  state.spawnTimer = 0;
+  state.spawnTimer = 0.6;
+  state.spawnedThisWave = 0;
+  state.nextWaveDelay = 0;
+  cursor.position.set(-7, 0.08, 7);
+  cursor.visible = true;
   overlayEl.classList.add('hidden');
-  startBtn.textContent = 'Start Defense';
+  startBtn.textContent = 'Restart Defense';
+  updateHud();
 }
 
 function updateHud() {
-  scoreEl.textContent = `${state.score}`;
+  scoreEl.textContent = `${state.score} pts | ${state.resources} res`;
   healthEl.textContent = `${Math.round(state.health)}`;
   waveEl.textContent = `${state.wave}`;
 }
 
-const playerGeometry = new THREE.SphereGeometry(1, 8, 8);
-const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, emissive: 0x00ff00 });
-const playerGroup = new THREE.Group();
-scene.add(playerGroup);
+function endGame() {
+  state.running = false;
+  overlayEl.classList.remove('hidden');
+  overlayEl.querySelector('h2').textContent = 'Base Overrun';
+  overlayEl.querySelector('p').textContent = `Final score: ${state.score}. Wave reached: ${state.wave}.`;
+  startBtn.textContent = 'Restart Defense';
+}
 
-for (let i = 0; i < 8; i++) {
-  const slice = new THREE.Mesh(playerGeometry, playerMaterial.clone());
-  slice.rotation.z = i * Math.PI / 4;
-  playerGroup.add(slice);
+function damageBase(amount) {
+  state.health = Math.max(0, state.health - amount);
+  if (state.health <= 0) endGame();
+}
+
+function destroyEnemy(index) {
+  const enemy = enemies[index];
+  scene.remove(enemy.mesh);
+  enemies.splice(index, 1);
+  state.score += ENEMY_REWARD;
+  state.resources += ENEMY_REWARD;
+}
+
+function fireFromTurret(turret, enemy) {
+  const start = turret.group.position.clone().setY(0.9);
+  const target = enemy.mesh.position.clone().setY(0.75);
+  const velocity = target.sub(start).normalize().multiplyScalar(18);
+  const mesh = new THREE.Mesh(projectileGeo, projectileMat);
+  mesh.position.copy(start);
+  scene.add(mesh);
+  projectiles.push({ mesh, velocity, damage: 18, life: 0.9, target: enemy });
+  turret.cooldown = 0.65;
+}
+
+function updateCursor(dt) {
+  const move = new THREE.Vector3();
+  if (keys.has('w') || keys.has('arrowup')) move.z -= 1;
+  if (keys.has('s') || keys.has('arrowdown')) move.z += 1;
+  if (keys.has('a') || keys.has('arrowleft')) move.x -= 1;
+  if (keys.has('d') || keys.has('arrowright')) move.x += 1;
+
+  if (move.lengthSq() > 0) {
+    move.normalize().multiplyScalar(9 * dt);
+    cursor.position.add(move);
+    cursor.position.x = THREE.MathUtils.clamp(cursor.position.x, -ARENA_LIMIT + 2, ARENA_LIMIT - 2);
+    cursor.position.z = THREE.MathUtils.clamp(cursor.position.z, -ARENA_LIMIT + 2, ARENA_LIMIT - 2);
+  }
+
+  const direction = targetPoint.clone().sub(cursor.position).setY(0);
+  if (direction.lengthSq() > 0.001) {
+    cursor.rotation.y = Math.atan2(direction.x, direction.z);
+  }
+
+  cursorPad.material.color.set(canPlaceTurret(cursor.position) && state.resources >= TURRET_COST ? 0xffd166 : 0xff6959);
+}
+
+function updateEnemies(dt) {
+  for (let i = enemies.length - 1; i >= 0; i -= 1) {
+    const enemy = enemies[i];
+    const direction = base.position.clone().sub(enemy.mesh.position).setY(0);
+    const distance = direction.length();
+
+    if (distance <= BASE_RADIUS) {
+      scene.remove(enemy.mesh);
+      enemies.splice(i, 1);
+      damageBase(12);
+      continue;
+    }
+
+    enemy.mesh.position.addScaledVector(direction.normalize(), enemy.speed * dt);
+    enemy.mesh.rotation.x += dt * 2;
+    enemy.mesh.rotation.y += dt * 3;
+    const healthRatio = THREE.MathUtils.clamp(enemy.hp / enemy.maxHp, 0.25, 1);
+    enemy.mesh.scale.setScalar(0.75 + healthRatio * 0.35);
+  }
+}
+
+function updateTurrets(dt) {
+  for (const turret of turrets) {
+    turret.cooldown = Math.max(0, turret.cooldown - dt);
+    let target = null;
+    let nearest = turret.range;
+
+    for (const enemy of enemies) {
+      const distance = turret.group.position.distanceTo(enemy.mesh.position);
+      if (distance < nearest) {
+        nearest = distance;
+        target = enemy;
+      }
+    }
+
+    if (!target) continue;
+
+    const aim = target.mesh.position.clone().sub(turret.group.position).setY(0);
+    if (aim.lengthSq() > 0.001) {
+      turret.group.rotation.y = Math.atan2(aim.x, aim.z);
+    }
+
+    if (turret.cooldown <= 0) fireFromTurret(turret, target);
+  }
+}
+
+function updateProjectiles(dt) {
+  for (let i = projectiles.length - 1; i >= 0; i -= 1) {
+    const projectile = projectiles[i];
+    projectile.mesh.position.addScaledVector(projectile.velocity, dt);
+    projectile.life -= dt;
+
+    const targetIndex = enemies.indexOf(projectile.target);
+    if (targetIndex !== -1 && projectile.mesh.position.distanceTo(projectile.target.mesh.position) < 0.75) {
+      projectile.target.hp -= projectile.damage;
+      scene.remove(projectile.mesh);
+      projectiles.splice(i, 1);
+      if (projectile.target.hp <= 0) destroyEnemy(targetIndex);
+      continue;
+    }
+
+    if (projectile.life <= 0) {
+      scene.remove(projectile.mesh);
+      projectiles.splice(i, 1);
+    }
+  }
+}
+
+function updateWave(dt) {
+  state.spawnTimer -= dt;
+  if (state.spawnTimer <= 0 && state.spawnedThisWave < waveSize()) {
+    spawnEnemy();
+    state.spawnTimer = spawnEvery();
+  }
+
+  if (state.spawnedThisWave >= waveSize() && enemies.length === 0) {
+    state.nextWaveDelay += dt;
+    if (state.nextWaveDelay >= 2) {
+      state.wave += 1;
+      state.health = Math.min(100, state.health + 8);
+      state.spawnedThisWave = 0;
+      state.spawnTimer = 0.8;
+      state.nextWaveDelay = 0;
+    }
+  }
 }
 
 function tick() {
   const dt = Math.min(clock.getDelta(), 0.033);
 
-  state.spawnTimer -= dt;
-  if (state.spawnTimer <= 0) {
-    spawnEnemy();
-    state.spawnTimer = 2; // spawn every 2 seconds
-  }
-  state.fireCooldown = Math.max(0, state.fireCooldown - dt);
-
   if (state.running) {
-    // Player movement
-    const moveInput = new THREE.Vector3();
-    if (keys.has('w')) moveInput.z -= 1;
-    if (keys.has('s')) moveInput.z += 1;
-    if (keys.has('a')) moveInput.x -= 1;
-    if (keys.has('d')) moveInput.x += 1;
-
-    if (moveInput.lengthSq() > 0) moveInput.normalize();
-
-    const speed = 4;
-    playerGroup.position.x += moveInput.x * speed * dt;
-    playerGroup.position.z += moveInput.z * speed * dt;
-
-    // Keep player within bounds
-    playerGroup.position.x = clamp(playerGroup.position.x, -25, 25);
-    playerGroup.position.z = clamp(playerGroup.position.z, -25, 25);
-
-    // Fire bullets on mouse click or spacebar
-    if (keys.has(' ') && state.running) {
-      fireBullet();
-    }
-
-    // Update bullets
-    for (let i = bullets.length - 1; i >= 0; i--) {
-      const bullet = bullets[i];
-      bullet.mesh.position.addScaledVector(bullet.velocity, dt);
-      bullet.life -= dt;
-      if (bullet.life <= 0) {
-        scene.remove(bullet.mesh);
-        bullets.splice(i, 1);
-      }
-    }
-
-    // Update enemies
-    for (let i = enemies.length - 1; i >= 0; i--) {
-      const enemy = enemies[i];
-      enemy.mesh.position.y += 0.02;
-
-      // Simple approach: move enemy toward player
-      const dx = playerGroup.position.x - enemy.mesh.position.x;
-      const dz = playerGroup.position.z - enemy.mesh.position.z;
-      const dist = Math.sqrt(dx*dx + dz*dz);
-
-      if (dist < 1.5) {
-        // Collision!
-        state.health -= 10;
-        if (state.health <= 0) {
-          state.running = false;
-          overlayEl.classList.remove('hidden');
-          overlayEl.querySelector('h2').textContent = 'Mission Failed';
-          overlayEl.querySelector('p').textContent = `Score: ${state.score}.`;
-          startBtn.textContent = 'Restart Defense';
-        }
-      }
-
-      // Move toward player
-      if (dist > 0) {
-        enemy.mesh.position.x += (dx/dist) * enemy.speed * dt;
-        enemy.mesh.position.z += (dz/dist) * enemy.speed * dt;
-      }
-
-      // Remove if too far
-      if (enemy.mesh.position.x < -40 || enemy.mesh.position.x > 40 ||
-          enemy.mesh.position.z < -40 || enemy.mesh.position.z > 40) {
-        scene.remove(enemy.mesh);
-        enemies.splice(i, 1);
-      }
-    }
-
+    updateCursor(dt);
+    updateWave(dt);
+    updateEnemies(dt);
+    updateTurrets(dt);
+    updateProjectiles(dt);
     updateHud();
   }
 
+  baseRing.rotation.z += dt * 0.9;
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
 }
 
+function updatePointer(clientX, clientY) {
+  pointer.x = (clientX / window.innerWidth) * 2 - 1;
+  pointer.y = -(clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  raycaster.ray.intersectPlane(groundPlane, targetPoint);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+window.addEventListener('pointermove', (event) => {
+  updatePointer(event.clientX, event.clientY);
+});
+
+window.addEventListener('pointerdown', (event) => {
+  if (!state.running || event.target !== renderer.domElement) return;
+  updatePointer(event.clientX, event.clientY);
+  cursor.position.x = THREE.MathUtils.clamp(targetPoint.x, -ARENA_LIMIT + 2, ARENA_LIMIT - 2);
+  cursor.position.z = THREE.MathUtils.clamp(targetPoint.z, -ARENA_LIMIT + 2, ARENA_LIMIT - 2);
+  tryPlaceTurret();
+});
+
 window.addEventListener('keydown', (event) => {
   keys.add(event.key.toLowerCase());
+  if (event.code === 'Space') {
+    event.preventDefault();
+    tryPlaceTurret();
+  }
 });
 
 window.addEventListener('keyup', (event) => {
   keys.delete(event.key.toLowerCase());
 });
 
-overlayEl.classList.add('hidden');
+overlayEl.classList.remove('hidden');
 overlayEl.querySelector('h2').textContent = 'Defend the Island';
-overlayEl.querySelector('p').textContent = 'Place turrets to stop the enemy drones from reaching your base.';
-
-overlayEl.querySelector('button').addEventListener('click', resetGame);
+overlayEl.querySelector('p').textContent = 'Move the placement cursor, spend resources on turrets, and stop drones before they reach the base.';
+startBtn.textContent = 'Start Defense';
+startBtn.addEventListener('click', resetGame);
 
 updateHud();
 tick();
