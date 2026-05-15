@@ -395,9 +395,11 @@ window.addEventListener('pointerdown', (event) => {
 });
 
 window.addEventListener('keydown', (event) => {
-  keys.add(event.key.toLowerCase());
-  if (event.code === 'Space') {
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) {
     event.preventDefault();
+  }
+  keys.add(event.key.toLowerCase());
+  if (event.code === 'Space' && !event.repeat) {
     tryPlaceTurret();
   }
 });
