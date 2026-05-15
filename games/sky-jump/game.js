@@ -180,6 +180,12 @@ function tick() {
   requestAnimationFrame(tick);
 }
 
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
 window.addEventListener('keydown', e => keys.add(e.key.toLowerCase()));
 window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 
