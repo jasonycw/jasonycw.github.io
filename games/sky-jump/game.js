@@ -17,6 +17,7 @@ const state = {
 };
 
 const keys = new Set();
+const moveInput = new THREE.Vector3();
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x02060f, 30, 120);
@@ -127,15 +128,15 @@ function tick() {
 
   if (state.running) {
     // Simple WASD movement on the XZ plane
-    const move = new THREE.Vector3();
-    if (keys.has('w')) move.z -= 1;
-    if (keys.has('s')) move.z += 1;
-    if (keys.has('a')) move.x -= 1;
-    if (keys.has('d')) move.x += 1;
-    if (move.lengthSq() > 0) move.normalize();
+    moveInput.set(0, 0, 0);
+    if (keys.has('w')) moveInput.z -= 1;
+    if (keys.has('s')) moveInput.z += 1;
+    if (keys.has('a')) moveInput.x -= 1;
+    if (keys.has('d')) moveInput.x += 1;
+    if (moveInput.lengthSq() > 0) moveInput.normalize();
     const speed = 6;
-    player.position.x += move.x * speed * dt;
-    player.position.z += move.z * speed * dt;
+    player.position.x += moveInput.x * speed * dt;
+    player.position.z += moveInput.z * speed * dt;
 
     // Keep player within bounds of current platforms
     const bounds = 25 + state.level * 5;
