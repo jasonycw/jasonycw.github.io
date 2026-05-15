@@ -30,6 +30,7 @@ const projectiles = [];
 
 const pointer = new THREE.Vector2();
 const targetPoint = new THREE.Vector3(0, 0, -4);
+const enemyDirection = new THREE.Vector3();
 const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const raycaster = new THREE.Raycaster();
 
@@ -265,7 +266,7 @@ function updateCursor(dt) {
 function updateEnemies(dt) {
   for (let i = enemies.length - 1; i >= 0; i -= 1) {
     const enemy = enemies[i];
-    const direction = base.position.clone().sub(enemy.mesh.position).setY(0);
+    const direction = enemyDirection.subVectors(base.position, enemy.mesh.position).setY(0);
     const distance = direction.length();
 
     if (distance <= BASE_RADIUS) {
