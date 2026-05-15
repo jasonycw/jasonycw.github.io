@@ -26,7 +26,7 @@ After this repo is deployed with GitHub Pages, the game is playable at:
 
 - Turrets cost 50 resources to place.
 - Each new wave restores a small amount of health.
-- Enemies spawn around the perimeter and move toward your base.
+- Enemies enter from the path edge and move toward your base.
 - If an enemy reaches your base, you lose health.
 - Survive longer to reach higher waves and faster spawns.
 
