@@ -45,6 +45,10 @@ body {
   z-index: 20;
 }
 
+#overlay.hidden {
+  display: none;
+}
+
 .card {
   background: #1a1f2e;
   border: 1px solid #3a4a5e;
