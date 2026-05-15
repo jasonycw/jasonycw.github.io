@@ -173,6 +173,23 @@ function tick() {
       const bullet = bullets[i];
       bullet.mesh.position.addScaledVector(bullet.velocity, dt);
       bullet.life -= dt;
+      let hitEnemy = false;
+
+      for (let j = enemies.length - 1; j >= 0; j--) {
+        const enemy = enemies[j];
+        if (bullet.mesh.position.distanceToSquared(enemy.mesh.position) < 0.85) {
+          scene.remove(enemy.mesh);
+          scene.remove(bullet.mesh);
+          enemies.splice(j, 1);
+          bullets.splice(i, 1);
+          state.score += 10;
+          hitEnemy = true;
+          break;
+        }
+      }
+
+      if (hitEnemy) continue;
+
       if (bullet.life <= 0) {
         scene.remove(bullet.mesh);
         bullets.splice(i, 1);
