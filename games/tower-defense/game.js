@@ -31,6 +31,8 @@ const projectiles = [];
 const pointer = new THREE.Vector2();
 const targetPoint = new THREE.Vector3(0, 0, -4);
 const enemyDirection = new THREE.Vector3();
+const turretMove = new THREE.Vector3();
+const turretAim = new THREE.Vector3();
 const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const raycaster = new THREE.Raycaster();
 
@@ -242,7 +244,7 @@ function fireFromTurret(turret, enemy) {
 }
 
 function updateCursor(dt) {
-  const move = new THREE.Vector3();
+  const move = turretMove.set(0, 0, 0);
   if (keys.has('w') || keys.has('arrowup')) move.z -= 1;
   if (keys.has('s') || keys.has('arrowdown')) move.z += 1;
   if (keys.has('a') || keys.has('arrowleft')) move.x -= 1;
@@ -255,7 +257,7 @@ function updateCursor(dt) {
     cursor.position.z = THREE.MathUtils.clamp(cursor.position.z, -ARENA_LIMIT + 2, ARENA_LIMIT - 2);
   }
 
-  const direction = targetPoint.clone().sub(cursor.position).setY(0);
+  const direction = turretAim.subVectors(targetPoint, cursor.position).setY(0);
   if (direction.lengthSq() > 0.001) {
     cursor.rotation.y = Math.atan2(direction.x, direction.z);
   }
@@ -300,7 +302,7 @@ function updateTurrets(dt) {
 
     if (!target) continue;
 
-    const aim = target.mesh.position.clone().sub(turret.group.position).setY(0);
+    const aim = turretAim.subVectors(target.mesh.position, turret.group.position).setY(0);
     if (aim.lengthSq() > 0.001) {
       turret.group.rotation.y = Math.atan2(aim.x, aim.z);
     }
