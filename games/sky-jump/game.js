@@ -154,3 +154,4 @@ overlayEl.querySelector('button').addEventListener('click', resetGame);
 
 overlayEl.classList.add('hidden');
 resetGame();
+tick();
