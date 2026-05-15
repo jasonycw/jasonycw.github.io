@@ -202,7 +202,6 @@ function tick() {
     // Update enemies
     for (let i = enemies.length - 1; i >= 0; i--) {
       const enemy = enemies[i];
-      enemy.mesh.position.y += 0.02;
 
       // Simple approach: move enemy toward player
       const dx = playerGroup.position.x - enemy.mesh.position.x;
