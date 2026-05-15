@@ -108,6 +108,7 @@ function resetGame() {
   }
   bullets.length = 0;
   enemies.length = 0;
+  playerGroup.position.set(0, 0, 0);
 
   overlayEl.classList.add('hidden');
   startBtn.textContent = 'Start Simulation';
