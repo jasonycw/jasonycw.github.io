@@ -1,6 +1,7 @@
 import * as THREE from 'https://unpkg.com/three@0.164.1/build/three.module.js';
 
 const scoreEl = document.querySelector('#score');
+const resourcesEl = document.querySelector('#resources');
 const healthEl = document.querySelector('#health');
 const waveEl = document.querySelector('#wave');
 const overlayEl = document.querySelector('#overlay');
@@ -206,7 +207,8 @@ function resetGame() {
 }
 
 function updateHud() {
-  scoreEl.textContent = `${state.score} pts | ${state.resources} res`;
+  scoreEl.textContent = `${state.score}`;
+  resourcesEl.textContent = `${state.resources}`;
   healthEl.textContent = `${Math.round(state.health)}`;
   waveEl.textContent = `${state.wave}`;
 }
