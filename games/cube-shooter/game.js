@@ -249,7 +249,6 @@ window.addEventListener('keyup', (event) => {
 });
 
 // Set up overlay button
-overlayEl.classList.add('hidden');
 overlayEl.querySelector('h2').textContent = 'Training Simulation';
 overlayEl.querySelector('p').textContent = 'Destroy the incoming cubes to test your shooting skills.';
 
