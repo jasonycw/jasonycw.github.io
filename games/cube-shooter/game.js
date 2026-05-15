@@ -27,6 +27,9 @@ const state = {
 const keys = new Set();
 const mouseNdc = new THREE.Vector2();
 const moveInput = new THREE.Vector3();
+const mouseAimPoint = new THREE.Vector3();
+const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const raycaster = new THREE.Raycaster();
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x02060f, 40, 120);
@@ -249,7 +252,13 @@ window.addEventListener('mousedown', fireBullet, false);
 window.addEventListener('mousemove', (event) => {
   mouseNdc.x = (event.clientX / window.innerWidth) * 2 - 1;
   mouseNdc.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  playerGroup.rotation.y = mouseNdc.x * Math.PI;
+  raycaster.setFromCamera(mouseNdc, camera);
+  raycaster.ray.intersectPlane(groundPlane, mouseAimPoint);
+  const dx = mouseAimPoint.x - playerGroup.position.x;
+  const dz = mouseAimPoint.z - playerGroup.position.z;
+  if (dx * dx + dz * dz > 0.001) {
+    playerGroup.rotation.y = Math.atan2(dx, dz);
+  }
 }, false);
 
 window.addEventListener('keydown', (event) => {
