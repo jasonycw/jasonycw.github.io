@@ -273,6 +273,9 @@ window.addEventListener('resize', () => {
 });
 
 window.addEventListener('keydown', (event) => {
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) {
+    event.preventDefault();
+  }
   keys.add(event.key.toLowerCase());
 });
 
