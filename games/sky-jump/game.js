@@ -158,6 +158,4 @@ window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 
 overlayEl.querySelector('button').addEventListener('click', resetGame);
 
-overlayEl.classList.add('hidden');
-resetGame();
 tick();
