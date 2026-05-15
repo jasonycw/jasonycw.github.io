@@ -95,6 +95,10 @@ function isOverPlatform() {
   return Boolean(currentPlatform());
 }
 
+function isGrounded() {
+  return player.position.y <= 1.5 && isOverPlatform();
+}
+
 function failRun() {
   state.running = false;
   overlayEl.classList.remove('hidden');
@@ -140,7 +144,7 @@ function tick() {
     player.position.z = clamp(player.position.z, -bounds, bounds);
 
     // Jump on space – simple upward impulse and gravity
-    if (keys.has(' ') && player.position.y < 1.6) {
+    if (keys.has(' ') && isGrounded()) {
       player.userData.velY = 8;
     }
     if (player.userData.velY !== undefined) {
