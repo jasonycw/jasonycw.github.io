@@ -13,21 +13,19 @@ After this repo is deployed with GitHub Pages, the game is playable at:
 ### Objective
 
 - Collect stars by jumping between sky islands.
-- Each level has 5 platforms with 3 stars each.
-- Progress to the next level after collecting all achievements.
+- Each new island reached gives you a star and 10 points.
+- Progress to the next level after collecting 5 stars.
 
 ### Controls
 
-- **Move:** `W A S D` or Arrow Keys to walk on platforms.
-- **Jump:** `Space` or Left Mouse click to leap between islands.
-- **Glide:** Hold `Shift` to control flight trajectory.
+- **Move:** `W A S D` to walk on platforms.
+- **Jump:** `Space` to leap between islands.
 
 ### Gameplay Features
 
-- 5 progressively challenging levels
-- Dynamic camera that follows player movement
-- Score multiplier system for chains
-- Achievements like "Double Jump" and "Perfect Landing"
+- Progressively wider platform layouts
+- Deadly gaps that reset the run if you miss a landing
+- Star scoring based on reaching new islands
 
 ## Technical Notes
 
