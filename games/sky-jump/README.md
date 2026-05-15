@@ -31,5 +31,4 @@ After this repo is deployed with GitHub Pages, the game is playable at:
 
 - Built with pure HTML/CSS/JS and ES modules
 - Uses Three.js from CDN for 3D rendering
-- All assets and levels are preloaded for instant play
-- Fully responsive design for desktop and mobile
+- Procedural geometry keeps the game asset-free and static-host friendly
