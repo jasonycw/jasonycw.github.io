@@ -148,6 +148,17 @@ function tick() {
 
     state.fireCooldown = Math.max(0, state.fireCooldown - dt);
     state.timeLeft = Math.max(0, state.timeLeft - dt);
+    if (state.timeLeft <= 0) {
+      state.running = false;
+      overlayEl.classList.remove('hidden');
+      overlayEl.querySelector('h2').textContent = 'Simulation Complete';
+      overlayEl.querySelector('p').textContent = `Final score: ${state.score}. Health remaining: ${Math.round(state.health)}%.`;
+      startBtn.textContent = 'Restart Simulation';
+      updateHud();
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+      return;
+    }
 
     // Player movement
     moveInput.set(0, 0, 0);
