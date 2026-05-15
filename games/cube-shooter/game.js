@@ -127,7 +127,7 @@ const playerGroup = new THREE.Group();
 scene.add(playerGroup);
 
 for (let i = 0; i < 8; i++) {
-  const slice = new THREE.Mesh(playerGeometry, playerMaterial.clone());
+  const slice = new THREE.Mesh(playerGeometry, playerMaterial);
   slice.rotation.z = i * Math.PI / 4;
   playerGroup.add(slice);
 }
