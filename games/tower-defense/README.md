@@ -19,14 +19,12 @@ After this repo is deployed with GitHub Pages, the game is playable at:
 
 ### Controls
 
-- **Move Turret:** `W A S D` or Arrow Keys
+- **Move Placement Cursor:** `W A S D` or Arrow Keys
 - **Place Turret:** `Space` or Left Mouse click
-- **Rotate Turret:** Mouse movement
-- **Boost:** Hold `Shift` (consumes and regenerates boost energy)
 
 ### Gameplay Notes
 
-- Turrets cost 50 points to place.
+- Turrets cost 50 resources to place.
 - Each new wave restores a small amount of health.
 - Enemies spawn around the perimeter and move toward your base.
 - If an enemy reaches your base, you lose health.
