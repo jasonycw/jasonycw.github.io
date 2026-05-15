@@ -82,6 +82,21 @@ function setupLevel(level) {
   state.stars = 0;
 }
 
+function isOverPlatform() {
+  return platforms.some((platform) => (
+    Math.abs(player.position.x - platform.position.x) <= 3 &&
+    Math.abs(player.position.z - platform.position.z) <= 3
+  ));
+}
+
+function failRun() {
+  state.running = false;
+  overlayEl.classList.remove('hidden');
+  overlayEl.querySelector('h2').textContent = 'Lost in the Clouds';
+  overlayEl.querySelector('p').textContent = `Score: ${state.score}. Level reached: ${state.level}.`;
+  startBtn.textContent = 'Restart Adventure';
+}
+
 function resetGame() {
   state.running = true;
   state.level = 1;
@@ -126,11 +141,15 @@ function tick() {
     if (player.userData.velY !== undefined) {
       player.position.y += player.userData.velY * dt;
       player.userData.velY -= 20 * dt; // gravity
-      if (player.position.y < 1.5) {
+      if (player.position.y <= 1.5 && isOverPlatform()) {
         player.position.y = 1.5;
         delete player.userData.velY;
       }
+    } else if (!isOverPlatform()) {
+      player.userData.velY = 0;
     }
+
+    if (player.position.y < -10) failRun();
 
     // Collect stars every five seconds of active play.
     state.starTimer += dt;
