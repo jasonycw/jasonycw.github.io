@@ -4,7 +4,6 @@ import { clamp } from '../shared/utils.js';
 // DOM Elements
 const scoreEl = document.querySelector('#score');
 const healthEl = document.querySelector('#health');
-const waveEl = document.querySelector('#wave');
 const timeEl = document.querySelector('#time');
 const overlayEl = document.querySelector('#overlay');
 const startBtn = document.querySelector('#startBtn');
@@ -17,7 +16,6 @@ const state = {
   running: false,
   score: 0,
   health: 100,
-  wave: 1,
   timeLeft: 60,
   fireCooldown: 0,
   spawnTimer: 0,
@@ -100,7 +98,6 @@ function resetGame() {
   state.running = true;
   state.score = 0;
   state.health = 100;
-  state.wave = 1;
   state.timeLeft = 60;
   state.fireCooldown = 0;
   state.spawnTimer = 0;
@@ -119,7 +116,6 @@ function resetGame() {
 function updateHud() {
   scoreEl.textContent = `${state.score}`;
   healthEl.textContent = `${Math.round(state.health)}`;
-  waveEl.textContent = `${state.wave}`;
   timeEl.textContent = `${Math.round(state.timeLeft)}`;
 }
 
