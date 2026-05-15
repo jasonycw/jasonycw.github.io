@@ -98,7 +98,7 @@ function updateHud() {
 }
 
 function tick() {
-  const dt = Math.min(0.033, new THREE.Clock().getDelta());
+  const dt = Math.min(0.033, clock.getDelta());
 
   if (state.running) {
     // Simple WASD movement on the XZ plane
