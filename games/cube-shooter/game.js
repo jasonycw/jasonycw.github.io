@@ -21,7 +21,6 @@ const state = {
   timeLeft: 60,
   fireCooldown: 0,
   spawnTimer: 0,
-  boostEnergy: 1,
 };
 
 const keys = new Set();
