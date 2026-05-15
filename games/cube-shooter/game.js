@@ -261,6 +261,12 @@ window.addEventListener('mousemove', (event) => {
   }
 }, false);
 
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
 window.addEventListener('keydown', (event) => {
   keys.add(event.key.toLowerCase());
 });
