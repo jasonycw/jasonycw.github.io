@@ -112,6 +112,10 @@ const enemyGeo = new THREE.IcosahedronGeometry(0.75, 0);
 const enemyMat = new THREE.MeshStandardMaterial({ color: 0xff6959, emissive: 0x72160f, emissiveIntensity: 0.55 });
 const projectileGeo = new THREE.SphereGeometry(0.18, 10, 10);
 const projectileMat = new THREE.MeshBasicMaterial({ color: 0xfff1a3 });
+const turretBaseGeo = new THREE.CylinderGeometry(0.85, 1.05, 0.55, 24);
+const turretBaseMat = new THREE.MeshStandardMaterial({ color: 0x68d391, emissive: 0x124d2d, emissiveIntensity: 0.28 });
+const turretBarrelGeo = new THREE.BoxGeometry(0.32, 0.32, 1.45);
+const turretBarrelMat = new THREE.MeshStandardMaterial({ color: 0xd9fff0, emissive: 0x1f6b4a, emissiveIntensity: 0.24 });
 
 const clock = new THREE.Clock();
 
@@ -142,17 +146,11 @@ function spawnEnemy() {
 
 function makeTurret(position) {
   const group = new THREE.Group();
-  const baseMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.85, 1.05, 0.55, 24),
-    new THREE.MeshStandardMaterial({ color: 0x68d391, emissive: 0x124d2d, emissiveIntensity: 0.28 }),
-  );
+  const baseMesh = new THREE.Mesh(turretBaseGeo, turretBaseMat);
   baseMesh.position.y = 0.28;
   group.add(baseMesh);
 
-  const barrel = new THREE.Mesh(
-    new THREE.BoxGeometry(0.32, 0.32, 1.45),
-    new THREE.MeshStandardMaterial({ color: 0xd9fff0, emissive: 0x1f6b4a, emissiveIntensity: 0.24 }),
-  );
+  const barrel = new THREE.Mesh(turretBarrelGeo, turretBarrelMat);
   barrel.position.set(0, 0.75, -0.62);
   group.add(barrel);
 
