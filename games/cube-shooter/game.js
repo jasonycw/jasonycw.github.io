@@ -211,6 +211,8 @@ function tick() {
       if (distSq < 2.25) {
         // Collision!
         state.health -= 10;
+        scene.remove(enemy.mesh);
+        enemies.splice(i, 1);
         if (state.health <= 0) {
           state.running = false;
           overlayEl.classList.remove('hidden');
@@ -220,6 +222,7 @@ function tick() {
           ws.style.color = 'darkred';
           ws.textContent = 'You were hit by an enemy!';
         }
+        continue;
       }
 
       // Move toward player
