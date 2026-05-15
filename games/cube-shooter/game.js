@@ -285,7 +285,7 @@ window.addEventListener('keyup', (event) => {
 
 // Set up overlay button
 overlayEl.querySelector('h2').textContent = 'Training Simulation';
-overlayEl.querySelector('p').textContent = 'Destroy the incoming cubes to test your shooting skills.';
+overlayEl.querySelector('p').textContent = 'Destroy incoming cubes and keep your health above zero for 60 seconds.';
 
 overlayEl.querySelector('button').addEventListener('click', resetGame);
 
