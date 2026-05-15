@@ -26,6 +26,7 @@ const state = {
 
 const keys = new Set();
 const mouseNdc = new THREE.Vector2();
+const moveInput = new THREE.Vector3();
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x02060f, 40, 120);
@@ -147,7 +148,7 @@ function tick() {
     state.timeLeft = Math.max(0, state.timeLeft - dt);
 
     // Player movement
-    const moveInput = new THREE.Vector3();
+    moveInput.set(0, 0, 0);
     if (keys.has('w')) moveInput.z -= 1;
     if (keys.has('s')) moveInput.z += 1;
     if (keys.has('a')) moveInput.x -= 1;
