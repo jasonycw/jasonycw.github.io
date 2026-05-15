@@ -123,13 +123,9 @@ function updateHud() {
 const playerGeometry = new THREE.SphereGeometry(1, 8, 8);
 const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
 const playerGroup = new THREE.Group();
+const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
+playerGroup.add(playerMesh);
 scene.add(playerGroup);
-
-for (let i = 0; i < 8; i++) {
-  const slice = new THREE.Mesh(playerGeometry, playerMaterial);
-  slice.rotation.z = i * Math.PI / 4;
-  playerGroup.add(slice);
-}
 
 function tick() {
   const dt = Math.min(clock.getDelta(), 0.033);
