@@ -54,6 +54,8 @@ const player = new THREE.Mesh(playerGeo, playerMat);
 player.position.y = 1;
 scene.add(player);
 
+const clock = new THREE.Clock();
+
 let platforms = [];
 function createPlatform(x, z) {
   const geo = new THREE.BoxGeometry(6, 1, 6);
