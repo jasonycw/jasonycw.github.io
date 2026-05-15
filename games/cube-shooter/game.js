@@ -11,7 +11,7 @@ const startBtn = document.querySelector('#startBtn');
 
 const ws = document.createElement('p');
 ws.style.color = 'white';
-overlayEl.appendChild(ws);
+overlayEl.querySelector('.card').appendChild(ws);
 
 const state = {
   running: false,
