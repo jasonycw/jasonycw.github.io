@@ -13,6 +13,7 @@ const state = {
   level: 1,
   score: 0,
   stars: 0,
+  starTimer: 0,
 };
 
 const keys = new Set();
