@@ -18,6 +18,7 @@ const state = {
 
 const keys = new Set();
 const moveInput = new THREE.Vector3();
+let jumpRequested = false;
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x02060f, 30, 120);
@@ -145,9 +146,10 @@ function tick() {
     player.position.z = clamp(player.position.z, -bounds, bounds);
 
     // Jump on space – simple upward impulse and gravity
-    if (keys.has(' ') && isGrounded()) {
+    if (jumpRequested && isGrounded()) {
       player.userData.velY = 8;
     }
+    jumpRequested = false;
     if (player.userData.velY !== undefined) {
       player.position.y += player.userData.velY * dt;
       player.userData.velY -= 20 * dt; // gravity
@@ -187,7 +189,13 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-window.addEventListener('keydown', e => keys.add(e.key.toLowerCase()));
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (!e.repeat) jumpRequested = true;
+  }
+  keys.add(e.key.toLowerCase());
+});
 window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 
 overlayEl.querySelector('button').addEventListener('click', resetGame);
