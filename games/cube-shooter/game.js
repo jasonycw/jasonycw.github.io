@@ -228,6 +228,7 @@ function tick() {
           startBtn.textContent = 'Restart Simulation';
           ws.style.color = 'darkred';
           ws.textContent = 'You were hit by an enemy!';
+          break;
         }
         continue;
       }
