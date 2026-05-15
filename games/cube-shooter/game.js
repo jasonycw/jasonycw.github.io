@@ -242,18 +242,6 @@ function tick() {
   requestAnimationFrame(tick);
 }
 
-// Device orientation input
-let orientation = new THREE.Vector2();
-let speedFactor = 1;
-window.addEventListener('deviceorientation', (event) => {
-  if (event.gamma) {
-    const rot = event.gamma * 0.02; // front/back tilt
-    const leftRight = event.beta * 0.01; // left/right tilt
-    orientation.x = THREE.MathUtils.lerp(0, rot, 0.1);
-    orientation.y = THREE.MathUtils.lerp(0, leftRight, 0.1);
-  }
-}, false);
-
 // Mouse click fire
 window.addEventListener('mousedown', fireBullet, false);
 
