@@ -127,7 +127,7 @@ function spawnEnemy() {
   if (!state.running || state.spawnedThisWave >= waveSize()) return;
 
   const z = (Math.random() - 0.5) * 8;
-  const mesh = new THREE.Mesh(enemyGeo, enemyMat.clone());
+  const mesh = new THREE.Mesh(enemyGeo, enemyMat);
   mesh.position.set(-ARENA_LIMIT, 0.75, z);
   scene.add(mesh);
 
