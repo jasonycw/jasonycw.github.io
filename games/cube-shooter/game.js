@@ -187,9 +187,9 @@ function tick() {
       // Simple approach: move enemy toward player
       const dx = playerGroup.position.x - enemy.mesh.position.x;
       const dz = playerGroup.position.z - enemy.mesh.position.z;
-      const dist = Math.sqrt(dx*dx + dz*dz);
+      const distSq = dx * dx + dz * dz;
 
-      if (dist < 1.5) {
+      if (distSq < 2.25) {
         // Collision!
         state.health -= 10;
         if (state.health <= 0) {
@@ -204,7 +204,8 @@ function tick() {
       }
 
       // Move toward player
-      if (dist > 0) {
+      if (distSq > 0) {
+        const dist = Math.sqrt(distSq);
         enemy.mesh.position.x += (dx/dist) * enemy.speed * dt;
         enemy.mesh.position.z += (dz/dist) * enemy.speed * dt;
       }
