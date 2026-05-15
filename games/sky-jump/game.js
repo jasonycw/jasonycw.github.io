@@ -86,6 +86,7 @@ function resetGame() {
   state.running = true;
   state.level = 1;
   state.score = 0;
+  state.starTimer = 0;
   overlayEl.classList.add('hidden');
   startBtn.textContent = 'Restart';
   setupLevel(state.level);
@@ -131,8 +132,10 @@ function tick() {
       }
     }
 
-    // Collect stars (dummy logic – increment every 5 seconds)
-    if (performance.now() % 5000 < 50) {
+    // Collect stars every five seconds of active play.
+    state.starTimer += dt;
+    if (state.starTimer >= 5) {
+      state.starTimer = 0;
       state.stars += 1;
       state.score += 10;
     }
