@@ -152,10 +152,10 @@ function tick() {
 
     // Player movement
     moveInput.set(0, 0, 0);
-    if (keys.has('w')) moveInput.z -= 1;
-    if (keys.has('s')) moveInput.z += 1;
-    if (keys.has('a')) moveInput.x -= 1;
-    if (keys.has('d')) moveInput.x += 1;
+    if (keys.has('w') || keys.has('arrowup')) moveInput.z -= 1;
+    if (keys.has('s') || keys.has('arrowdown')) moveInput.z += 1;
+    if (keys.has('a') || keys.has('arrowleft')) moveInput.x -= 1;
+    if (keys.has('d') || keys.has('arrowright')) moveInput.x += 1;
 
     if (moveInput.lengthSq() > 0) moveInput.normalize();
 
