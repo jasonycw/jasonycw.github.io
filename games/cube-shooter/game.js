@@ -75,7 +75,6 @@ function spawnEnemy() {
   enemies.push({
     mesh,
     speed: 1 + Math.random() * 2,
-    hp: 1,
   });
 }
 
