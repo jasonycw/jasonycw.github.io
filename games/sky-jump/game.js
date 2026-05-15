@@ -17,7 +17,6 @@ const state = {
 };
 
 const keys = new Set();
-const mouse = new THREE.Vector2();
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x02060f, 30, 120);
