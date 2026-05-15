@@ -121,7 +121,7 @@ function updateHud() {
 
 // Player setup
 const playerGeometry = new THREE.SphereGeometry(1, 8, 8);
-const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, emissive: 0x00ff00 });
+const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
 const playerGroup = new THREE.Group();
 scene.add(playerGroup);
 
