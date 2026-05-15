@@ -13,7 +13,7 @@ const state = {
   level: 1,
   score: 0,
   stars: 0,
-  starTimer: 0,
+  lastPlatform: null,
 };
 
 const keys = new Set();
@@ -80,13 +80,18 @@ function setupLevel(level) {
   // Reset player to first platform
   player.position.set(0, 1.5, 0);
   state.stars = 0;
+  state.lastPlatform = platforms[0];
 }
 
-function isOverPlatform() {
-  return platforms.some((platform) => (
+function currentPlatform() {
+  return platforms.find((platform) => (
     Math.abs(player.position.x - platform.position.x) <= 3 &&
     Math.abs(player.position.z - platform.position.z) <= 3
   ));
+}
+
+function isOverPlatform() {
+  return Boolean(currentPlatform());
 }
 
 function failRun() {
@@ -101,7 +106,6 @@ function resetGame() {
   state.running = true;
   state.level = 1;
   state.score = 0;
-  state.starTimer = 0;
   overlayEl.classList.add('hidden');
   startBtn.textContent = 'Restart';
   setupLevel(state.level);
@@ -151,10 +155,9 @@ function tick() {
 
     if (player.position.y < -10) failRun();
 
-    // Collect stars every five seconds of active play.
-    state.starTimer += dt;
-    if (state.starTimer >= 5) {
-      state.starTimer = 0;
+    const landedPlatform = currentPlatform();
+    if (landedPlatform && landedPlatform !== state.lastPlatform && player.position.y <= 1.5) {
+      state.lastPlatform = landedPlatform;
       state.stars += 1;
       state.score += 10;
     }
