@@ -240,6 +240,11 @@ window.addEventListener('deviceorientation', (event) => {
 // Mouse click fire
 window.addEventListener('mousedown', fireBullet, false);
 
+window.addEventListener('mousemove', (event) => {
+  mouseNdc.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouseNdc.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  playerGroup.rotation.y = mouseNdc.x * Math.PI;
+}, false);
 
 window.addEventListener('keydown', (event) => {
   keys.add(event.key.toLowerCase());
