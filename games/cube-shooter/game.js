@@ -135,17 +135,17 @@ for (let i = 0; i < 8; i++) {
 function tick() {
   const dt = Math.min(clock.getDelta(), 0.033);
 
-  // Spawn enemies periodically
-  state.spawnTimer -= dt;
-  if (state.spawnTimer <= 0) {
-    spawnEnemy();
-    state.spawnTimer = 2; // spawn every 2 seconds
-  }
-
-  state.fireCooldown = Math.max(0, state.fireCooldown - dt);
-  state.timeLeft = Math.max(0, state.timeLeft - dt);
-
   if (state.running) {
+    // Spawn enemies periodically
+    state.spawnTimer -= dt;
+    if (state.spawnTimer <= 0) {
+      spawnEnemy();
+      state.spawnTimer = 2; // spawn every 2 seconds
+    }
+
+    state.fireCooldown = Math.max(0, state.fireCooldown - dt);
+    state.timeLeft = Math.max(0, state.timeLeft - dt);
+
     // Player movement
     const moveInput = new THREE.Vector3();
     if (keys.has('w')) moveInput.z -= 1;
