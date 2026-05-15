@@ -164,8 +164,8 @@ function makeTurret(position) {
 
 function canPlaceTurret(position) {
   if (position.length() > ARENA_LIMIT - 2) return false;
-  if (position.distanceTo(base.position) < BASE_RADIUS + 2) return false;
-  return !turrets.some((turret) => turret.group.position.distanceTo(position) < 2.2);
+  if (position.distanceToSquared(base.position) < (BASE_RADIUS + 2) ** 2) return false;
+  return !turrets.some((turret) => turret.group.position.distanceToSquared(position) < 2.2 ** 2);
 }
 
 function tryPlaceTurret() {
@@ -290,12 +290,12 @@ function updateTurrets(dt) {
   for (const turret of turrets) {
     turret.cooldown = Math.max(0, turret.cooldown - dt);
     let target = null;
-    let nearest = turret.range;
+    let nearestSq = turret.range ** 2;
 
     for (const enemy of enemies) {
-      const distance = turret.group.position.distanceTo(enemy.mesh.position);
-      if (distance < nearest) {
-        nearest = distance;
+      const distanceSq = turret.group.position.distanceToSquared(enemy.mesh.position);
+      if (distanceSq < nearestSq) {
+        nearestSq = distanceSq;
         target = enemy;
       }
     }
@@ -318,7 +318,7 @@ function updateProjectiles(dt) {
     projectile.life -= dt;
 
     const targetIndex = enemies.indexOf(projectile.target);
-    if (targetIndex !== -1 && projectile.mesh.position.distanceTo(projectile.target.mesh.position) < 0.75) {
+    if (targetIndex !== -1 && projectile.mesh.position.distanceToSquared(projectile.target.mesh.position) < 0.75 ** 2) {
       projectile.target.hp -= projectile.damage;
       scene.remove(projectile.mesh);
       projectiles.splice(i, 1);
