@@ -22,14 +22,12 @@ After this repo is deployed with GitHub Pages, the game is playable at:
 - **Move:** `W A S D` or Arrow Keys
 - **Look:** Mouse movement
 - **Fire:** Left Mouse Click or `Space`
-- **Boost:** Hold `Shift` (consumes and regenerates boost energy)
 
 ### Gameplay Notes
 
 - Cubes spawn around the perimeter and move toward you.
 - If a cube collides with you, you lose 10 health.
-- Each new wave restores a small amount of health.
-- The game gets harder with faster spawning and moving cubes as waves progress.
+- Survive until the timer runs out while keeping your health above zero.
 
 ## Technical Notes
 
