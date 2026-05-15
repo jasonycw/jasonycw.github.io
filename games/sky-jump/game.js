@@ -134,7 +134,7 @@ function tick() {
     player.position.z += move.z * speed * dt;
 
     // Keep player within bounds of current platforms
-    const bounds = 12 + state.level * 0.5;
+    const bounds = 25 + state.level * 5;
     player.position.x = clamp(player.position.x, -bounds, bounds);
     player.position.z = clamp(player.position.z, -bounds, bounds);
 
