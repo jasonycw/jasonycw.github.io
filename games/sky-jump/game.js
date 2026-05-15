@@ -80,6 +80,7 @@ function setupLevel(level) {
   createPlatform(spacing / 2, spacing * Math.sqrt(3) / 2);
   // Reset player to first platform
   player.position.set(0, 1.5, 0);
+  delete player.userData.velY;
   state.stars = 0;
   state.lastPlatform = platforms[0];
 }
