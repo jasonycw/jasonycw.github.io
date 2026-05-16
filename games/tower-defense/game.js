@@ -386,7 +386,7 @@ function updateProjectiles(dt) {
     }
 
     // Check current position + swept-sphere to prevent tunneling
-    let hit = projectile.mesh.position.distanceToSquared(projectile.target.mesh.position) < 0.81;
+    let hit = projectile.mesh.position.distanceToSquared(projectile.target.mesh.position) < PROJECTILE_HITBOX_RADIUS_SQ;
     if (!hit) {
       const dirX = projectile.velocity.x * dt;
       const dirZ = projectile.velocity.z * dt;
