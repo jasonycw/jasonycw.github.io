@@ -291,7 +291,7 @@ function tick() {
 
 // Mouse click fire (only from canvas, not UI elements)
 window.addEventListener('pointerdown', (event) => {
-  if (event.target === renderer.domElement) fireBullet();
+  if (event.button === 0 && event.target === renderer.domElement) fireBullet();
 }, false);
 
 window.addEventListener('mousemove', (event) => {
