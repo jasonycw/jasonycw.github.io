@@ -11,9 +11,9 @@ After this repo is deployed with GitHub Pages, the game is playable at:
 
 ## Screenshots
 
-![Start screen](../Screenshots/cube-shooter-start.png)
+![Start screen](cube-shooter-start.png)
 *Start screen*
-![Gameplay](../Screenshots/cube-shooter-running.png)
+![Gameplay](cube-shooter-running.png)
 *Gameplay*
 
 ## How to Play
