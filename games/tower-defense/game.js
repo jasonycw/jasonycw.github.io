@@ -48,7 +48,9 @@ function _nearbyEnemies(pos, rangeSq, fn) {
       const cell = _spatialGrid.get(_gridKey(cx + dx, cz + dz));
       if (!cell) continue;
       for (const e of cell) {
-        if (pos.distanceToSquared(e.mesh.position) < rangeSq) fn(e);
+        if (pos.distanceToSquared(e.mesh.position) < rangeSq) {
+          if (fn(e)) return; // early exit if callback returns true
+        }
       }
     }
   }
@@ -383,7 +385,8 @@ function updateProjectiles(dt) {
     // Check collision with any nearby enemy using the spatial grid
     let hitEnemy = null;
     _nearbyEnemies(projectile.mesh.position, PROJECTILE_HITBOX_RADIUS_SQ, (e) => {
-      if (!hitEnemy) hitEnemy = e;
+      hitEnemy = e;
+      return true; // early exit
     });
 
     if (hitEnemy) {
