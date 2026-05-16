@@ -19,6 +19,7 @@ const state = {
 const keys = new Set();
 const moveInput = new THREE.Vector3();
 let jumpRequested = false;
+let _tickRafId = null;
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x02060f, 30, 120);
@@ -118,6 +119,7 @@ function resetGame() {
   frameCount = 0;
   setupLevel(state.level);
   updateHud();
+  if (_tickRafId) { cancelAnimationFrame(_tickRafId); _tickRafId = null; }
   tick();
 }
 
@@ -185,7 +187,7 @@ function tick() {
   }
 
   renderer.render(scene, camera);
-  if (state.running) requestAnimationFrame(tick);
+  if (state.running) _tickRafId = requestAnimationFrame(tick);
 }
 
 window.addEventListener('resize', () => {
