@@ -41,10 +41,12 @@ function _buildGrid() {
 }
 
 function _nearbyEnemies(pos, rangeSq, fn) {
+  const range = Math.sqrt(rangeSq);
+  const cellRange = Math.ceil(range / _SPATIAL_CELL);
   const cx = Math.floor(pos.x / _SPATIAL_CELL);
   const cz = Math.floor(pos.z / _SPATIAL_CELL);
-  for (let dx = -1; dx <= 1; dx++) {
-    for (let dz = -1; dz <= 1; dz++) {
+  for (let dx = -cellRange; dx <= cellRange; dx++) {
+    for (let dz = -cellRange; dz <= cellRange; dz++) {
       const cell = _spatialGrid.get(_gridKey(cx + dx, cz + dz));
       if (!cell) continue;
       for (const e of cell) {
