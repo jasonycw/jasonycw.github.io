@@ -77,7 +77,7 @@ const CS_CELL_KEYS = new Map();
 const _csActiveCells = [];
 
 function _csCellKey(cx, cz) {
-  return ((cx * 997 + cz * 991) >>> 0);
+  return cx + ',' + cz;
 }
 
 function _csBuildGrid() {
