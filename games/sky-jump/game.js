@@ -63,6 +63,7 @@ let frameCount = 0;
 
 const platformGeo = new THREE.BoxGeometry(6, 1, 6);
 const platformMat = new THREE.MeshStandardMaterial({ color: 0x2f8cff });
+const PLATFORM_COLLISION_THRESHOLD = 3.5;
 
 let platforms = [];
 function createPlatform(x, z) {
