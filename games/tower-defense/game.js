@@ -185,6 +185,7 @@ function spawnEnemy() {
     hp: 24 + state.wave * 6,
     maxHp: 24 + state.wave * 6,
     speed: 2.1 + state.wave * 0.12,
+    dead: false,
   });
   state.spawnedThisWave += 1;
 }
@@ -272,6 +273,7 @@ function damageBase(amount) {
 }
 
 function destroyEnemy(targetEnemy) {
+  targetEnemy.dead = true;
   const idx = enemies.indexOf(targetEnemy);
   if (idx === -1) return;
   scene.remove(targetEnemy.mesh);
@@ -369,8 +371,8 @@ function updateProjectiles(dt) {
     projectile.mesh.position.addScaledVector(projectile.velocity, dt);
     projectile.life -= dt;
 
-    // If target was already removed from scene, remove projectile (O(1) check)
-    if (!projectile.target.mesh.parent) {
+    // If target was already destroyed, remove projectile
+    if (projectile.target.dead) {
       scene.remove(projectile.mesh);
       projectiles.splice(i, 1);
       continue;
