@@ -236,6 +236,8 @@ function clearActors() {
   enemies.length = 0;
   turrets.length = 0;
   projectiles.length = 0;
+  _spatialGrid.clear();
+  _activeCells.length = 0;
 }
 
 function resetGame() {
