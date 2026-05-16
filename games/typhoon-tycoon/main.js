@@ -405,20 +405,20 @@ class GameScene {
         this.scene.background = new THREE.Color(0x1a3a52);
         this.scene.fog = new THREE.Fog(0x1a3a52, 80, 100);
 
-        const width = this.container.clientWidth;
-        const height = this.container.clientHeight;
+        const canvas = document.getElementById('canvas');
+        const width = canvas.clientWidth || window.innerWidth;
+        const height = canvas.clientHeight || window.innerHeight;
 
         this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
         this.camera.position.set(20, 25, 25);
         this.camera.lookAt(20, 0, 15);
 
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
         this.renderer.setSize(width, height);
         this.renderer.setPixelRatio(window.devicePixelRatio);
-        this.container.appendChild(this.renderer.domElement);
 
         window.addEventListener('resize', () => this.onWindowResize());
-        window.addEventListener('click', (e) => this.onCanvasClick(e));
+        this.renderer.domElement.addEventListener('click', (e) => this.onCanvasClick(e));
     }
 
     createGround() {
@@ -497,15 +497,15 @@ class GameScene {
     }
 
     onWindowResize() {
-        const width = this.container.clientWidth;
-        const height = this.container.clientHeight;
+        const canvas = document.getElementById('canvas');
+        const width = canvas.clientWidth || window.innerWidth;
+        const height = canvas.clientHeight || window.innerHeight;
         this.camera.aspect = width / height;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(width, height);
     }
 
     onCanvasClick(event) {
-        if (event.target.id !== 'canvas') return;
         const gameInstance = window.gameInstance;
         if (!gameInstance) return;
 
@@ -518,15 +518,19 @@ class GameScene {
 
         raycaster.setFromCamera(mouse, this.camera);
 
-        // Create a plane for click detection
-        const planeGeometry = new THREE.PlaneGeometry(CONFIG.mapWidth, CONFIG.mapHeight);
+        // Create a plane for click detection on the ground
+        const planeGeometry = new THREE.PlaneGeometry(CONFIG.mapWidth + 10, CONFIG.mapHeight + 10);
         const plane = new THREE.Mesh(planeGeometry);
         plane.rotation.x = -Math.PI / 2;
+        plane.position.y = -0.1;
 
         const intersects = raycaster.intersectObject(plane);
         if (intersects.length > 0) {
             const point = intersects[0].point;
-            gameInstance.selectPlacementLocation(point.x, point.z);
+            // Constrain to map bounds
+            const x = Math.max(0, Math.min(CONFIG.mapWidth, point.x));
+            const z = Math.max(0, Math.min(CONFIG.mapHeight, point.z));
+            gameInstance.selectPlacementLocation(x, z);
         }
     }
 }
@@ -659,6 +663,29 @@ class TyphoonTycoonGame {
         const gridX = Math.round(x / 1) * 1;
         const gridZ = Math.round(z / 1) * 1;
 
+        // Check if too close to path
+        const minDistToPath = 2;
+        let tooCloseToPath = false;
+        for (let waypoint of this.scene.pathWaypoints) {
+            if (distance({ x: gridX, z: gridZ }, waypoint) < minDistToPath) {
+                tooCloseToPath = true;
+                break;
+            }
+        }
+
+        if (tooCloseToPath) {
+            console.log('Too close to path');
+            return;
+        }
+
+        // Check if overlaps with existing tower
+        for (let tower of this.scene.towers) {
+            if (distance({ x: gridX, z: gridZ }, { x: tower.x, z: tower.z }) < 2) {
+                console.log('Too close to existing tower');
+                return;
+            }
+        }
+
         this.selectedPlacementLocation = { x: gridX, z: gridZ };
 
         // Show tower info and enter placement mode
@@ -666,12 +693,14 @@ class TyphoonTycoonGame {
     }
 
     selectTowerForPlacement(towerType) {
+        if (!this.selectedPlacementLocation) return;
         this.towerPlacementMode = true;
         this.ui.selectTower(towerType);
         this.ui.selectLocation(this.selectedPlacementLocation.x, this.selectedPlacementLocation.z);
 
         const config = CONFIG.towers[towerType];
-        this.ui.updateTowerButtonState(this.gameState.money >= config.cost);
+        const canPlace = this.gameState.money >= config.cost;
+        this.ui.updateTowerButtonState(canPlace);
     }
 
     placeTowerAtSelectedLocation() {
