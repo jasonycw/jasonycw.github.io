@@ -67,6 +67,7 @@ const keys = new Set();
 const enemies = [];
 const turrets = [];
 const projectiles = [];
+let _tickRafId = null;
 
 
 const pointer = new THREE.Vector2();
@@ -252,6 +253,7 @@ function resetGame() {
   overlayEl.classList.add('hidden');
   startBtn.textContent = 'Restart Defense';
   updateHud();
+  if (_tickRafId) { cancelAnimationFrame(_tickRafId); _tickRafId = null; }
   tick();
 }
 
@@ -448,7 +450,7 @@ function tick() {
 
   baseRing.rotation.z += dt * 0.9;
   renderer.render(scene, camera);
-  if (state.running) requestAnimationFrame(tick);
+  if (state.running) _tickRafId = requestAnimationFrame(tick);
 }
 
 function updatePointer(clientX, clientY) {
