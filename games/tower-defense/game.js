@@ -10,6 +10,7 @@ const startBtn = document.querySelector('#startBtn');
 const ARENA_LIMIT = 24;
 const BASE_RADIUS = 2.3;
 const TURRET_COST = 50;
+const TURRET_SPACING_SQ = 4.84;
 const STARTING_RESOURCES = 100;
 const ENEMY_REWARD = 10;
 
@@ -126,6 +127,7 @@ const _fireStart = new THREE.Vector3();
 const _fireTarget = new THREE.Vector3();
 const _projPrev = new THREE.Vector3();
 const clock = new THREE.Clock();
+let frameCount = 0;
 
 function waveSize() {
   return 5 + state.wave * 2;
@@ -171,7 +173,7 @@ function canPlaceTurret(position) {
   if (position.lengthSq() > (ARENA_LIMIT - 2) ** 2) return false;
   if (position.distanceToSquared(base.position) < (BASE_RADIUS + 2) ** 2) return false;
   if (Math.abs(position.z) < 2.0) return false;
-  return !turrets.some((turret) => turret.group.position.distanceToSquared(position) < 4.84);
+  return !turrets.some((turret) => turret.group.position.distanceToSquared(position) < TURRET_SPACING_SQ);
 }
 
 function tryPlaceTurret() {
@@ -225,6 +227,7 @@ function endGame() {
   overlayEl.querySelector('h2').textContent = 'Base Overrun';
   overlayEl.querySelector('p').textContent = `Final score: ${state.score}. Wave reached: ${state.wave}.`;
   startBtn.textContent = 'Restart Defense';
+  updateHud();
 }
 
 function damageBase(amount) {
@@ -398,7 +401,7 @@ function tick() {
     updateTurrets(dt);
     updateProjectiles(dt);
   }
-  updateHud();
+  if (frameCount++ % 15 === 0) updateHud();
 
   baseRing.rotation.z += dt * 0.9;
   renderer.render(scene, camera);
