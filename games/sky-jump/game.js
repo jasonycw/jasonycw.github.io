@@ -56,6 +56,7 @@ const player = new THREE.Mesh(playerGeo, playerMat);
 player.position.y = 1.5;
 scene.add(player);
 
+const FALL_THRESHOLD = -10;
 const clock = new THREE.Clock();
 
 const platformGeo = new THREE.BoxGeometry(6, 1, 6);
@@ -75,7 +76,7 @@ function setupLevel(level) {
   platforms = [];
 
   // Simple layout – five platforms per level (center + four cardinal)
-  const spacing = 10 + level;
+  const spacing = Math.min(20, 10 + level);
   createPlatform(0, 0);
   createPlatform(spacing, 0);
   createPlatform(-spacing, 0);
@@ -163,7 +164,7 @@ function tick() {
       player.userData.velY = 0;
     }
 
-    if (player.position.y < -10) failRun();
+    if (player.position.y < FALL_THRESHOLD) failRun();
 
     const landedPlatform = currentPlatform();
     if (landedPlatform && landedPlatform !== state.lastPlatform && player.position.y <= 1.5) {
