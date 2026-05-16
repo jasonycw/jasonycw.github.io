@@ -100,7 +100,7 @@ let frameCount = 0;
 
 function spawnEnemy() {
   const mesh = new THREE.Mesh(enemyGeo, enemyMat);
-  const radius = 30 + Math.random() * 10;
+  const radius = 40 + Math.random() * 10;
   const angle = Math.random() * Math.PI * 2;
   mesh.position.set(Math.cos(angle) * radius, 0.5, Math.sin(angle) * radius);
   scene.add(mesh);
