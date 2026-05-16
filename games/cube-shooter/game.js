@@ -68,6 +68,7 @@ const PLAYER_COLLISION_RADIUS_SQ = 2.25;
 const _bulletPrev = new THREE.Vector3();
 const _sweptDir = new THREE.Vector3();
 const clock = new THREE.Clock();
+let frameCount = 0;
 
 function spawnEnemy() {
   const mesh = new THREE.Mesh(enemyGeo, enemyMat);
@@ -139,7 +140,7 @@ function tick() {
     state.spawnTimer -= dt;
     if (state.spawnTimer <= 0) {
       spawnEnemy();
-      state.spawnTimer = 2; // spawn every 2 seconds
+      state.spawnTimer = Math.max(0.6, 2 - state.score / 500);
     }
 
     state.fireCooldown = Math.max(0, state.fireCooldown - dt);
@@ -150,7 +151,7 @@ function tick() {
       overlayEl.querySelector('h2').textContent = 'Simulation Complete';
       overlayEl.querySelector('p').textContent = `Final score: ${state.score}. Health remaining: ${Math.round(state.health)}%.`;
       startBtn.textContent = 'Restart Simulation';
-      updateHud();
+    if (frameCount++ % 15 === 0) updateHud();
       renderer.render(scene, camera);
       requestAnimationFrame(tick);
       return;
