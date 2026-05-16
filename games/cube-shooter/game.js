@@ -170,6 +170,13 @@ function tick() {
     playerGroup.position.x = clamp(playerGroup.position.x, -25, 25);
     playerGroup.position.z = clamp(playerGroup.position.z, -25, 25);
 
+    // Update player rotation to face mouse aim point
+    const aimDx = mouseAimPoint.x - playerGroup.position.x;
+    const aimDz = mouseAimPoint.z - playerGroup.position.z;
+    if (aimDx * aimDx + aimDz * aimDz > 0.001) {
+      playerGroup.rotation.y = Math.atan2(aimDx, aimDz);
+    }
+
     // Fire bullets on mouse click or spacebar
     if (keys.has(' ') && state.running) {
       fireBullet();
@@ -260,11 +267,6 @@ window.addEventListener('mousemove', (event) => {
   mouseNdc.y = -(event.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouseNdc, camera);
   raycaster.ray.intersectPlane(groundPlane, mouseAimPoint);
-  const dx = mouseAimPoint.x - playerGroup.position.x;
-  const dz = mouseAimPoint.z - playerGroup.position.z;
-  if (dx * dx + dz * dz > 0.001) {
-    playerGroup.rotation.y = Math.atan2(dx, dz);
-  }
 }, false);
 
 window.addEventListener('resize', () => {
