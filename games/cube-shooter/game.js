@@ -74,19 +74,23 @@ const _sweptDir = new THREE.Vector3();
 // Spatial grid for O(B+C) bullet-enemy collision (C = cells with enemies)
 const CS_CELL = 7;
 const CS_CELL_KEYS = new Map();
+const _csActiveCells = [];
 
 function _csCellKey(cx, cz) {
   return ((cx * 997 + cz * 991) >>> 0);
 }
 
 function _csBuildGrid() {
-  CS_CELL_KEYS.clear();
+  // Reuse existing cell arrays to avoid per-frame allocation
+  for (const cell of _csActiveCells) cell.length = 0;
+  _csActiveCells.length = 0;
 
   for (let i = 0; i < enemies.length; i++) {
     const enemy = enemies[i];
     const k = _csCellKey(Math.floor(enemy.mesh.position.x / CS_CELL), Math.floor(enemy.mesh.position.z / CS_CELL));
     let cell = CS_CELL_KEYS.get(k);
     if (!cell) { cell = []; CS_CELL_KEYS.set(k, cell); }
+    if (cell.length === 0) _csActiveCells.push(cell);
     cell.push(enemy);
   }
 }
@@ -130,6 +134,7 @@ function resetGame() {
   state.fireCooldown = 0;
   state.spawnTimer = 0;
   CS_CELL_KEYS.clear();
+  _csActiveCells.length = 0;
   ws.textContent = '';
 
   bullets.forEach(item => scene.remove(item.mesh));
@@ -254,7 +259,7 @@ function tick() {
               const cz = _bulletPrev.z + _sweptDir.z * t;
               const ddx = cx - enemy.mesh.position.x;
               const ddz = cz - enemy.mesh.position.z;
-              if (ddx * ddx + ddz * ddz < HITBOX_RADIUS_SQ) { hit = true; }
+              if (ddx * ddx + ddz * ddz + 0.25 < HITBOX_RADIUS_SQ) { hit = true; }
             }
 
             if (hit) {
