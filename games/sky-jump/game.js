@@ -83,7 +83,7 @@ function setupLevel(level) {
   createPlatform(0, -spacing);
   // Reset player to first platform
   player.position.set(0, 1.5, 0);
-  delete player.userData.velY;
+  player.userData.velY = undefined;
   state.stars = 0;
   state.lastPlatform = platforms[0];
 }
@@ -157,7 +157,7 @@ function tick() {
       player.userData.velY -= 20 * dt; // gravity
       if (player.position.y <= 1.5 && isOverPlatform()) {
         player.position.y = 1.5;
-        delete player.userData.velY;
+        player.userData.velY = undefined;
       }
     } else if (!isOverPlatform()) {
       player.userData.velY = 0;
