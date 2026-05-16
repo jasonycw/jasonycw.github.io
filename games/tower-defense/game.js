@@ -121,6 +121,8 @@ const turretBaseMat = new THREE.MeshStandardMaterial({ color: 0x68d391, emissive
 const turretBarrelGeo = new THREE.BoxGeometry(0.32, 0.32, 1.45);
 const turretBarrelMat = new THREE.MeshStandardMaterial({ color: 0xd9fff0, emissive: 0x1f6b4a, emissiveIntensity: 0.24 });
 
+const _fireStart = new THREE.Vector3();
+const _fireTarget = new THREE.Vector3();
 const clock = new THREE.Clock();
 
 function waveSize() {
@@ -235,11 +237,11 @@ function destroyEnemy(index) {
 }
 
 function fireFromTurret(turret, enemy) {
-  const start = turret.group.position.clone().setY(0.9);
-  const target = enemy.mesh.position.clone().setY(0.75);
-  const velocity = target.sub(start).normalize().multiplyScalar(18);
+  _fireStart.copy(turret.group.position).setY(0.9);
+  _fireTarget.copy(enemy.mesh.position).setY(0.75);
+  const velocity = _fireTarget.sub(_fireStart).normalize().multiplyScalar(18).clone();
   const mesh = new THREE.Mesh(projectileGeo, projectileMat);
-  mesh.position.copy(start);
+  mesh.position.copy(_fireStart);
   scene.add(mesh);
   projectiles.push({ mesh, velocity, damage: 18, life: 0.9, target: enemy });
   turret.cooldown = 0.65;
