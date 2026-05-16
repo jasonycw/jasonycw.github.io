@@ -21,6 +21,7 @@ const state = {
   spawnTimer: 0,
 };
 
+const _bulletDir = new THREE.Vector3();
 const keys = new Set();
 const mouseNdc = new THREE.Vector2();
 const moveInput = new THREE.Vector3();
@@ -90,8 +91,8 @@ function fireBullet() {
   mesh.position.copy(playerGroup.position);
   scene.add(mesh);
 
-  const bulletDir = new THREE.Vector3(Math.sin(playerGroup.rotation.y), 0, Math.cos(playerGroup.rotation.y));
-  bullets.push({ mesh, velocity: bulletDir.multiplyScalar(25), life: 1 });
+  _bulletDir.set(Math.sin(playerGroup.rotation.y), 0, Math.cos(playerGroup.rotation.y));
+  bullets.push({ mesh, velocity: _bulletDir.clone().multiplyScalar(25), life: 1 });
 
   state.fireCooldown = 0.2;
 }
