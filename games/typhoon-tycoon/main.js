@@ -88,6 +88,7 @@ const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const raycaster = new THREE.Raycaster();
 
 // Three.js scene setup
+console.log('Typhoon Tycoon script loaded');
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x02060f, 42, 120);
 
