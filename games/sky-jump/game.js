@@ -164,7 +164,7 @@ function tick() {
         player.userData.velY = undefined;
       }
     } else if (!curPlatform) {
-      player.userData.velY = 0;
+      player.userData.velY = -5;
     }
 
     if (player.position.y < FALL_THRESHOLD) failRun();
