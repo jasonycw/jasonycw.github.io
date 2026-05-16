@@ -151,6 +151,11 @@ baseRing.position.y = 0.04;
 base.add(baseRing);
 scene.add(base);
 
+// Add a rotating ring for visual effect (same as tower-defense)
+const visualBaseRing = baseRing.clone();
+visualBaseRing.material = baseRing.material.clone();
+scene.add(visualBaseRing);
+
 // Cursor for tower placement
 const cursor = new THREE.Group();
 const cursorPad = new THREE.Mesh(
