@@ -107,6 +107,8 @@ function isGrounded() {
 
 function failRun() {
   state.running = false;
+  keys.clear();
+  jumpRequested = false;
   overlayEl.classList.remove('hidden');
   overlayEl.querySelector('h2').textContent = 'Lost in the Clouds';
   overlayEl.querySelector('p').textContent = `Score: ${state.score}. Level reached: ${state.level}.`;
@@ -115,6 +117,8 @@ function failRun() {
 
 function resetGame() {
   state.running = true;
+  keys.clear();
+  jumpRequested = false;
   state.level = 1;
   state.score = 0;
   overlayEl.classList.add('hidden');
