@@ -127,8 +127,7 @@ function updateHud() {
 const playerGeometry = new THREE.SphereGeometry(1, 8, 8);
 const playerMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
 const playerGroup = new THREE.Group();
-const playerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
-playerGroup.add(playerMesh);
+playerGroup.add(new THREE.Mesh(playerGeometry, playerMaterial));
 playerGroup.position.y = 1;
 scene.add(playerGroup);
 
