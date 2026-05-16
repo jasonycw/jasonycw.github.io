@@ -123,6 +123,7 @@ function resetGame() {
   state.score = 0;
   overlayEl.classList.add('hidden');
   startBtn.textContent = 'Restart Adventure';
+  frameCount = 0;
   setupLevel(state.level);
   updateHud();
   tick();
