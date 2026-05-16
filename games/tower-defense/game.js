@@ -166,7 +166,6 @@ const turretBarrelMat = new THREE.MeshStandardMaterial({ color: 0xd9fff0, emissi
 
 const _fireStart = new THREE.Vector3();
 const _fireTarget = new THREE.Vector3();
-const _projPrev = new THREE.Vector3();
 const _fireVelocity = new THREE.Vector3();
 const clock = new THREE.Clock();
 let frameCount = 0;
@@ -378,44 +377,20 @@ function updateTurrets(dt) {
 function updateProjectiles(dt) {
   for (let i = projectiles.length - 1; i >= 0; i -= 1) {
     const projectile = projectiles[i];
-    _projPrev.copy(projectile.mesh.position);
     projectile.mesh.position.addScaledVector(projectile.velocity, dt);
     projectile.life -= dt;
 
-    // If target was already destroyed, remove projectile
-    if (projectile.target.dead) {
+    // Check collision with any nearby enemy using the spatial grid
+    let hitEnemy = null;
+    _nearbyEnemies(projectile.mesh.position, PROJECTILE_HITBOX_RADIUS_SQ, (e) => {
+      if (!hitEnemy) hitEnemy = e;
+    });
+
+    if (hitEnemy) {
+      hitEnemy.hp -= projectile.damage;
       scene.remove(projectile.mesh);
       projectiles.splice(i, 1);
-      continue;
-    }
-
-    // Check current position + swept-sphere to prevent tunneling
-    let hit = projectile.mesh.position.distanceToSquared(projectile.target.mesh.position) < PROJECTILE_HITBOX_RADIUS_SQ;
-    if (!hit) {
-      const dirX = projectile.velocity.x * dt;
-      const dirY = projectile.velocity.y * dt;
-      const dirZ = projectile.velocity.z * dt;
-      const dirLenSq = dirX * dirX + dirY * dirY + dirZ * dirZ;
-      if (dirLenSq > 0) {
-        const toEnemyX = _projPrev.x - projectile.target.mesh.position.x;
-        const toEnemyY = _projPrev.y - projectile.target.mesh.position.y;
-        const toEnemyZ = _projPrev.z - projectile.target.mesh.position.z;
-        const t = Math.max(0, Math.min(1, (toEnemyX * dirX + toEnemyY * dirY + toEnemyZ * dirZ) / -dirLenSq));
-        const cx = _projPrev.x + dirX * t;
-        const cy = _projPrev.y + dirY * t;
-        const cz = _projPrev.z + dirZ * t;
-        const dx = cx - projectile.target.mesh.position.x;
-        const dy = cy - projectile.target.mesh.position.y;
-        const dz = cz - projectile.target.mesh.position.z;
-        if (dx * dx + dy * dy + dz * dz < PROJECTILE_HITBOX_RADIUS_SQ) hit = true;
-      }
-    }
-
-    if (hit) {
-      projectile.target.hp -= projectile.damage;
-      scene.remove(projectile.mesh);
-      projectiles.splice(i, 1);
-      if (projectile.target.hp <= 0) destroyEnemy(projectile.target);
+      if (hitEnemy.hp <= 0) destroyEnemy(hitEnemy);
       continue;
     }
 
