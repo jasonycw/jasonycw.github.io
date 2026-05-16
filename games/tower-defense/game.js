@@ -28,7 +28,7 @@ const keys = new Set();
 const enemies = [];
 const turrets = [];
 const projectiles = [];
-let frameCount = 0;
+
 
 const pointer = new THREE.Vector2();
 const targetPoint = new THREE.Vector3(0, 0, -4);
@@ -397,7 +397,7 @@ function tick() {
     updateTurrets(dt);
     updateProjectiles(dt);
   }
-  if (frameCount++ % 15 === 0) updateHud();
+  updateHud();
 
   baseRing.rotation.z += dt * 0.9;
   renderer.render(scene, camera);
