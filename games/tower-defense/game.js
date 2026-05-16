@@ -366,7 +366,7 @@ function updateWave(dt) {
 }
 
 function tick() {
-  const dt = Math.min(clock.getDelta(), 0.033);
+  const dt = Math.min(clock.getDelta(), 0.1);
 
   if (state.running) {
     updateCursor(dt);
@@ -411,14 +411,14 @@ window.addEventListener('keydown', (event) => {
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) {
     event.preventDefault();
   }
-  keys.add(event.key.toLowerCase());
+  keys.add(event.code);
   if (event.code === 'Space' && !event.repeat) {
     tryPlaceTurret();
   }
 });
 
 window.addEventListener('keyup', (event) => {
-  keys.delete(event.key.toLowerCase());
+  keys.delete(event.code);
 });
 
 overlayEl.classList.remove('hidden');
