@@ -136,10 +136,10 @@ function tick() {
   if (state.running) {
     // Simple WASD movement on the XZ plane
     moveInput.set(0, 0, 0);
-    if (keys.has('KeyW')) moveInput.z -= 1;
-    if (keys.has('KeyS')) moveInput.z += 1;
-    if (keys.has('KeyA')) moveInput.x -= 1;
-    if (keys.has('KeyD')) moveInput.x += 1;
+    if (keys.has('KeyW') || keys.has('ArrowUp')) moveInput.z -= 1;
+    if (keys.has('KeyS') || keys.has('ArrowDown')) moveInput.z += 1;
+    if (keys.has('KeyA') || keys.has('ArrowLeft')) moveInput.x -= 1;
+    if (keys.has('KeyD') || keys.has('ArrowRight')) moveInput.x += 1;
     if (moveInput.lengthSq() > 0) moveInput.normalize();
     const speed = 12;
     player.position.x += moveInput.x * speed * dt;
@@ -200,10 +200,10 @@ window.addEventListener('resize', () => {
 });
 
 window.addEventListener('keydown', (e) => {
-  if (e.code === 'Space') {
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
     e.preventDefault();
-    if (!e.repeat) jumpRequested = true;
   }
+  if (e.code === 'Space' && !e.repeat) jumpRequested = true;
   keys.add(e.code);
 });
 window.addEventListener('keyup', e => keys.delete(e.code));
