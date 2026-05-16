@@ -53,7 +53,7 @@ scene.add(starField);
 const playerGeo = new THREE.SphereGeometry(1, 16, 16);
 const playerMat = new THREE.MeshStandardMaterial({ color: 0x35d3ff, emissive: 0x0f3454 });
 const player = new THREE.Mesh(playerGeo, playerMat);
-player.position.y = 1;
+player.position.y = 1.5;
 scene.add(player);
 
 const clock = new THREE.Clock();
