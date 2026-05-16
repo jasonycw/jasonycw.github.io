@@ -331,6 +331,7 @@ function updateEnemies(dt) {
     const distance = direction.length();
 
     if (distance <= BASE_RADIUS) {
+      enemy.dead = true;
       scene.remove(enemy.mesh);
       enemies.splice(i, 1);
       damageBase(12);
