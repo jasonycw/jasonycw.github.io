@@ -74,11 +74,13 @@ function setupLevel(level) {
   platforms.forEach(p => scene.remove(p));
   platforms = [];
 
-  // Simple layout – three platforms per level spaced apart
-  const spacing = 15 + level * 2;
+  // Simple layout – five platforms per level (center + four cardinal)
+  const spacing = 10 + level * 1;
   createPlatform(0, 0);
   createPlatform(spacing, 0);
-  createPlatform(spacing / 2, spacing * Math.sqrt(3) / 2);
+  createPlatform(-spacing, 0);
+  createPlatform(0, spacing);
+  createPlatform(0, -spacing);
   // Reset player to first platform
   player.position.set(0, 1.5, 0);
   delete player.userData.velY;
