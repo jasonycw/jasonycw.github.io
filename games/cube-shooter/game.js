@@ -75,8 +75,8 @@ const _sweptDir = new THREE.Vector3();
 const CS_CELL = 7;
 const CS_CELL_KEYS = new Map();
 
-function _csCellKey(x, z) {
-  return ((Math.floor(x / CS_CELL) * 997 + Math.floor(z / CS_CELL)) >>> 0);
+function _csCellKey(cx, cz) {
+  return ((cx * 997 + cz * 991) >>> 0);
 }
 
 function _csBuildGrid() {
@@ -84,7 +84,7 @@ function _csBuildGrid() {
 
   for (let i = 0; i < enemies.length; i++) {
     const enemy = enemies[i];
-    const k = _csCellKey(enemy.mesh.position.x, enemy.mesh.position.z);
+    const k = _csCellKey(Math.floor(enemy.mesh.position.x / CS_CELL), Math.floor(enemy.mesh.position.z / CS_CELL));
     let cell = CS_CELL_KEYS.get(k);
     if (!cell) { cell = []; CS_CELL_KEYS.set(k, cell); }
     cell.push(enemy);
@@ -233,7 +233,7 @@ function tick() {
 
       for (let dx = -1; dx <= 1; dx++) {
         for (let dz = -1; dz <= 1; dz++) {
-          const cell = CS_CELL_KEYS.get(((cellX + dx) * 997 + (cellZ + dz)) >>> 0);
+          const cell = CS_CELL_KEYS.get(_csCellKey(cellX + dx, cellZ + dz));
           if (!cell) continue;
 
           for (let eIdx = cell.length - 1; eIdx >= 0; eIdx--) {
