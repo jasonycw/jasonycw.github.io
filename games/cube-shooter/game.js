@@ -64,6 +64,7 @@ const enemyGeo = new THREE.BoxGeometry(1,1,1);
 const enemyMat = new THREE.MeshBasicMaterial({ color: 0xff6959 });
 
 const HITBOX_RADIUS_SQ = 0.5;
+const PLAYER_COLLISION_RADIUS_SQ = 2.25;
 const _bulletPrev = new THREE.Vector3();
 const _sweptDir = new THREE.Vector3();
 const clock = new THREE.Clock();
@@ -247,7 +248,7 @@ function tick() {
       const dz = playerGroup.position.z - enemy.mesh.position.z;
       const distSq = dx * dx + dz * dz;
 
-      if (distSq < 2.25) {
+      if (distSq < PLAYER_COLLISION_RADIUS_SQ) {
         // Collision!
         state.health -= 10;
         scene.remove(enemy.mesh);
