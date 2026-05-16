@@ -68,7 +68,6 @@ const PLAYER_COLLISION_RADIUS_SQ = 2.25;
 const _bulletPrev = new THREE.Vector3();
 const _sweptDir = new THREE.Vector3();
 const clock = new THREE.Clock();
-let frameCount = 0;
 
 function spawnEnemy() {
   const mesh = new THREE.Mesh(enemyGeo, enemyMat);
@@ -115,6 +114,7 @@ function resetGame() {
 
   overlayEl.classList.add('hidden');
   startBtn.textContent = 'Restart Simulation';
+  tick();
 }
 
 function updateHud() {
@@ -151,9 +151,8 @@ function tick() {
       overlayEl.querySelector('h2').textContent = 'Simulation Complete';
       overlayEl.querySelector('p').textContent = `Final score: ${state.score}. Health remaining: ${Math.round(state.health)}%.`;
       startBtn.textContent = 'Restart Simulation';
-    if (frameCount++ % 15 === 0) updateHud();
+      updateHud();
       renderer.render(scene, camera);
-      requestAnimationFrame(tick);
       return;
     }
 
@@ -286,7 +285,7 @@ function tick() {
   }
 
   renderer.render(scene, camera);
-  requestAnimationFrame(tick);
+  if (state.running) requestAnimationFrame(tick);
 }
 
 // Mouse click fire (only from canvas, not UI elements)

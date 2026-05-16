@@ -125,6 +125,7 @@ function resetGame() {
   startBtn.textContent = 'Restart Adventure';
   setupLevel(state.level);
   updateHud();
+  tick();
 }
 
 function updateHud() {
@@ -188,7 +189,7 @@ function tick() {
   }
 
   renderer.render(scene, camera);
-  requestAnimationFrame(tick);
+  if (state.running) requestAnimationFrame(tick);
 }
 
 window.addEventListener('resize', () => {

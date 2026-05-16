@@ -209,6 +209,7 @@ function resetGame() {
   overlayEl.classList.add('hidden');
   startBtn.textContent = 'Restart Defense';
   updateHud();
+  tick();
 }
 
 function updateHud() {
@@ -401,7 +402,7 @@ function tick() {
 
   baseRing.rotation.z += dt * 0.9;
   renderer.render(scene, camera);
-  requestAnimationFrame(tick);
+  if (state.running) requestAnimationFrame(tick);
 }
 
 function updatePointer(clientX, clientY) {
