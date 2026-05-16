@@ -197,6 +197,11 @@ function tick() {
       _sweptDir.copy(bullet.velocity).multiplyScalar(dt);
       const dirLenSq = _sweptDir.lengthSq();
 
+      // Pre-compute broad-phase threshold (constant per bullet update)
+      const maxReachSq = dirLenSq > 0
+        ? (Math.sqrt(dirLenSq) + Math.sqrt(HITBOX_RADIUS_SQ)) ** 2
+        : 0;
+
       for (let j = enemies.length - 1; j >= 0; j--) {
         const enemy = enemies[j];
         let hit = false;
@@ -207,8 +212,7 @@ function tick() {
         // Swept-sphere check: prevent tunneling when bullet speed > hitbox diameter
         if (!hit && dirLenSq > 0) {
           // Broad-phase: skip enemies too far from the bullet's flight path
-          const maxReach = Math.sqrt(dirLenSq) + Math.sqrt(HITBOX_RADIUS_SQ);
-          if (_bulletPrev.distanceToSquared(enemy.mesh.position) > maxReach * maxReach) continue;
+          if (_bulletPrev.distanceToSquared(enemy.mesh.position) > maxReachSq) continue;
           const toEnemyX = _bulletPrev.x - enemy.mesh.position.x;
           const toEnemyZ = _bulletPrev.z - enemy.mesh.position.z;
           const t = Math.max(0, Math.min(1,
