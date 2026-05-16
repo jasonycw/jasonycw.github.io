@@ -259,8 +259,10 @@ function tick() {
   requestAnimationFrame(tick);
 }
 
-// Mouse click fire
-window.addEventListener('pointerdown', fireBullet, false);
+// Mouse click fire (only from canvas, not UI elements)
+window.addEventListener('pointerdown', (event) => {
+  if (event.target === renderer.domElement) fireBullet();
+}, false);
 
 window.addEventListener('mousemove', (event) => {
   mouseNdc.x = (event.clientX / window.innerWidth) * 2 - 1;
