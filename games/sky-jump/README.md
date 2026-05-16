@@ -23,7 +23,7 @@ After this repo is deployed with GitHub Pages, the game is playable at:
 
 ### Gameplay Features
 
-- Progressively wider platform layouts
+- Layouts grow wider per level (spacing caps at 14)
 - Deadly gaps that reset the run if you miss a landing
 - Star scoring based on landing on a different island
 

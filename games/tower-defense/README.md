@@ -14,7 +14,7 @@ After this repo is deployed with GitHub Pages, the game is playable at:
 ### Objective
 
 - Place turrets to defend your base from enemy drones.
-- Each enemy destroyed gives you 10 points.
+- Each enemy destroyed gives you 10 points and 10 resources.
 - Survive as many waves as possible.
 
 ### Controls
