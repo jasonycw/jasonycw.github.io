@@ -58,6 +58,7 @@ scene.add(player);
 
 const FALL_THRESHOLD = -10;
 const clock = new THREE.Clock();
+let frameCount = 0;
 
 const platformGeo = new THREE.BoxGeometry(6, 1, 6);
 const platformMat = new THREE.MeshStandardMaterial({ color: 0x2f8cff });
@@ -179,7 +180,7 @@ function tick() {
       setupLevel(state.level);
     }
 
-    updateHud();
+    if (frameCount++ % 15 === 0) updateHud();
   }
 
   renderer.render(scene, camera);
