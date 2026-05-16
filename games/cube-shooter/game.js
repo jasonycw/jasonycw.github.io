@@ -66,6 +66,7 @@ const enemyGeo = new THREE.BoxGeometry(1,1,1);
 const enemyMat = new THREE.MeshBasicMaterial({ color: 0xff6959 });
 
 const HITBOX_RADIUS_SQ = 0.5;
+const HITBOX_RADIUS = 0.7071;
 const PLAYER_COLLISION_RADIUS_SQ = 2.25;
 const _bulletPrev = new THREE.Vector3();
 const _sweptDir = new THREE.Vector3();
@@ -202,7 +203,7 @@ function tick() {
 
       // Pre-compute broad-phase threshold (constant per bullet update)
       const maxReachSq = dirLenSq > 0
-        ? (Math.sqrt(dirLenSq) + Math.sqrt(HITBOX_RADIUS_SQ)) ** 2
+        ? (Math.sqrt(dirLenSq) + HITBOX_RADIUS) ** 2
         : 0;
 
       for (let j = enemies.length - 1; j >= 0; j--) {
