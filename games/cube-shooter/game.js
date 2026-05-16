@@ -111,6 +111,7 @@ function resetGame() {
   enemies.forEach(item => scene.remove(item.mesh));
   bullets.length = 0;
   enemies.length = 0;
+  frameCount = 0;
   playerGroup.position.set(0, 1, 0);
 
   overlayEl.classList.add('hidden');
