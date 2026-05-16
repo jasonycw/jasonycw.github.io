@@ -90,8 +90,8 @@ function fireBullet() {
   mesh.position.copy(playerGroup.position);
   scene.add(mesh);
 
-  const dir = new THREE.Vector3(Math.sin(playerGroup.rotation.y), 0, Math.cos(playerGroup.rotation.y));
-  bullets.push({ mesh, velocity: dir.multiplyScalar(25), life: 1 });
+  const bulletDir = new THREE.Vector3(Math.sin(playerGroup.rotation.y), 0, Math.cos(playerGroup.rotation.y));
+  bullets.push({ mesh, velocity: bulletDir.multiplyScalar(25), life: 1 });
 
   state.fireCooldown = 0.2;
 }
