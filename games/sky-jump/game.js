@@ -129,7 +129,7 @@ function updateHud() {
 }
 
 function tick() {
-  const dt = Math.min(0.033, clock.getDelta());
+  const dt = Math.min(0.1, clock.getDelta());
 
   if (state.running) {
     // Simple WASD movement on the XZ plane
@@ -197,9 +197,9 @@ window.addEventListener('keydown', (e) => {
     e.preventDefault();
     if (!e.repeat) jumpRequested = true;
   }
-  keys.add(e.key.toLowerCase());
+  keys.add(e.code);
 });
-window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+window.addEventListener('keyup', e => keys.delete(e.code));
 
 overlayEl.querySelector('button').addEventListener('click', resetGame);
 
