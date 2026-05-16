@@ -13,6 +13,7 @@ const TURRET_COST = 50;
 const TURRET_SPACING_SQ = 4.84;
 const STARTING_RESOURCES = 100;
 const ENEMY_REWARD = 10;
+const PROJECTILE_HITBOX_RADIUS_SQ = 0.81;
 
 // Spatial grid for O(T+E) turret targeting instead of O(T*E)
 const _SPATIAL_CELL = 10;
