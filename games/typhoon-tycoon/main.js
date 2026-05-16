@@ -306,7 +306,7 @@ function destroyEnemy(targetEnemy) {
 function fireFromTurret(turret, enemy) {
   _fireStart.copy(turret.group.position).setY(0.9);
   _fireTarget.copy(enemy.mesh.position).setY(0.75);
-  const velocity = _fireVelocity.copy(_fireTarget).sub(_fireStart).normalize().multiplyScalar(18);
+  const velocity = _fireVelocity.copy(_fireTarget).sub(_fireStart).normalize().multiplyScalar(18).clone();
   const mesh = new THREE.Mesh(projectileGeo, projectileMat);
   mesh.position.copy(_fireStart);
   scene.add(mesh);
