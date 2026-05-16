@@ -17,20 +17,23 @@ const ENEMY_REWARD = 10;
 // Spatial grid for O(T+E) turret targeting instead of O(T*E)
 const _SPATIAL_CELL = 10;
 const _spatialGrid = new Map();
+const _activeCells = [];
 
 function _gridKey(cx, cz) {
   return ((cx * 997 + cz * 991) >>> 0);
 }
 
 function _buildGrid() {
-  _spatialGrid.clear();
+  for (const arr of _activeCells) arr.length = 0;
+  _activeCells.length = 0;
   for (const e of enemies) {
     const k = _gridKey(
       Math.floor(e.mesh.position.x / _SPATIAL_CELL),
       Math.floor(e.mesh.position.z / _SPATIAL_CELL)
     );
     let c = _spatialGrid.get(k);
-    if (!c) _spatialGrid.set(k, c = []);
+    if (!c) { c = []; _spatialGrid.set(k, c); }
+    if (c.length === 0) _activeCells.push(c);
     c.push(e);
   }
 }
