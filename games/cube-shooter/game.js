@@ -77,7 +77,7 @@ const CS_CELL_KEYS = new Map();
 const _csActiveCells = [];
 
 function _csCellKey(cx, cz) {
-  return cx + ',' + cz;
+  return ((cx * 997 + cz * 991) >>> 0);
 }
 
 function _csBuildGrid() {
@@ -246,9 +246,9 @@ function tick() {
             let hit = false;
 
             // Check current position (2D XZ for consistent hitbox at varying Y offsets)
-            const dx = bullet.mesh.position.x - enemy.mesh.position.x;
-            const dz = bullet.mesh.position.z - enemy.mesh.position.z;
-            if (dx * dx + dz * dz < HITBOX_RADIUS_SQ) { hit = true; }
+            const diffX = bullet.mesh.position.x - enemy.mesh.position.x;
+            const diffZ = bullet.mesh.position.z - enemy.mesh.position.z;
+            if (diffX * diffX + diffZ * diffZ < HITBOX_RADIUS_SQ) { hit = true; }
 
             // Swept-sphere check: prevent tunneling when bullet speed > hitbox diameter
             if (!hit && dirLenSq > 0) {
