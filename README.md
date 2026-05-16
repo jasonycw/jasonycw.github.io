@@ -37,11 +37,11 @@ Why the import works now? (Scratching my head)
 ### Making CSS words
 After trying using `:before` and `:after` for making difference icons during work, I always want to try making characters with it. 
 
-![All CSS](/oldExamples.png "No image has been used")
+![All CSS](/Screenshots/oldExamples.png "No image has been used")
 
 Saw some articles back then when Google changed their logo which can be render with CSS made me interested in the idea. Lets start having some CSS fun :)
 
-![1 try](/1.png)
+![1 try](/Screenshots/1.png)
 
 ## 2018-03-08
 Was trying to include some node.js in this repo for future reference.
