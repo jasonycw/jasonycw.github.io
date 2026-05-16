@@ -9,6 +9,13 @@ After this repo is deployed with GitHub Pages, the game is playable at:
 
 - `https://jasonycw.github.io/games/cube-shooter/`
 
+## Screenshots
+
+![Start screen](../Screenshots/cube-shooter-start.png)
+*Start screen*
+![Gameplay](../Screenshots/cube-shooter-running.png)
+*Gameplay*
+
 ## How to Play
 
 ### Objective
