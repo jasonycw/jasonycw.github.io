@@ -190,6 +190,11 @@ function tick() {
       fireBullet();
     }
 
+    // Pre-compute swept-sphere parameters (constant for all bullets this frame)
+    const bulletTravelDist = 25 * dt;
+    const dirLenSq = bulletTravelDist * bulletTravelDist;
+    const maxReachSq = (bulletTravelDist + HITBOX_RADIUS) ** 2;
+
     // Update bullets
     for (let i = bullets.length - 1; i >= 0; i--) {
       const bullet = bullets[i];
@@ -199,12 +204,6 @@ function tick() {
       let hitEnemy = false;
 
       _sweptDir.copy(bullet.velocity).multiplyScalar(dt);
-      const dirLenSq = _sweptDir.lengthSq();
-
-      // Pre-compute broad-phase threshold (constant per bullet update)
-      const maxReachSq = dirLenSq > 0
-        ? (Math.sqrt(dirLenSq) + HITBOX_RADIUS) ** 2
-        : 0;
 
       for (let j = enemies.length - 1; j >= 0; j--) {
         const enemy = enemies[j];
