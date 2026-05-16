@@ -443,6 +443,8 @@ window.addEventListener('keydown', (event) => {
 window.addEventListener('keyup', (event) => {
   keys.delete(event.code);
 });
+window.addEventListener('blur', () => keys.clear());
+document.addEventListener('visibilitychange', () => { if (document.hidden) keys.clear(); });
 
 overlayEl.classList.remove('hidden');
 overlayEl.querySelector('h2').textContent = 'Defend the Island';
