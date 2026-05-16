@@ -28,6 +28,7 @@ const keys = new Set();
 const enemies = [];
 const turrets = [];
 const projectiles = [];
+let frameCount = 0;
 
 const pointer = new THREE.Vector2();
 const targetPoint = new THREE.Vector3(0, 0, -4);
@@ -283,7 +284,9 @@ function updateEnemies(dt) {
       continue;
     }
 
-    enemy.mesh.position.addScaledVector(direction.normalize(), enemy.speed * dt);
+    if (distance > 0) {
+      enemy.mesh.position.addScaledVector(direction.divideScalar(distance), enemy.speed * dt);
+    }
     enemy.mesh.rotation.x += dt * 2;
     enemy.mesh.rotation.y += dt * 3;
     const healthRatio = THREE.MathUtils.clamp(enemy.hp / enemy.maxHp, 0.25, 1);
@@ -372,11 +375,9 @@ function tick() {
   if (state.running) {
     updateCursor(dt);
     updateWave(dt);
-    updateEnemies(dt);
-    updateTurrets(dt);
     updateProjectiles(dt);
-    updateHud();
   }
+  if (frameCount++ % 15 === 0) updateHud();
 
   baseRing.rotation.z += dt * 0.9;
   renderer.render(scene, camera);
@@ -394,6 +395,7 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
 
 window.addEventListener('pointermove', (event) => {
