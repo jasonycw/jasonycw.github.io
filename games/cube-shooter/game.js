@@ -74,26 +74,19 @@ const _sweptDir = new THREE.Vector3();
 // Spatial grid for O(B+C) bullet-enemy collision (C = cells with enemies)
 const CS_CELL = 7;
 const CS_CELL_KEYS = new Map();
-const CS_CELL_ACTIVE = [];
 
 function _csCellKey(x, z) {
   return ((Math.floor(x / CS_CELL) * 997 + Math.floor(z / CS_CELL)) >>> 0);
 }
 
 function _csBuildGrid() {
-  // Reuse existing cell arrays
-  for (const entry of CS_CELL_ACTIVE) entry.length = 0;
-  CS_CELL_ACTIVE.length = 0;
+  CS_CELL_KEYS.clear();
 
   for (let i = 0; i < enemies.length; i++) {
     const enemy = enemies[i];
     const k = _csCellKey(enemy.mesh.position.x, enemy.mesh.position.z);
     let cell = CS_CELL_KEYS.get(k);
-    if (!cell) {
-      cell = [];
-      CS_CELL_KEYS.set(k, cell);
-    }
-    if (cell.length === 0) CS_CELL_ACTIVE.push(cell);
+    if (!cell) { cell = []; CS_CELL_KEYS.set(k, cell); }
     cell.push(enemy);
   }
 }
