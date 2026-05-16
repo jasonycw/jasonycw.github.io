@@ -420,6 +420,18 @@ function updateWave(dt) {
 }
 
 function tick() {
+  // Check win condition: survive 10 waves and clear all enemies
+  if (state.running && state.wave >= 10 && enemies.length === 0) {
+    // Win condition achieved
+    state.running = false;
+    overlayEl.classList.remove('hidden');
+    overlayEl.querySelector('h2').textContent = 'Victory!';
+    overlayEl.querySelector('p').textContent = `You survived ${state.wave} waves and earned ${state.score} points.`;
+    startBtn.textContent = 'Play Again';
+    updateHud();
+    return; // Skip rest of tick
+  }
+
   const dt = Math.min(clock.getDelta(), 0.1);
   if (state.running) {
     updateCursor(dt);
