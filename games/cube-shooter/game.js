@@ -110,7 +110,7 @@ function resetGame() {
   playerGroup.position.set(0, 1, 0);
 
   overlayEl.classList.add('hidden');
-  startBtn.textContent = 'Start Simulation';
+  startBtn.textContent = 'Restart Simulation';
 }
 
 function updateHud() {
