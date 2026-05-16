@@ -97,14 +97,6 @@ function currentPlatform() {
   ));
 }
 
-function isOverPlatform() {
-  return Boolean(currentPlatform());
-}
-
-function isGrounded() {
-  return player.position.y <= 1.5 && isOverPlatform();
-}
-
 function failRun() {
   state.running = false;
   keys.clear();
