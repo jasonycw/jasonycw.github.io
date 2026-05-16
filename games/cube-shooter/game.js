@@ -324,8 +324,8 @@ function tick() {
       }
 
       // Remove if too far
-      if (enemy.mesh.position.x < -40 || enemy.mesh.position.x > 40 ||
-          enemy.mesh.position.z < -40 || enemy.mesh.position.z > 40) {
+      if (enemy.mesh.position.x < -60 || enemy.mesh.position.x > 60 ||
+          enemy.mesh.position.z < -60 || enemy.mesh.position.z > 60) {
         scene.remove(enemy.mesh);
         enemies.splice(i, 1);
       }
