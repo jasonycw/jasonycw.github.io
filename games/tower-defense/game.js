@@ -319,10 +319,8 @@ function updateProjectiles(dt) {
     projectile.mesh.position.addScaledVector(projectile.velocity, dt);
     projectile.life -= dt;
 
-    const targetIndex = enemies.indexOf(projectile.target);
-
-    // If target was already destroyed, remove projectile immediately
-    if (targetIndex === -1) {
+    // If target was already removed from scene, remove projectile (O(1) check)
+    if (!projectile.target.mesh.parent) {
       scene.remove(projectile.mesh);
       projectiles.splice(i, 1);
       continue;
@@ -332,7 +330,10 @@ function updateProjectiles(dt) {
       projectile.target.hp -= projectile.damage;
       scene.remove(projectile.mesh);
       projectiles.splice(i, 1);
-      if (projectile.target.hp <= 0) destroyEnemy(targetIndex);
+      if (projectile.target.hp <= 0) {
+        const targetIndex = enemies.indexOf(projectile.target);
+        if (targetIndex !== -1) destroyEnemy(targetIndex);
+      }
       continue;
     }
 
