@@ -124,6 +124,7 @@ const turretBarrelMat = new THREE.MeshStandardMaterial({ color: 0xd9fff0, emissi
 
 const _fireStart = new THREE.Vector3();
 const _fireTarget = new THREE.Vector3();
+const _projPrev = new THREE.Vector3();
 const clock = new THREE.Clock();
 
 function waveSize() {
@@ -230,10 +231,11 @@ function damageBase(amount) {
   if (state.health <= 0) endGame();
 }
 
-function destroyEnemy(index) {
-  const enemy = enemies[index];
-  scene.remove(enemy.mesh);
-  enemies.splice(index, 1);
+function destroyEnemy(targetEnemy) {
+  const idx = enemies.indexOf(targetEnemy);
+  if (idx === -1) return;
+  scene.remove(targetEnemy.mesh);
+  enemies.splice(idx, 1);
   state.score += ENEMY_REWARD;
   state.resources += ENEMY_REWARD;
 }
@@ -322,6 +324,7 @@ function updateTurrets(dt) {
 function updateProjectiles(dt) {
   for (let i = projectiles.length - 1; i >= 0; i -= 1) {
     const projectile = projectiles[i];
+    _projPrev.copy(projectile.mesh.position);
     projectile.mesh.position.addScaledVector(projectile.velocity, dt);
     projectile.life -= dt;
 
@@ -332,14 +335,29 @@ function updateProjectiles(dt) {
       continue;
     }
 
-    if (projectile.mesh.position.distanceToSquared(projectile.target.mesh.position) < 0.9 ** 2) {
+    // Check current position + swept-sphere to prevent tunneling
+    let hit = false;
+    if (!hit) {
+      const dirX = projectile.velocity.x * dt;
+      const dirZ = projectile.velocity.z * dt;
+      const dirLenSq = dirX * dirX + dirZ * dirZ;
+      if (dirLenSq > 0) {
+        const toEnemyX = _projPrev.x - projectile.target.mesh.position.x;
+        const toEnemyZ = _projPrev.z - projectile.target.mesh.position.z;
+        const t = Math.max(0, Math.min(1, (toEnemyX * dirX + toEnemyZ * dirZ) / -dirLenSq));
+        const cx = _projPrev.x + dirX * t;
+        const cz = _projPrev.z + dirZ * t;
+        const dx = cx - projectile.target.mesh.position.x;
+        const dz = cz - projectile.target.mesh.position.z;
+        if (dx * dx + dz * dz < 0.9 ** 2) hit = true;
+      }
+    }
+
+    if (hit) {
       projectile.target.hp -= projectile.damage;
       scene.remove(projectile.mesh);
       projectiles.splice(i, 1);
-      if (projectile.target.hp <= 0) {
-        const targetIndex = enemies.indexOf(projectile.target);
-        if (targetIndex !== -1) destroyEnemy(targetIndex);
-      }
+      if (projectile.target.hp <= 0) destroyEnemy(projectile.target);
       continue;
     }
 
