@@ -161,6 +161,7 @@ const turretBarrelMat = new THREE.MeshStandardMaterial({ color: 0xd9fff0, emissi
 const _fireStart = new THREE.Vector3();
 const _fireTarget = new THREE.Vector3();
 const _projPrev = new THREE.Vector3();
+const _fireVelocity = new THREE.Vector3();
 const clock = new THREE.Clock();
 let frameCount = 0;
 
@@ -285,7 +286,7 @@ function destroyEnemy(targetEnemy) {
 function fireFromTurret(turret, enemy) {
   _fireStart.copy(turret.group.position).setY(0.9);
   _fireTarget.copy(enemy.mesh.position).setY(0.75);
-  const velocity = new THREE.Vector3().subVectors(_fireTarget, _fireStart).normalize().multiplyScalar(18);
+  const velocity = _fireVelocity.copy(_fireTarget).sub(_fireStart).normalize().multiplyScalar(18);
   const mesh = new THREE.Mesh(projectileGeo, projectileMat);
   mesh.position.copy(_fireStart);
   scene.add(mesh);
