@@ -35,7 +35,7 @@ function _buildGrid() {
   }
 }
 
-function* _nearbyEnemies(pos, rangeSq) {
+function _nearbyEnemies(pos, rangeSq, fn) {
   const cx = Math.floor(pos.x / _SPATIAL_CELL);
   const cz = Math.floor(pos.z / _SPATIAL_CELL);
   for (let dx = -1; dx <= 1; dx++) {
@@ -43,7 +43,7 @@ function* _nearbyEnemies(pos, rangeSq) {
       const cell = _spatialGrid.get(_gridKey(cx + dx, cz + dz));
       if (!cell) continue;
       for (const e of cell) {
-        if (pos.distanceToSquared(e.mesh.position) < rangeSq) yield e;
+        if (pos.distanceToSquared(e.mesh.position) < rangeSq) fn(e);
       }
     }
   }
@@ -346,13 +346,13 @@ function updateTurrets(dt) {
     let target = null;
     let nearestSq = turret.range ** 2;
 
-    for (const enemy of _nearbyEnemies(turret.group.position, nearestSq)) {
+    _nearbyEnemies(turret.group.position, nearestSq, (enemy) => {
       const distanceSq = turret.group.position.distanceToSquared(enemy.mesh.position);
       if (distanceSq < nearestSq) {
         nearestSq = distanceSq;
         target = enemy;
       }
-    }
+    });
 
     if (!target) continue;
 
