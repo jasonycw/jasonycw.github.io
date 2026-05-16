@@ -13,7 +13,7 @@ const state = {
   level: 1,
   score: 0,
   stars: 0,
-  lastPlatform: null,
+  visitedPlatforms: new Set(),
 };
 
 const keys = new Set();
@@ -89,7 +89,7 @@ function setupLevel(level) {
   player.position.set(0, 1.5, 0);
   player.userData.velY = undefined;
   state.stars = 0;
-  state.lastPlatform = platforms[0];
+  state.visitedPlatforms = new Set();
 }
 
 function currentPlatform() {
@@ -173,8 +173,8 @@ function tick() {
 
     if (player.position.y < FALL_THRESHOLD) failRun();
 
-    if (curPlatform && curPlatform !== state.lastPlatform && player.position.y <= 1.5) {
-      state.lastPlatform = curPlatform;
+    if (curPlatform && !state.visitedPlatforms.has(curPlatform) && player.position.y <= 1.5) {
+      state.visitedPlatforms.add(curPlatform);
       state.stars += 1;
       state.score += 10;
     }
