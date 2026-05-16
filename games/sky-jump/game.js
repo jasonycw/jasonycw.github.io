@@ -76,7 +76,7 @@ function setupLevel(level) {
   platforms = [];
 
   // Simple layout – five platforms per level (center + four cardinal)
-  const spacing = Math.min(20, 10 + level);
+  const spacing = Math.min(14, 10 + level);
   createPlatform(0, 0);
   createPlatform(spacing, 0);
   createPlatform(-spacing, 0);
