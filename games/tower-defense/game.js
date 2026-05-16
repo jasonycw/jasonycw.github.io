@@ -48,9 +48,11 @@ function _nearbyEnemies(pos, rangeSq, fn) {
       const cell = _spatialGrid.get(_gridKey(cx + dx, cz + dz));
       if (!cell) continue;
       for (const e of cell) {
+        if (e.dead) continue;
         if (pos.distanceToSquared(e.mesh.position) < rangeSq) {
-          if (fn(e)) return; // early exit if callback returns true
+          if (fn(e)) return;
         }
+      }
       }
     }
   }
@@ -351,7 +353,6 @@ function updateEnemies(dt) {
 }
 
 function updateTurrets(dt) {
-  _buildGrid();
   for (const turret of turrets) {
     turret.cooldown = Math.max(0, turret.cooldown - dt);
     let target = null;
@@ -430,6 +431,7 @@ function tick() {
     updateCursor(dt);
     updateWave(dt);
     updateEnemies(dt);
+    _buildGrid();
     updateTurrets(dt);
     updateProjectiles(dt);
   }
