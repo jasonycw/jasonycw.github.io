@@ -129,7 +129,7 @@ playerGroup.position.y = 1;
 scene.add(playerGroup);
 
 function tick() {
-  const dt = Math.min(clock.getDelta(), 0.033);
+  const dt = Math.min(clock.getDelta(), 0.1);
 
   if (state.running) {
     // Spawn enemies periodically
@@ -155,10 +155,10 @@ function tick() {
 
     // Player movement
     moveInput.set(0, 0, 0);
-    if (keys.has('w') || keys.has('arrowup')) moveInput.z -= 1;
-    if (keys.has('s') || keys.has('arrowdown')) moveInput.z += 1;
-    if (keys.has('a') || keys.has('arrowleft')) moveInput.x -= 1;
-    if (keys.has('d') || keys.has('arrowright')) moveInput.x += 1;
+    if (keys.has('KeyW') || keys.has('ArrowUp')) moveInput.z -= 1;
+    if (keys.has('KeyS') || keys.has('ArrowDown')) moveInput.z += 1;
+    if (keys.has('KeyA') || keys.has('ArrowLeft')) moveInput.x -= 1;
+    if (keys.has('KeyD') || keys.has('ArrowRight')) moveInput.x += 1;
 
     if (moveInput.lengthSq() > 0) moveInput.normalize();
 
@@ -178,7 +178,7 @@ function tick() {
     }
 
     // Fire bullets on mouse click or spacebar
-    if (keys.has(' ') && state.running) {
+    if (keys.has('Space') && state.running) {
       fireBullet();
     }
 
@@ -281,11 +281,11 @@ window.addEventListener('keydown', (event) => {
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(event.code)) {
     event.preventDefault();
   }
-  keys.add(event.key.toLowerCase());
+  keys.add(event.code);
 });
 
 window.addEventListener('keyup', (event) => {
-  keys.delete(event.key.toLowerCase());
+  keys.delete(event.code);
 });
 
 // Set up overlay button
