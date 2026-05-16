@@ -18,13 +18,16 @@ const PROJECTILE_HITBOX_RADIUS_SQ = 0.81;
 // Spatial grid for O(T+E) turret targeting instead of O(T*E)
 const _SPATIAL_CELL = 10;
 const _spatialGrid = new Map();
+const _activeCells = [];
 
 function _gridKey(cx, cz) {
   return ((cx * 997 + cz * 991) >>> 0);
 }
 
 function _buildGrid() {
-  _spatialGrid.clear();
+  // Reuse existing cell arrays to avoid per-frame allocation
+  for (const c of _activeCells) c.length = 0;
+  _activeCells.length = 0;
   for (const e of enemies) {
     const k = _gridKey(
       Math.floor(e.mesh.position.x / _SPATIAL_CELL),
@@ -32,6 +35,7 @@ function _buildGrid() {
     );
     let c = _spatialGrid.get(k);
     if (!c) { c = []; _spatialGrid.set(k, c); }
+    if (c.length === 0) _activeCells.push(c);
     c.push(e);
   }
 }
@@ -234,6 +238,7 @@ function clearActors() {
   turrets.length = 0;
   projectiles.length = 0;
   _spatialGrid.clear();
+  _activeCells.length = 0;
 }
 
 function resetGame() {
