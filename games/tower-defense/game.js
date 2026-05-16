@@ -18,15 +18,13 @@ const PROJECTILE_HITBOX_RADIUS_SQ = 0.81;
 // Spatial grid for O(T+E) turret targeting instead of O(T*E)
 const _SPATIAL_CELL = 10;
 const _spatialGrid = new Map();
-const _activeCells = [];
 
 function _gridKey(cx, cz) {
   return ((cx * 997 + cz * 991) >>> 0);
 }
 
 function _buildGrid() {
-  for (const arr of _activeCells) arr.length = 0;
-  _activeCells.length = 0;
+  _spatialGrid.clear();
   for (const e of enemies) {
     const k = _gridKey(
       Math.floor(e.mesh.position.x / _SPATIAL_CELL),
@@ -34,7 +32,6 @@ function _buildGrid() {
     );
     let c = _spatialGrid.get(k);
     if (!c) { c = []; _spatialGrid.set(k, c); }
-    if (c.length === 0) _activeCells.push(c);
     c.push(e);
   }
 }
@@ -392,17 +389,21 @@ function updateProjectiles(dt) {
     let hit = projectile.mesh.position.distanceToSquared(projectile.target.mesh.position) < PROJECTILE_HITBOX_RADIUS_SQ;
     if (!hit) {
       const dirX = projectile.velocity.x * dt;
+      const dirY = projectile.velocity.y * dt;
       const dirZ = projectile.velocity.z * dt;
-      const dirLenSq = dirX * dirX + dirZ * dirZ;
+      const dirLenSq = dirX * dirX + dirY * dirY + dirZ * dirZ;
       if (dirLenSq > 0) {
         const toEnemyX = _projPrev.x - projectile.target.mesh.position.x;
+        const toEnemyY = _projPrev.y - projectile.target.mesh.position.y;
         const toEnemyZ = _projPrev.z - projectile.target.mesh.position.z;
-        const t = Math.max(0, Math.min(1, (toEnemyX * dirX + toEnemyZ * dirZ) / -dirLenSq));
+        const t = Math.max(0, Math.min(1, (toEnemyX * dirX + toEnemyY * dirY + toEnemyZ * dirZ) / -dirLenSq));
         const cx = _projPrev.x + dirX * t;
+        const cy = _projPrev.y + dirY * t;
         const cz = _projPrev.z + dirZ * t;
         const dx = cx - projectile.target.mesh.position.x;
+        const dy = cy - projectile.target.mesh.position.y;
         const dz = cz - projectile.target.mesh.position.z;
-        if (dx * dx + dz * dz < PROJECTILE_HITBOX_RADIUS_SQ) hit = true;
+        if (dx * dx + dy * dy + dz * dz < PROJECTILE_HITBOX_RADIUS_SQ) hit = true;
       }
     }
 
