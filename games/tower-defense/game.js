@@ -320,7 +320,15 @@ function updateProjectiles(dt) {
     projectile.life -= dt;
 
     const targetIndex = enemies.indexOf(projectile.target);
-    if (targetIndex !== -1 && projectile.mesh.position.distanceToSquared(projectile.target.mesh.position) < 0.75 ** 2) {
+
+    // If target was already destroyed, remove projectile immediately
+    if (targetIndex === -1) {
+      scene.remove(projectile.mesh);
+      projectiles.splice(i, 1);
+      continue;
+    }
+
+    if (projectile.mesh.position.distanceToSquared(projectile.target.mesh.position) < 0.75 ** 2) {
       projectile.target.hp -= projectile.damage;
       scene.remove(projectile.mesh);
       projectiles.splice(i, 1);
