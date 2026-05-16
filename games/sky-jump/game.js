@@ -94,8 +94,8 @@ function setupLevel(level) {
 
 function currentPlatform() {
   return platforms.find((platform) => (
-    Math.abs(player.position.x - platform.position.x) <= 3.5 &&
-    Math.abs(player.position.z - platform.position.z) <= 3.5
+    Math.abs(player.position.x - platform.position.x) <= PLATFORM_COLLISION_THRESHOLD &&
+    Math.abs(player.position.z - platform.position.z) <= PLATFORM_COLLISION_THRESHOLD
   ));
 }
 
