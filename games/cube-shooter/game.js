@@ -63,6 +63,7 @@ const enemies = [];
 const enemyGeo = new THREE.BoxGeometry(1,1,1);
 const enemyMat = new THREE.MeshBasicMaterial({ color: 0xff6959 });
 
+const HITBOX_RADIUS_SQ = 0.85;
 const clock = new THREE.Clock();
 
 function spawnEnemy() {
@@ -102,9 +103,8 @@ function resetGame() {
   state.spawnTimer = 0;
   ws.textContent = '';
 
-  for (const item of [...bullets, ...enemies]) {
-    scene.remove(item.mesh);
-  }
+  bullets.forEach(item => scene.remove(item.mesh));
+  enemies.forEach(item => scene.remove(item.mesh));
   bullets.length = 0;
   enemies.length = 0;
   playerGroup.position.set(0, 1, 0);
@@ -191,7 +191,7 @@ function tick() {
 
       for (let j = enemies.length - 1; j >= 0; j--) {
         const enemy = enemies[j];
-        if (bullet.mesh.position.distanceToSquared(enemy.mesh.position) < 0.85) {
+        if (bullet.mesh.position.distanceToSquared(enemy.mesh.position) < HITBOX_RADIUS_SQ) {
           scene.remove(enemy.mesh);
           scene.remove(bullet.mesh);
           enemies.splice(j, 1);
