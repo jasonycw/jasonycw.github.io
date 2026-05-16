@@ -136,6 +136,7 @@ function resetGame() {
   state.timeLeft = 60;
   state.fireCooldown = 0;
   state.spawnTimer = 0;
+  CS_CELL_KEYS.clear();
   ws.textContent = '';
 
   bullets.forEach(item => scene.remove(item.mesh));
@@ -221,7 +222,6 @@ function tick() {
     // Pre-compute swept-sphere parameters (constant for all bullets this frame)
     const bulletTravelDist = 25 * dt;
     const dirLenSq = bulletTravelDist * bulletTravelDist;
-    const maxReachSq = (bulletTravelDist + HITBOX_RADIUS) ** 2;
 
     // Update bullets
     _csBuildGrid();
