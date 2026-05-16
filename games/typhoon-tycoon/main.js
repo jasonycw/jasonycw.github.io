@@ -443,7 +443,7 @@ function tick() {
     updateProjectiles(dt);
   }
   if (frameCount++ % 15 === 0) updateHud();
-  baseRing.rotation.z += dt * 0.9;
+  visualBaseRing.rotation.z += dt * 0.9;
   renderer.render(scene, camera);
   if (state.running) _tickRafId = requestAnimationFrame(tick);
 }
