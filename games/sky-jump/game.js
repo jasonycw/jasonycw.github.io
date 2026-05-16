@@ -75,7 +75,7 @@ function setupLevel(level) {
   platforms = [];
 
   // Simple layout – five platforms per level (center + four cardinal)
-  const spacing = 10 + level * 1;
+  const spacing = 10 + level;
   createPlatform(0, 0);
   createPlatform(spacing, 0);
   createPlatform(-spacing, 0);
@@ -116,7 +116,7 @@ function resetGame() {
   state.level = 1;
   state.score = 0;
   overlayEl.classList.add('hidden');
-  startBtn.textContent = 'Restart';
+  startBtn.textContent = 'Restart Adventure';
   setupLevel(state.level);
   updateHud();
 }
