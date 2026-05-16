@@ -136,7 +136,7 @@ function tick() {
     if (keys.has('a')) moveInput.x -= 1;
     if (keys.has('d')) moveInput.x += 1;
     if (moveInput.lengthSq() > 0) moveInput.normalize();
-    const speed = 6;
+    const speed = 12;
     player.position.x += moveInput.x * speed * dt;
     player.position.z += moveInput.z * speed * dt;
 
@@ -147,7 +147,7 @@ function tick() {
 
     // Jump on space – simple upward impulse and gravity
     if (jumpRequested && isGrounded()) {
-      player.userData.velY = 8;
+      player.userData.velY = 12;
     }
     jumpRequested = false;
     if (player.userData.velY !== undefined) {
