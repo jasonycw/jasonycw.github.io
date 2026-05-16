@@ -64,6 +64,8 @@ const enemyGeo = new THREE.BoxGeometry(1,1,1);
 const enemyMat = new THREE.MeshBasicMaterial({ color: 0xff6959 });
 
 const HITBOX_RADIUS_SQ = 0.85;
+const _bulletPrev = new THREE.Vector3();
+const _sweptDir = new THREE.Vector3();
 const clock = new THREE.Clock();
 
 function spawnEnemy() {
@@ -185,13 +187,36 @@ function tick() {
     // Update bullets
     for (let i = bullets.length - 1; i >= 0; i--) {
       const bullet = bullets[i];
+      _bulletPrev.copy(bullet.mesh.position);
       bullet.mesh.position.addScaledVector(bullet.velocity, dt);
       bullet.life -= dt;
       let hitEnemy = false;
 
+      _sweptDir.copy(bullet.velocity).multiplyScalar(dt);
+      const dirLenSq = _sweptDir.lengthSq();
+
       for (let j = enemies.length - 1; j >= 0; j--) {
         const enemy = enemies[j];
-        if (bullet.mesh.position.distanceToSquared(enemy.mesh.position) < HITBOX_RADIUS_SQ) {
+        let hit = false;
+
+        // Check current position
+        if (bullet.mesh.position.distanceToSquared(enemy.mesh.position) < HITBOX_RADIUS_SQ) { hit = true; }
+
+        // Swept-sphere check: prevent tunneling when bullet speed > hitbox diameter
+        if (!hit && dirLenSq > 0) {
+          const toEnemyX = _bulletPrev.x - enemy.mesh.position.x;
+          const toEnemyZ = _bulletPrev.z - enemy.mesh.position.z;
+          const t = Math.max(0, Math.min(1,
+            (toEnemyX * _sweptDir.x + toEnemyZ * _sweptDir.z) / -dirLenSq
+          ));
+          const cx = _bulletPrev.x + _sweptDir.x * t;
+          const cz = _bulletPrev.z + _sweptDir.z * t;
+          const dx = cx - enemy.mesh.position.x;
+          const dz = cz - enemy.mesh.position.z;
+          if (dx * dx + dz * dz < HITBOX_RADIUS_SQ) { hit = true; }
+        }
+
+        if (hit) {
           scene.remove(enemy.mesh);
           scene.remove(bullet.mesh);
           enemies.splice(j, 1);
