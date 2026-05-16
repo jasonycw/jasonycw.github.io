@@ -206,6 +206,7 @@ function resetGame() {
   state.spawnTimer = 0.6;
   state.spawnedThisWave = 0;
   state.nextWaveDelay = 0;
+  frameCount = 0;
   cursor.position.set(-7, 0.08, 7);
   cursor.visible = true;
   overlayEl.classList.add('hidden');
@@ -247,7 +248,7 @@ function destroyEnemy(targetEnemy) {
 function fireFromTurret(turret, enemy) {
   _fireStart.copy(turret.group.position).setY(0.9);
   _fireTarget.copy(enemy.mesh.position).setY(0.75);
-  const velocity = _fireTarget.sub(_fireStart).normalize().multiplyScalar(18).clone();
+  const velocity = new THREE.Vector3().copy(_fireTarget).sub(_fireStart).normalize().multiplyScalar(18);
   const mesh = new THREE.Mesh(projectileGeo, projectileMat);
   mesh.position.copy(_fireStart);
   scene.add(mesh);
