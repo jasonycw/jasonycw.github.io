@@ -168,6 +168,7 @@ function makeTurret(position) {
 function canPlaceTurret(position) {
   if (position.lengthSq() > (ARENA_LIMIT - 2) ** 2) return false;
   if (position.distanceToSquared(base.position) < (BASE_RADIUS + 2) ** 2) return false;
+  if (Math.abs(position.z) < 2.0) return false;
   return !turrets.some((turret) => turret.group.position.distanceToSquared(position) < 4.84);
 }
 
