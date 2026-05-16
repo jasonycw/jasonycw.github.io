@@ -1,5 +1,5 @@
 import * as THREE from 'https://unpkg.com/three@0.164.1/build/three.module.js';
-import { clamp } from '../shared/utils.js';
+
 
 // DOM Elements
 const levelEl = document.querySelector('#level');
@@ -91,8 +91,8 @@ function setupLevel(level) {
 
 function currentPlatform() {
   return platforms.find((platform) => (
-    Math.abs(player.position.x - platform.position.x) <= 3 &&
-    Math.abs(player.position.z - platform.position.z) <= 3
+    Math.abs(player.position.x - platform.position.x) <= 3.5 &&
+    Math.abs(player.position.z - platform.position.z) <= 3.5
   ));
 }
 
@@ -145,8 +145,8 @@ function tick() {
 
     // Keep player within bounds of current platforms
     const bounds = 25 + state.level * 5;
-    player.position.x = clamp(player.position.x, -bounds, bounds);
-    player.position.z = clamp(player.position.z, -bounds, bounds);
+    player.position.x = THREE.MathUtils.clamp(player.position.x, -bounds, bounds);
+    player.position.z = THREE.MathUtils.clamp(player.position.z, -bounds, bounds);
 
     // Jump on space – simple upward impulse and gravity
     if (jumpRequested && isGrounded()) {
