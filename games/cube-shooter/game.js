@@ -22,6 +22,7 @@ const state = {
 };
 
 const _bulletDir = new THREE.Vector3();
+let _tickRafId = null;
 const keys = new Set();
 const mouseNdc = new THREE.Vector2();
 const moveInput = new THREE.Vector3();
@@ -117,6 +118,7 @@ function resetGame() {
 
   overlayEl.classList.add('hidden');
   startBtn.textContent = 'Restart Simulation';
+  if (_tickRafId) { cancelAnimationFrame(_tickRafId); _tickRafId = null; }
   tick();
 }
 
@@ -291,7 +293,7 @@ function tick() {
   }
 
   renderer.render(scene, camera);
-  if (state.running) requestAnimationFrame(tick);
+  if (state.running) _tickRafId = requestAnimationFrame(tick);
 }
 
 // Mouse click fire (only from canvas, not UI elements)
