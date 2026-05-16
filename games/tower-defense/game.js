@@ -53,7 +53,6 @@ function _nearbyEnemies(pos, rangeSq, fn) {
           if (fn(e)) return;
         }
       }
-      }
     }
   }
 }
