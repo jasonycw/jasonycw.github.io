@@ -253,7 +253,7 @@ function tick() {
 }
 
 // Mouse click fire
-window.addEventListener('mousedown', fireBullet, false);
+window.addEventListener('pointerdown', fireBullet, false);
 
 window.addEventListener('mousemove', (event) => {
   mouseNdc.x = (event.clientX / window.innerWidth) * 2 - 1;
