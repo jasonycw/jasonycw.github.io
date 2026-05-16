@@ -152,7 +152,7 @@ const cursorBarrel = new THREE.Mesh(
   new THREE.MeshBasicMaterial({ color: 0xffd166 }),
 );
 cursorBarrel.rotation.x = Math.PI / 2;
-cursorBarrel.position.set(0, 0.55, -0.45);
+cursorBarrel.position.set(0, 0.55, 0.45);
 cursor.add(cursorBarrel);
 cursor.position.set(-7, 0.08, 7);
 scene.add(cursor);
@@ -205,7 +205,7 @@ function makeTurret(position) {
   group.add(baseMesh);
 
   const barrel = new THREE.Mesh(turretBarrelGeo, turretBarrelMat);
-  barrel.position.set(0, 0.75, -0.62);
+  barrel.position.set(0, 0.75, 0.62);
   group.add(barrel);
 
   group.position.copy(position).setY(0);
