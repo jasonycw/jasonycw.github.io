@@ -249,10 +249,10 @@ function fireFromTurret(turret, enemy) {
 
 function updateCursor(dt) {
   const move = turretMove.set(0, 0, 0);
-  if (keys.has('w') || keys.has('arrowup')) move.z -= 1;
-  if (keys.has('s') || keys.has('arrowdown')) move.z += 1;
-  if (keys.has('a') || keys.has('arrowleft')) move.x -= 1;
-  if (keys.has('d') || keys.has('arrowright')) move.x += 1;
+  if (keys.has('KeyW') || keys.has('ArrowUp')) move.z -= 1;
+  if (keys.has('KeyS') || keys.has('ArrowDown')) move.z += 1;
+  if (keys.has('KeyA') || keys.has('ArrowLeft')) move.x -= 1;
+  if (keys.has('KeyD') || keys.has('ArrowRight')) move.x += 1;
 
   if (move.lengthSq() > 0) {
     move.normalize().multiplyScalar(9 * dt);
