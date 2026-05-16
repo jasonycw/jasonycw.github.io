@@ -1,87 +1,189 @@
-body {
-  margin: 0;
-  overflow: hidden;
-  background: #000;
-  font-family: Arial, sans-serif;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-#hud {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  padding: 10px 15px;
-  color: white;
-  background: rgba(0, 0, 0, 0.6);
-  text-align: center;
-  z-index: 10;
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background: #000;
 }
 
-#hud h1 {
-  margin: 0 0 5px 0;
-  font-size: 1.4em;
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
 }
 
-#hud p {
-  margin: 2px 0;
-  font-size: 0.95em;
+#canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 
-.hint {
-  font-size: 0.75em;
-  opacity: 0.7;
+#ui-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    font-size: 16px;
+    color: #fff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 }
 
-#overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.85);
-  z-index: 20;
+#top-ui {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    gap: 30px;
+    font-size: 18px;
+    font-weight: bold;
 }
 
-#overlay.hidden {
-  display: none;
+.stat {
+    padding: 10px 15px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 4px;
+    border: 2px solid #4a9eff;
 }
 
-.card {
-  background: #1a1f2e;
-  border: 1px solid #3a4a5e;
-  border-radius: 8px;
-  padding: 30px 40px;
-  text-align: center;
-  color: white;
-  max-width: 400px;
+.stat span {
+    color: #4affff;
+    font-weight: bold;
 }
 
-.card h2 {
-  margin: 0 0 10px 0;
-  color: #35d3ff;
-  font-size: 1.4em;
+.stat.wave { border-color: #6a6aff; }
+.stat.money { border-color: #ffaa00; }
+.stat.lives { border-color: #ff4444; }
+
+.stat.money span { color: #ffff00; }
+.stat.lives span { color: #ff6666; }
+
+#tower-info {
+    position: absolute;
+    bottom: 30px;
+    left: 30px;
+    background: rgba(20, 40, 80, 0.9);
+    padding: 20px;
+    border: 2px solid #4a9eff;
+    border-radius: 4px;
+    pointer-events: auto;
+    min-width: 200px;
 }
 
-.card p {
-  margin: 10px 0 20px 0;
-  opacity: 0.8;
-  line-height: 1.4;
+#tower-name {
+    font-size: 18px;
+    font-weight: bold;
+    color: #4affff;
+    margin-bottom: 8px;
 }
 
-button {
-  background: #35d3ff;
-  color: #02060f;
-  border: none;
-  padding: 10px 30px;
-  font-size: 1em;
-  font-weight: bold;
-  border-radius: 4px;
-  cursor: pointer;
+#tower-cost {
+    font-size: 14px;
+    color: #ffff00;
+    margin-bottom: 12px;
 }
 
-button:hover {
-  background: #8ef8ff;
+#place-tower-btn {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, #2080ff, #0080ff);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+#place-tower-btn:hover {
+    background: linear-gradient(135deg, #3090ff, #1090ff);
+    box-shadow: 0 0 10px rgba(32, 128, 255, 0.6);
+}
+
+#place-tower-btn:disabled {
+    background: #666;
+    color: #999;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+#game-state {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.95);
+    padding: 40px;
+    border: 3px solid #ffaa00;
+    border-radius: 8px;
+    text-align: center;
+    pointer-events: auto;
+    z-index: 1000;
+    min-width: 300px;
+}
+
+#state-message {
+    font-size: 32px;
+    font-weight: bold;
+    color: #ffaa00;
+    margin-bottom: 30px;
+    text-transform: uppercase;
+}
+
+#restart-btn {
+    padding: 15px 40px;
+    background: linear-gradient(135deg, #ff6a00, #ff8800);
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#restart-btn:hover {
+    background: linear-gradient(135deg, #ff7a00, #ff9900);
+    box-shadow: 0 0 15px rgba(255, 136, 0, 0.6);
+}
+
+.hidden {
+    display: none !important;
+}
+
+.debug {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 10px 15px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #888;
+    font-family: monospace;
+}
+
+/* Responsive: Hide debug on small screens */
+@media (max-width: 768px) {
+    .debug {
+        display: none !important;
+    }
+
+    #top-ui {
+        gap: 15px;
+        font-size: 14px;
+    }
+
+    .stat {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
 }
