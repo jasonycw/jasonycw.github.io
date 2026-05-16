@@ -11,7 +11,7 @@
         <canvas id="canvas"></canvas>
         <div id="ui-overlay">
             <div id="top-ui">
-                <div class="stat wave">Wave: <span id="wave-count">1</span></div>
+                <div class="stat wave">Wave: <span id="wave-count">1</span> / 5</div>
                 <div class="stat money">Money: <span id="money">500</span></div>
                 <div class="stat lives">Lives: <span id="lives">20</span></div>
             </div>
@@ -19,6 +19,15 @@
                 <div id="tower-name">Tower</div>
                 <div id="tower-cost">Cost: 100</div>
                 <button id="place-tower-btn">Place Tower</button>
+            </div>
+            <div id="start-screen" class="hidden">
+                <div id="start-title">TYPHOON TYCOON</div>
+                <div id="start-subtitle">2.5D Tower Defense</div>
+                <div id="start-instructions">
+                    <p>Click on the map to place towers</p>
+                    <p>Defend against incoming typhoons!</p>
+                </div>
+                <button id="start-btn">START GAME</button>
             </div>
             <div id="game-state" class="hidden">
                 <div id="state-message">Game Over</div>

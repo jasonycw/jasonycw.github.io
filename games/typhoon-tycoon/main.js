@@ -551,12 +551,15 @@ class UIManager {
         this.stateMessageEl = document.getElementById('state-message');
         this.restartBtn = document.getElementById('restart-btn');
         this.fpsEl = document.getElementById('fps');
+        this.startScreenEl = document.getElementById('start-screen');
+        this.startBtn = document.getElementById('start-btn');
 
         this.selectedTower = null;
         this.selectedLocation = null;
 
         this.placeTowerBtn.addEventListener('click', () => this.onPlaceTowerClick());
         this.restartBtn.addEventListener('click', () => this.onRestartClick());
+        this.startBtn.addEventListener('click', () => this.onStartClick());
     }
 
     updateStats(money, lives, wave) {
@@ -579,6 +582,14 @@ class UIManager {
 
     updateTowerButtonState(canPlace) {
         this.placeTowerBtn.disabled = !canPlace;
+    }
+
+    showStartScreen() {
+        this.startScreenEl.classList.remove('hidden');
+    }
+
+    hideStartScreen() {
+        this.startScreenEl.classList.add('hidden');
     }
 
     showGameOver(isWon) {
@@ -606,6 +617,12 @@ class UIManager {
             window.gameInstance.restart();
         }
     }
+
+    onStartClick() {
+        if (window.gameInstance) {
+            window.gameInstance.startGame();
+        }
+    }
 }
 
 // ============================================================================
@@ -621,20 +638,27 @@ class TyphoonTycoonGame {
 
         this.towerPlacementMode = false;
         this.selectedPlacementLocation = null;
+        this.isRunning = false;
 
         this.lastTime = performance.now();
         this.frameCount = 0;
         this.fpsTime = 0;
 
-        this.start();
+        this.initializeAnimation();
     }
 
-    start() {
+    initializeAnimation() {
+        this.ui.showStartScreen();
+        this.animate();
+    }
+
+    startGame() {
+        this.isRunning = true;
+        this.ui.hideStartScreen();
         this.gameState.reset();
         this.ui.updateStats(this.gameState.money, this.gameState.lives, this.gameState.waveIndex);
         this.ui.hideGameOverScreen();
         this.startNextWave();
-        this.animate();
     }
 
     restart() {
@@ -646,7 +670,7 @@ class TyphoonTycoonGame {
         this.scene.projectiles = [];
         this.waveManager.enemies.forEach(e => this.scene.scene.remove(e.mesh));
         
-        this.start();
+        this.startGame();
     }
 
     startNextWave() {
@@ -657,7 +681,7 @@ class TyphoonTycoonGame {
     }
 
     selectPlacementLocation(x, z) {
-        if (this.gameState.isGameOver) return;
+        if (this.gameState.isGameOver || !this.isRunning) return;
 
         // Round to grid
         const gridX = Math.round(x / 1) * 1;
@@ -723,6 +747,8 @@ class TyphoonTycoonGame {
     }
 
     update(deltaTime) {
+        if (!this.isRunning) return;
+
         // Update wave
         this.waveManager.update(deltaTime, this.scene.scene);
 
@@ -764,6 +790,7 @@ class TyphoonTycoonGame {
 
         // Check game over
         if (this.gameState.isGameOver) {
+            this.isRunning = false;
             this.ui.showGameOver(this.gameState.isWon);
         }
     }
@@ -775,7 +802,7 @@ class TyphoonTycoonGame {
         const deltaTime = (now - this.lastTime) / 1000;
         this.lastTime = now;
 
-        if (!this.gameState.isGameOver || true) {
+        if (this.isRunning) {
             this.update(deltaTime);
         }
 
