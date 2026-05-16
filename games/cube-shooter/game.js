@@ -68,6 +68,7 @@ const PLAYER_COLLISION_RADIUS_SQ = 2.25;
 const _bulletPrev = new THREE.Vector3();
 const _sweptDir = new THREE.Vector3();
 const clock = new THREE.Clock();
+let frameCount = 0;
 
 function spawnEnemy() {
   const mesh = new THREE.Mesh(enemyGeo, enemyMat);
@@ -280,7 +281,7 @@ function tick() {
       }
     }
 
-    updateHud();
+    if (frameCount++ % 15 === 0) updateHud();
   }
 
   renderer.render(scene, camera);
