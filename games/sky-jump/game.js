@@ -134,10 +134,10 @@ function tick() {
   if (state.running) {
     // Simple WASD movement on the XZ plane
     moveInput.set(0, 0, 0);
-    if (keys.has('w')) moveInput.z -= 1;
-    if (keys.has('s')) moveInput.z += 1;
-    if (keys.has('a')) moveInput.x -= 1;
-    if (keys.has('d')) moveInput.x += 1;
+    if (keys.has('KeyW')) moveInput.z -= 1;
+    if (keys.has('KeyS')) moveInput.z += 1;
+    if (keys.has('KeyA')) moveInput.x -= 1;
+    if (keys.has('KeyD')) moveInput.x += 1;
     if (moveInput.lengthSq() > 0) moveInput.normalize();
     const speed = 12;
     player.position.x += moveInput.x * speed * dt;
