@@ -14,6 +14,34 @@ const TURRET_SPACING_SQ = 4.84;
 const STARTING_RESOURCES = 100;
 const ENEMY_REWARD = 10;
 
+// Spatial grid for O(T+E) turret targeting instead of O(T*E)
+const _SPATIAL_CELL = 10;
+const _spatialGrid = new Map();
+
+function _buildGrid() {
+  _spatialGrid.clear();
+  for (const e of enemies) {
+    const k = `${Math.floor(e.mesh.position.x / _SPATIAL_CELL)},${Math.floor(e.mesh.position.z / _SPATIAL_CELL)}`;
+    let c = _spatialGrid.get(k);
+    if (!c) _spatialGrid.set(k, c = []);
+    c.push(e);
+  }
+}
+
+function* _nearbyEnemies(pos, rangeSq) {
+  const cx = Math.floor(pos.x / _SPATIAL_CELL);
+  const cz = Math.floor(pos.z / _SPATIAL_CELL);
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dz = -1; dz <= 1; dz++) {
+      const cell = _spatialGrid.get(`${cx + dx},${cz + dz}`);
+      if (!cell) continue;
+      for (const e of cell) {
+        if (pos.distanceToSquared(e.mesh.position) < rangeSq) yield e;
+      }
+    }
+  }
+}
+
 const state = {
   running: false,
   score: 0,
@@ -302,12 +330,13 @@ function updateEnemies(dt) {
 }
 
 function updateTurrets(dt) {
+  _buildGrid();
   for (const turret of turrets) {
     turret.cooldown = Math.max(0, turret.cooldown - dt);
     let target = null;
     let nearestSq = turret.range ** 2;
 
-    for (const enemy of enemies) {
+    for (const enemy of _nearbyEnemies(turret.group.position, nearestSq)) {
       const distanceSq = turret.group.position.distanceToSquared(enemy.mesh.position);
       if (distanceSq < nearestSq) {
         nearestSq = distanceSq;
