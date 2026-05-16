@@ -146,7 +146,8 @@ function tick() {
     player.position.z += moveInput.z * speed * dt;
 
     // Keep player within bounds of current platforms
-    const bounds = 25 + state.level * 5;
+    const spacing = Math.min(14, 10 + state.level);
+    const bounds = spacing + 5;
     player.position.x = THREE.MathUtils.clamp(player.position.x, -bounds, bounds);
     player.position.z = THREE.MathUtils.clamp(player.position.z, -bounds, bounds);
 
