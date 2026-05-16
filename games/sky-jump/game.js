@@ -154,27 +154,30 @@ function tick() {
     player.position.x = THREE.MathUtils.clamp(player.position.x, -bounds, bounds);
     player.position.z = THREE.MathUtils.clamp(player.position.z, -bounds, bounds);
 
+    // Cache current platform to avoid repeated iteration
+    const curPlatform = currentPlatform();
+    const onGround = player.position.y <= 1.5 && curPlatform;
+
     // Jump on space – simple upward impulse and gravity
-    if (jumpRequested && isGrounded()) {
+    if (jumpRequested && onGround) {
       player.userData.velY = 12;
     }
     jumpRequested = false;
     if (player.userData.velY !== undefined) {
       player.position.y += player.userData.velY * dt;
       player.userData.velY -= 20 * dt; // gravity
-      if (player.position.y <= 1.5 && isOverPlatform()) {
+      if (player.position.y <= 1.5 && curPlatform) {
         player.position.y = 1.5;
         player.userData.velY = undefined;
       }
-    } else if (!isOverPlatform()) {
+    } else if (!curPlatform) {
       player.userData.velY = 0;
     }
 
     if (player.position.y < FALL_THRESHOLD) failRun();
 
-    const landedPlatform = currentPlatform();
-    if (landedPlatform && landedPlatform !== state.lastPlatform && player.position.y <= 1.5) {
-      state.lastPlatform = landedPlatform;
+    if (curPlatform && curPlatform !== state.lastPlatform && player.position.y <= 1.5) {
+      state.lastPlatform = curPlatform;
       state.stars += 1;
       state.score += 10;
     }
