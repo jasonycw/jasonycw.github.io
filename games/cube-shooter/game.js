@@ -1,5 +1,5 @@
 import * as THREE from 'https://unpkg.com/three@0.164.1/build/three.module.js';
-import { clamp } from '../shared/utils.js';
+
 
 // DOM Elements
 const scoreEl = document.querySelector('#score');
@@ -63,7 +63,7 @@ const enemies = [];
 const enemyGeo = new THREE.BoxGeometry(1,1,1);
 const enemyMat = new THREE.MeshBasicMaterial({ color: 0xff6959 });
 
-const HITBOX_RADIUS_SQ = 0.85;
+const HITBOX_RADIUS_SQ = 0.5;
 const _bulletPrev = new THREE.Vector3();
 const _sweptDir = new THREE.Vector3();
 const clock = new THREE.Clock();
@@ -169,8 +169,8 @@ function tick() {
     playerGroup.position.z += moveInput.z * speed * dt;
 
     // Keep player within bounds
-    playerGroup.position.x = clamp(playerGroup.position.x, -25, 25);
-    playerGroup.position.z = clamp(playerGroup.position.z, -25, 25);
+    playerGroup.position.x = THREE.MathUtils.clamp(playerGroup.position.x, -25, 25);
+    playerGroup.position.z = THREE.MathUtils.clamp(playerGroup.position.z, -25, 25);
 
     // Update player rotation to face mouse aim point
     const aimDx = mouseAimPoint.x - playerGroup.position.x;
