@@ -375,6 +375,8 @@ function tick() {
   if (state.running) {
     updateCursor(dt);
     updateWave(dt);
+    updateEnemies(dt);
+    updateTurrets(dt);
     updateProjectiles(dt);
   }
   if (frameCount++ % 15 === 0) updateHud();
