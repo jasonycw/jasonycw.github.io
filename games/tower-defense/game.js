@@ -354,7 +354,7 @@ function updateProjectiles(dt) {
         const cz = _projPrev.z + dirZ * t;
         const dx = cx - projectile.target.mesh.position.x;
         const dz = cz - projectile.target.mesh.position.z;
-        if (dx * dx + dz * dz < 0.9 ** 2) hit = true;
+        if (dx * dx + dz * dz < 0.81) hit = true;
       }
     }
 
