@@ -134,7 +134,7 @@ function spawnEvery() {
 function spawnEnemy() {
   if (!state.running || state.spawnedThisWave >= waveSize()) return;
 
-  const z = (Math.random() - 0.5) * 8;
+  const z = (Math.random() - 0.5) * 3.2;
   const mesh = new THREE.Mesh(enemyGeo, enemyMat);
   mesh.position.set(-ARENA_LIMIT, 0.75, z);
   scene.add(mesh);
@@ -326,7 +326,7 @@ function updateProjectiles(dt) {
       continue;
     }
 
-    if (projectile.mesh.position.distanceToSquared(projectile.target.mesh.position) < 0.75 ** 2) {
+    if (projectile.mesh.position.distanceToSquared(projectile.target.mesh.position) < 0.9 ** 2) {
       projectile.target.hp -= projectile.damage;
       scene.remove(projectile.mesh);
       projectiles.splice(i, 1);
