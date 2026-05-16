@@ -70,6 +70,34 @@ const HITBOX_RADIUS = 0.7071;
 const PLAYER_COLLISION_RADIUS_SQ = 2.25;
 const _bulletPrev = new THREE.Vector3();
 const _sweptDir = new THREE.Vector3();
+
+// Spatial grid for O(B+C) bullet-enemy collision (C = cells with enemies)
+const CS_CELL = 7;
+const CS_CELL_KEYS = new Map();
+const CS_CELL_ACTIVE = [];
+
+function _csCellKey(x, z) {
+  return ((Math.floor(x / CS_CELL) * 997 + Math.floor(z / CS_CELL)) >>> 0);
+}
+
+function _csBuildGrid() {
+  // Reuse existing cell arrays
+  for (const entry of CS_CELL_ACTIVE) entry.length = 0;
+  CS_CELL_ACTIVE.length = 0;
+
+  for (let i = 0; i < enemies.length; i++) {
+    const enemy = enemies[i];
+    const k = _csCellKey(enemy.mesh.position.x, enemy.mesh.position.z);
+    let cell = CS_CELL_KEYS.get(k);
+    if (!cell) {
+      cell = [];
+      CS_CELL_KEYS.set(k, cell);
+    }
+    if (cell.length === 0) CS_CELL_ACTIVE.push(cell);
+    cell.push(enemy);
+  }
+}
+
 const clock = new THREE.Clock();
 let frameCount = 0;
 
@@ -196,6 +224,7 @@ function tick() {
     const maxReachSq = (bulletTravelDist + HITBOX_RADIUS) ** 2;
 
     // Update bullets
+    _csBuildGrid();
     for (let i = bullets.length - 1; i >= 0; i--) {
       const bullet = bullets[i];
       _bulletPrev.copy(bullet.mesh.position);
@@ -205,38 +234,50 @@ function tick() {
 
       _sweptDir.copy(bullet.velocity).multiplyScalar(dt);
 
-      for (let j = enemies.length - 1; j >= 0; j--) {
-        const enemy = enemies[j];
-        let hit = false;
+      // Query spatial grid cells around bullet position
+      const cellX = Math.floor(bullet.mesh.position.x / CS_CELL);
+      const cellZ = Math.floor(bullet.mesh.position.z / CS_CELL);
 
-        // Check current position
-        if (bullet.mesh.position.distanceToSquared(enemy.mesh.position) < HITBOX_RADIUS_SQ) { hit = true; }
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dz = -1; dz <= 1; dz++) {
+          const cell = CS_CELL_KEYS.get(((cellX + dx) * 997 + (cellZ + dz)) >>> 0);
+          if (!cell) continue;
 
-        // Swept-sphere check: prevent tunneling when bullet speed > hitbox diameter
-        if (!hit && dirLenSq > 0) {
-          // Broad-phase: skip enemies too far from the bullet's flight path
-          if (_bulletPrev.distanceToSquared(enemy.mesh.position) > maxReachSq) continue;
-          const toEnemyX = _bulletPrev.x - enemy.mesh.position.x;
-          const toEnemyZ = _bulletPrev.z - enemy.mesh.position.z;
-          const t = Math.max(0, Math.min(1,
-            (toEnemyX * _sweptDir.x + toEnemyZ * _sweptDir.z) / -dirLenSq
-          ));
-          const cx = _bulletPrev.x + _sweptDir.x * t;
-          const cz = _bulletPrev.z + _sweptDir.z * t;
-          const dx = cx - enemy.mesh.position.x;
-          const dz = cz - enemy.mesh.position.z;
-          if (dx * dx + dz * dz < HITBOX_RADIUS_SQ) { hit = true; }
+          for (let eIdx = cell.length - 1; eIdx >= 0; eIdx--) {
+            const enemy = cell[eIdx];
+            let hit = false;
+
+            // Check current position
+            if (bullet.mesh.position.distanceToSquared(enemy.mesh.position) < HITBOX_RADIUS_SQ) { hit = true; }
+
+            // Swept-sphere check: prevent tunneling when bullet speed > hitbox diameter
+            if (!hit && dirLenSq > 0) {
+              const toEnemyX = _bulletPrev.x - enemy.mesh.position.x;
+              const toEnemyZ = _bulletPrev.z - enemy.mesh.position.z;
+              const t = Math.max(0, Math.min(1,
+                (toEnemyX * _sweptDir.x + toEnemyZ * _sweptDir.z) / -dirLenSq
+              ));
+              const cx = _bulletPrev.x + _sweptDir.x * t;
+              const cz = _bulletPrev.z + _sweptDir.z * t;
+              const ddx = cx - enemy.mesh.position.x;
+              const ddz = cz - enemy.mesh.position.z;
+              if (ddx * ddx + ddz * ddz < HITBOX_RADIUS_SQ) { hit = true; }
+            }
+
+            if (hit) {
+              cell.splice(eIdx, 1);
+              enemy.dead = true;
+              scene.remove(enemy.mesh);
+              scene.remove(bullet.mesh);
+              bullets.splice(i, 1);
+              state.score += 10;
+              hitEnemy = true;
+              break;
+            }
+          }
+          if (hitEnemy) break;
         }
-
-        if (hit) {
-          scene.remove(enemy.mesh);
-          scene.remove(bullet.mesh);
-          enemies.splice(j, 1);
-          bullets.splice(i, 1);
-          state.score += 10;
-          hitEnemy = true;
-          break;
-        }
+        if (hitEnemy) break;
       }
 
       if (hitEnemy) continue;
@@ -250,6 +291,7 @@ function tick() {
     // Update enemies
     for (let i = enemies.length - 1; i >= 0; i--) {
       const enemy = enemies[i];
+      if (enemy.dead) { enemies.splice(i, 1); continue; }
 
       // Simple approach: move enemy toward player
       const dx = playerGroup.position.x - enemy.mesh.position.x;
