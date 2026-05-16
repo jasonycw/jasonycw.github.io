@@ -245,8 +245,10 @@ function tick() {
             const enemy = cell[eIdx];
             let hit = false;
 
-            // Check current position
-            if (bullet.mesh.position.distanceToSquared(enemy.mesh.position) < HITBOX_RADIUS_SQ) { hit = true; }
+            // Check current position (2D XZ for consistent hitbox at varying Y offsets)
+            const dx = bullet.mesh.position.x - enemy.mesh.position.x;
+            const dz = bullet.mesh.position.z - enemy.mesh.position.z;
+            if (dx * dx + dz * dz < HITBOX_RADIUS_SQ) { hit = true; }
 
             // Swept-sphere check: prevent tunneling when bullet speed > hitbox diameter
             if (!hit && dirLenSq > 0) {
@@ -259,7 +261,7 @@ function tick() {
               const cz = _bulletPrev.z + _sweptDir.z * t;
               const ddx = cx - enemy.mesh.position.x;
               const ddz = cz - enemy.mesh.position.z;
-              if (ddx * ddx + ddz * ddz + 0.25 < HITBOX_RADIUS_SQ) { hit = true; }
+              if (ddx * ddx + ddz * ddz < HITBOX_RADIUS_SQ) { hit = true; }
             }
 
             if (hit) {
