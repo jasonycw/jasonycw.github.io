@@ -1,933 +1,494 @@
-import * as THREE from 'three';
+import * as THREE from 'https://unpkg.com/three@0.164.1/build/three.module.js';
 
-// ============================================================================
-// GAME CONFIGURATION
-// ============================================================================
-const CONFIG = {
-    // Game state
-    startMoney: 500,
-    startLives: 20,
-    waveCount: 5,
+// UI elements
+const scoreEl = document.querySelector('#score');
+const resourcesEl = document.querySelector('#resources');
+const healthEl = document.querySelector('#health');
+const waveEl = document.querySelector('#wave');
+const overlayEl = document.querySelector('#overlay');
+const startBtn = document.querySelector('#startBtn');
 
-    // Map settings
-    mapWidth: 40,
-    mapHeight: 30,
-    tileSize: 1,
+// Game constants
+const ARENA_LIMIT = 24;
+const BASE_RADIUS = 2.3;
+const TURRET_COST = 50;
+const TURRET_SPACING_SQ = 4.84;
+const STARTING_RESOURCES = 100;
+const ENEMY_REWARD = 10;
+const PROJECTILE_HITBOX_RADIUS_SQ = 0.81;
 
-    // Enemy settings
-    enemyRadius: 0.4,
-    enemySpacing: 0.8,
-    enemyTypes: {
-        fast: { speed: 3.5, health: 15, reward: 10 },
-        strong: { speed: 1.5, health: 40, reward: 30 },
-        default: { speed: 2.5, health: 20, reward: 15 }
-    },
+// Spatial grid for fast turret targeting
+const _SPATIAL_CELL = 10;
+const _spatialGrid = new Map();
+const _activeCells = [];
 
-    // Tower settings
-    towers: {
-        gun: { name: 'Gun Tower', cost: 100, range: 8, fireRate: 1, damage: 5 },
-        slow: { name: 'Slow Tower', cost: 150, range: 10, fireRate: 0.5, damage: 2, slowFactor: 0.5 },
-        heavy: { name: 'Heavy Tower', cost: 200, range: 6, fireRate: 0.7, damage: 10 }
-    },
-    towerRadius: 0.6,
+function _gridKey(cx, cz) {
+  return ((cx * 997 + cz * 991) >>> 0);
+}
 
-    // Wave settings
-    waveConfigs: [
-        { count: 10, enemyType: 'fast', delay: 0.2 },
-        { count: 15, enemyType: 'fast', delay: 0.15 },
-        { count: 20, enemyType: 'strong', delay: 0.15 },
-        { count: 25, enemyType: 'mixed', delay: 0.1 },
-        { count: 30, enemyType: 'mixed', delay: 0.1 }
-    ]
+function _buildGrid() {
+  for (const c of _activeCells) c.length = 0;
+  _activeCells.length = 0;
+  for (const e of enemies) {
+    const k = _gridKey(
+      Math.floor(e.mesh.position.x / _SPATIAL_CELL),
+      Math.floor(e.mesh.position.z / _SPATIAL_CELL)
+    );
+    let c = _spatialGrid.get(k);
+    if (!c) { c = []; _spatialGrid.set(k, c); }
+    if (c.length === 0) _activeCells.push(c);
+    c.push(e);
+  }
+}
+
+function _nearbyEnemies(pos, rangeSq, fn) {
+  const range = Math.sqrt(rangeSq);
+  const cellRange = Math.ceil(range / _SPATIAL_CELL);
+  const cx = Math.floor(pos.x / _SPATIAL_CELL);
+  const cz = Math.floor(pos.z / _SPATIAL_CELL);
+  for (let dx = -cellRange; dx <= cellRange; dx++) {
+    for (let dz = -cellRange; dz <= cellRange; dz++) {
+      const cell = _spatialGrid.get(_gridKey(cx + dx, cz + dz));
+      if (!cell) continue;
+      for (const e of cell) {
+        if (e.dead) continue;
+        if (pos.distanceToSquared(e.mesh.position) < rangeSq) {
+          if (fn(e)) return;
+        }
+      }
+    }
+  }
+}
+
+// Game state
+const state = {
+  running: false,
+  score: 0,
+  resources: STARTING_RESOURCES,
+  health: 100,
+  wave: 1,
+  spawnTimer: 0,
+  spawnedThisWave: 0,
+  nextWaveDelay: 0,
 };
 
-// ============================================================================
-// MATH & VECTOR UTILITIES
-// ============================================================================
-function distance(a, b) {
-    const dx = a.x - b.x;
-    const dz = a.z - b.z;
-    return Math.sqrt(dx * dx + dz * dz);
+const keys = new Set();
+const enemies = [];
+const turrets = [];
+const projectiles = [];
+let _tickRafId = null;
+
+// Input helpers
+const pointer = new THREE.Vector2();
+const targetPoint = new THREE.Vector3();
+const enemyDirection = new THREE.Vector3();
+const turretMove = new THREE.Vector3();
+const turretAim = new THREE.Vector3();
+const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const raycaster = new THREE.Raycaster();
+
+// Three.js scene setup
+console.log('Typhoon Tycoon script loaded');
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x02060f, 42, 120);
+
+const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(0, 28, 30);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+document.body.appendChild(renderer.domElement);
+
+// Lights
+const hemi = new THREE.HemisphereLight(0x9ed5ff, 0x07111f, 0.95);
+scene.add(hemi);
+
+const dir = new THREE.DirectionalLight(0xb2e8ff, 1.2);
+dir.position.set(8, 16, 10);
+scene.add(dir);
+
+// Stars background
+const starGeo = new THREE.BufferGeometry();
+const stars = [];
+for (let i = 0; i < 500; i++) {
+  stars.push((Math.random() - 0.5) * 120, Math.random() * 45 + 6, (Math.random() - 0.5) * 120);
+}
+starGeo.setAttribute('position', new THREE.Float32BufferAttribute(stars, 3));
+scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xa3c2ff, size: 0.25 })));
+
+// Island ground
+const island = new THREE.Mesh(
+  new THREE.CylinderGeometry(28, 23, 1.2, 72),
+  new THREE.MeshStandardMaterial({ color: 0x10273b, roughness: 0.75, metalness: 0.1, emissive: 0x04101c })
+);
+island.position.y = -0.65;
+scene.add(island);
+
+// Path (typhoon trajectory)
+const path = new THREE.Mesh(
+  new THREE.PlaneGeometry(48, 3.2),
+  new THREE.MeshBasicMaterial({ color: 0x25425f, transparent: true, opacity: 0.72 })
+);
+path.rotation.x = -Math.PI / 2;
+path.position.z = 0;
+scene.add(path);
+
+// Base core
+const base = new THREE.Group();
+const baseCore = new THREE.Mesh(
+  new THREE.CylinderGeometry(BASE_RADIUS, BASE_RADIUS * 1.25, 1.8, 32),
+  new THREE.MeshStandardMaterial({ color: 0x35d3ff, emissive: 0x0a5f7a, emissiveIntensity: 0.6 })
+);
+baseCore.position.y = 0.9;
+base.add(baseCore);
+const baseRing = new THREE.Mesh(
+  new THREE.RingGeometry(BASE_RADIUS + 0.25, BASE_RADIUS + 0.55, 48),
+  new THREE.MeshBasicMaterial({ color: 0x8ef8ff, transparent: true, opacity: 0.5 })
+);
+baseRing.rotation.x = -Math.PI / 2;
+baseRing.position.y = 0.04;
+base.add(baseRing);
+scene.add(base);
+
+// Add a rotating ring for visual effect (same as tower-defense)
+const visualBaseRing = baseRing.clone();
+visualBaseRing.material = baseRing.material.clone();
+scene.add(visualBaseRing);
+
+// Cursor for tower placement
+const cursor = new THREE.Group();
+const cursorPad = new THREE.Mesh(
+  new THREE.RingGeometry(0.9, 1.25, 28),
+  new THREE.MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.75 })
+);
+cursorPad.rotation.x = -Math.PI / 2;
+cursor.add(cursorPad);
+const cursorBarrel = new THREE.Mesh(
+  new THREE.ConeGeometry(0.32, 1.25, 16),
+  new THREE.MeshBasicMaterial({ color: 0xffd166 })
+);
+cursorBarrel.rotation.x = Math.PI / 2;
+cursorBarrel.position.set(0, 0.55, 0.45);
+cursor.add(cursorBarrel);
+cursor.position.set(-7, 0.08, 7);
+scene.add(cursor);
+
+// Geometry & materials for entities
+const enemyGeo = new THREE.IcosahedronGeometry(0.75, 0);
+const enemyMat = new THREE.MeshStandardMaterial({ color: 0xff6959, emissive: 0x72160f, emissiveIntensity: 0.55 });
+const projectileGeo = new THREE.SphereGeometry(0.18, 10, 10);
+const projectileMat = new THREE.MeshBasicMaterial({ color: 0xfff1a3 });
+const turretBaseGeo = new THREE.CylinderGeometry(0.85, 1.05, 0.55, 24);
+const turretBaseMat = new THREE.MeshStandardMaterial({ color: 0x68d391, emissive: 0x124d2d, emissiveIntensity: 0.28 });
+const turretBarrelGeo = new THREE.BoxGeometry(0.32, 0.32, 1.45);
+const turretBarrelMat = new THREE.MeshStandardMaterial({ color: 0xd9fff0, emissive: 0x1f6b4a, emissiveIntensity: 0.24 });
+
+// Temporary vectors for projectile firing
+const _fireStart = new THREE.Vector3();
+const _fireTarget = new THREE.Vector3();
+const _fireVelocity = new THREE.Vector3();
+const clock = new THREE.Clock();
+let frameCount = 0;
+
+function waveSize() { return 5 + state.wave * 2; }
+function spawnEvery() { return Math.max(0.55, 1.65 - state.wave * 0.08); }
+
+function spawnEnemy() {
+  if (!state.running || state.spawnedThisWave >= waveSize()) return;
+  const z = (Math.random() - 0.5) * 3.2;
+  const mesh = new THREE.Mesh(enemyGeo, enemyMat);
+  mesh.position.set(-ARENA_LIMIT, 0.75, z);
+  scene.add(mesh);
+  enemies.push({
+    mesh,
+    hp: 24 + state.wave * 6,
+    maxHp: 24 + state.wave * 6,
+    speed: 2.1 + state.wave * 0.12,
+    dead: false,
+  });
+  state.spawnedThisWave++;
 }
 
-function lerp(a, b, t) {
-    return a + (b - a) * t;
+function makeTurret(position) {
+  const group = new THREE.Group();
+  const baseMesh = new THREE.Mesh(turretBaseGeo, turretBaseMat);
+  baseMesh.position.y = 0.28;
+  group.add(baseMesh);
+  const barrel = new THREE.Mesh(turretBarrelGeo, turretBarrelMat);
+  barrel.position.set(0, 0.75, 0.62);
+  group.add(barrel);
+  group.position.copy(position).setY(0);
+  scene.add(group);
+  turrets.push({ group, barrel, range: 10, cooldown: 0 });
 }
 
-// Distance from point (px,pz) to segment a->b in XZ plane
-function pointToSegmentDistance(px, pz, a, b) {
-    const vx = b.x - a.x;
-    const vz = b.z - a.z;
-    const wx = px - a.x;
-    const wz = pz - a.z;
-    const c1 = vx * wx + vz * wz;
-    if (c1 <= 0) return Math.sqrt(wx * wx + wz * wz);
-    const c2 = vx * vx + vz * vz;
-    if (c2 <= c1) return Math.sqrt((px - b.x) * (px - b.x) + (pz - b.z) * (pz - b.z));
-    const t = c1 / c2;
-    const projx = a.x + t * vx;
-    const projz = a.z + t * vz;
-    const dx = px - projx;
-    const dz = pz - projz;
-    return Math.sqrt(dx * dx + dz * dz);
+function canPlaceTurret(position) {
+  if (position.lengthSq() > (ARENA_LIMIT - 2) ** 2) return false;
+  if (position.distanceToSquared(base.position) < (BASE_RADIUS + 2) ** 2) return false;
+  if (Math.abs(position.z) < 2.65) return false;
+  return !turrets.some(t => t.group.position.distanceToSquared(position) < TURRET_SPACING_SQ);
 }
 
-// Shared projectile geometry/material to avoid repeated allocations
-const PROJECTILE_GEOMETRY = new THREE.SphereGeometry(0.15, 8, 8);
-const PROJECTILE_MATERIAL = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-
-// ============================================================================
-// GAME STATE
-// ============================================================================
-class GameState {
-    constructor() {
-        this.reset();
-    }
-
-    reset() {
-        this.money = CONFIG.startMoney;
-        this.lives = CONFIG.startLives;
-        this.waveIndex = 0;
-        this.isGameOver = false;
-        this.isWon = false;
-        this.currentWaveActive = false;
-        this.enemiesSpawned = 0;
-        this.enemiesDefeated = 0;
-    }
-
-    spendMoney(amount) {
-        if (this.money >= amount) {
-            this.money -= amount;
-            return true;
-        }
-        return false;
-    }
-
-    earnMoney(amount) {
-        this.money += amount;
-    }
-
-    damageBase(amount) {
-        this.lives -= amount;
-        if (this.lives <= 0) {
-            this.lives = 0;
-            this.isGameOver = true;
-        }
-    }
-
-    nextWave() {
-        this.waveIndex++;
-        if (this.waveIndex >= CONFIG.waveConfigs.length) {
-            this.isWon = true;
-            this.isGameOver = true;
-        }
-    }
+function tryPlaceTurret() {
+  if (!state.running || state.resources < TURRET_COST) return;
+  const pos = cursor.position.clone().setY(0);
+  if (!canPlaceTurret(pos)) return;
+  state.resources -= TURRET_COST;
+  makeTurret(pos);
+  updateHud();
 }
 
-// ============================================================================
-// ENEMY SYSTEM
-// ============================================================================
-class Enemy {
-    constructor(pathWaypoints, type = 'fast') {
-        this.pathWaypoints = pathWaypoints;
-        this.type = type;
-        const tcfg = CONFIG.enemyTypes[type] || CONFIG.enemyTypes.default;
-        this.speed = tcfg.speed;
-        this.maxHealth = tcfg.health;
-        this.health = this.maxHealth;
-        this.reward = tcfg.reward;
-
-        this.pathProgress = 0;
-        this.isAlive = true;
-        this.reachedEnd = false;
-
-        this.mesh = this.createMesh();
-        this.position = { x: pathWaypoints[0].x, z: pathWaypoints[0].z };
-        this.mesh.position.set(this.position.x, 0.4, this.position.z);
-
-        this.slowSpeed = 1;
-        this.slowEndTime = 0;
-        this.rewardGiven = false; // prevent multiple reward grants for the same enemy
-    }
-
-    createMesh() {
-        // Use original typhoon sprite for enemies (texture/material preloaded and reused)
-        // The texture and spriteMaterial are created once above and reused across instances.
-        const map = Enemy.texture || (Enemy.texture = new THREE.TextureLoader().load('assets/typhoon.png'));
-        const material = Enemy.spriteMaterial || (Enemy.spriteMaterial = new THREE.SpriteMaterial({ map: map, color: 0xffffff }));
-        const sprite = new THREE.Sprite(material);
-        sprite.scale.set(1.6, 1.6, 1);
-        return sprite;
-    }
-
-    update(deltaTime) {
-        if (!this.isAlive) return;
-
-        const effectiveSpeed = this.slowSpeed * this.speed;
-        this.pathProgress += effectiveSpeed * deltaTime;
-
-        if (this.pathProgress >= 1) {
-            this.reachedEnd = true;
-            this.isAlive = false;
-            return;
-        }
-
-        this.updatePosition();
-
-        if (this.slowEndTime > 0) {
-            this.slowEndTime -= deltaTime;
-            if (this.slowEndTime <= 0) {
-                this.slowSpeed = 1;
-            }
-        }
-    }
-
-    updatePosition() {
-        const waypoints = this.pathWaypoints;
-        const segs = waypoints._segmentDistances || [];
-        const totalDist = waypoints._totalDist || this.getTotalPathDistance();
-        const targetDist = totalDist * this.pathProgress;
-
-        let dist = 0;
-        for (let i = 0; i < waypoints.length - 1; i++) {
-            const segmentDist = segs[i] || distance(waypoints[i], waypoints[i + 1]);
-            if (dist + segmentDist >= targetDist) {
-                const t = (targetDist - dist) / segmentDist;
-                this.position.x = lerp(waypoints[i].x, waypoints[i + 1].x, t);
-                this.position.z = lerp(waypoints[i].z, waypoints[i + 1].z, t);
-                this.mesh.position.set(this.position.x, 0.4, this.position.z);
-                return;
-            }
-            dist += segmentDist;
-        }
-
-        const lastWaypoint = waypoints[waypoints.length - 1];
-        this.position.x = lastWaypoint.x;
-        this.position.z = lastWaypoint.z;
-        this.mesh.position.set(this.position.x, 0.4, this.position.z);
-    }
-
-    getTotalPathDistance() {
-        if (!this._totalPathDist) {
-            this._totalPathDist = 0;
-            for (let i = 0; i < this.pathWaypoints.length - 1; i++) {
-                this._totalPathDist += distance(this.pathWaypoints[i], this.pathWaypoints[i + 1]);
-            }
-        }
-        return this._totalPathDist;
-    }
-
-    takeDamage(damage) {
-        this.health -= damage;
-        if (this.health <= 0) {
-            this.health = 0;
-            this.isAlive = false;
-        }
-    }
-
-    applySlow(slowFactor, duration) {
-        this.slowSpeed = slowFactor;
-        this.slowEndTime = duration;
-    }
+function clearActors() {
+  enemies.forEach(e => scene.remove(e.mesh));
+  turrets.forEach(t => scene.remove(t.group));
+  projectiles.forEach(p => scene.remove(p.mesh));
+  enemies.length = 0;
+  turrets.length = 0;
+  projectiles.length = 0;
+  _spatialGrid.clear();
+  _activeCells.length = 0;
 }
 
-// Ensure enemy sprite texture/material are loaded once and reused
-Enemy.texture = Enemy.texture || new THREE.TextureLoader().load('assets/typhoon.png');
-Enemy.spriteMaterial = Enemy.spriteMaterial || new THREE.SpriteMaterial({ map: Enemy.texture, color: 0xffffff });
-
-class WaveManager {
-    constructor(pathWaypoints) {
-        this.pathWaypoints = pathWaypoints;
-        this.enemies = [];
-        this.currentWave = -1;
-        this.spawnTimer = 0;
-        this.spawnIndex = 0;
-
-        // Precompute segment distances for the static path once (cached on the waypoints array)
-        // This avoids recomputing segment distances every frame for each enemy.
-        if (!this.pathWaypoints._segmentDistances) {
-            const segs = [];
-            let total = 0;
-            for (let i = 0; i < pathWaypoints.length - 1; i++) {
-                const d = distance(pathWaypoints[i], pathWaypoints[i + 1]);
-                segs.push(d);
-                total += d;
-            }
-            this.pathWaypoints._segmentDistances = segs;
-            this.pathWaypoints._totalDist = total;
-        }
-    }
-
-    startWave(waveIndex) {
-        if (waveIndex >= CONFIG.waveConfigs.length) return false;
-
-        this.currentWave = waveIndex;
-        this.enemies = [];
-        this.spawnTimer = 0;
-        this.spawnIndex = 0;
-        return true;
-    }
-
-    update(deltaTime, scene, gameState) {
-        if (this.currentWave < 0) return;
-
-        const waveConfig = CONFIG.waveConfigs[this.currentWave];
-        
-        // Spawn enemies
-        if (this.spawnIndex < waveConfig.count) {
-            this.spawnTimer -= deltaTime;
-            if (this.spawnTimer <= 0) {
-                const enemyType = waveConfig.enemyType === 'mixed'
-                    ? (Math.random() > 0.6 ? 'fast' : 'strong')
-                    : waveConfig.enemyType;
-                const enemy = new Enemy(this.pathWaypoints, enemyType);
-                this.enemies.push(enemy);
-                scene.add(enemy.mesh);
-                this.spawnIndex++;
-                this.spawnTimer = waveConfig.delay;
-                if (gameState) gameState.enemiesSpawned++;
-            }
-        }
-
-        // Update enemies and apply side-effects (rewards/damage) here
-        for (let i = this.enemies.length - 1; i >= 0; i--) {
-            const enemy = this.enemies[i];
-            enemy.update(deltaTime);
-            if (!enemy.isAlive) {
-                if (enemy.reachedEnd) {
-                    if (gameState) gameState.damageBase(1);
-                } else if (!enemy.rewardGiven) {
-                    if (gameState) gameState.earnMoney(enemy.reward);
-                    enemy.rewardGiven = true;
-                }
-                scene.remove(enemy.mesh);
-                this.enemies.splice(i, 1);
-            }
-        }
-    }
-
-    getActiveEnemies() {
-        return this.enemies.filter(e => e.isAlive);
-    }
-
-    isWaveComplete() {
-        return this.spawnIndex >= CONFIG.waveConfigs[this.currentWave].count && this.enemies.length === 0;
-    }
+function resetGame() {
+  clearActors();
+  state.running = true;
+  state.score = 0;
+  state.resources = STARTING_RESOURCES;
+  state.health = 100;
+  state.wave = 1;
+  state.spawnTimer = 0.6;
+  state.spawnedThisWave = 0;
+  state.nextWaveDelay = 0;
+  frameCount = 0;
+  cursor.position.set(-7, 0.08, 7);
+  cursor.visible = true;
+  overlayEl.classList.add('hidden');
+  startBtn.textContent = 'Restart Defense';
+  updateHud();
+  if (_tickRafId) { cancelAnimationFrame(_tickRafId); _tickRafId = null; }
+  tick();
 }
 
-// ============================================================================
-// TOWER SYSTEM
-// ============================================================================
-class Tower {
-    constructor(x, z, type, scene) {
-        this.x = x;
-        this.z = z;
-        this.type = type;
-        this.config = CONFIG.towers[type];
-
-        this.fireTimer = 0;
-        this.lastTargetId = null;
-
-        this.mesh = this.createMesh();
-        this.mesh.position.set(x, 0.5, z);
-        scene.add(this.mesh);
-
-        this.rangeIndicator = this.createRangeIndicator();
-        this.rangeIndicator.position.set(x, 0.01, z);
-        scene.add(this.rangeIndicator);
-    }
-
-    createMesh() {
-        const geometry = new THREE.CylinderGeometry(0.4, 0.5, 0.8, 12);
-        const material = new THREE.MeshPhongMaterial({ color: 0x00aa00 });
-        const mesh = new THREE.Mesh(geometry, material);
-        return mesh;
-    }
-
-    createRangeIndicator() {
-        const geometry = new THREE.CircleGeometry(this.config.range, 32);
-        const material = new THREE.MeshBasicMaterial({
-            color: 0x00ff00,
-            transparent: true,
-            opacity: 0.1,
-            wireframe: false
-        });
-        const mesh = new THREE.Mesh(geometry, material);
-        return mesh;
-    }
-
-    update(deltaTime, enemies, projectiles, scene) {
-        this.fireTimer -= deltaTime;
-
-        if (this.fireTimer <= 0) {
-            const rangeSq = this.config.range * this.config.range;
-            const target = enemies.find(e => {
-                const dx = this.x - e.position.x;
-                const dz = this.z - e.position.z;
-                return (dx * dx + dz * dz) <= rangeSq;
-            });
-
-            if (target) {
-                this.fire(target, projectiles, scene);
-                this.fireTimer = 1 / this.config.fireRate;
-            }
-        }
-    }
-
-    getTargetsInRange(enemies) {
-        const rangeSq = this.config.range * this.config.range;
-        return enemies.filter(e => {
-            const dx = this.x - e.position.x;
-            const dz = this.z - e.position.z;
-            // Compare squared distances to avoid costly Math.sqrt and allocations
-            return (dx * dx + dz * dz) <= rangeSq;
-        });
-    }
-
-    fire(target, projectiles, scene) {
-        projectiles.push({
-            startX: this.x,
-            startZ: this.z,
-            targetX: target.position.x,
-            targetZ: target.position.z,
-            targetEnemy: target,
-            damage: this.config.damage,
-            speed: 15,
-            travelled: 0,
-            slow: this.type === 'slow',
-            mesh: null
-        });
-    }
-
-    showRange() {
-        this.rangeIndicator.material.opacity = 0.2;
-    }
-
-    hideRange() {
-        this.rangeIndicator.material.opacity = 0.1;
-    }
-
-    remove(scene) {
-        scene.remove(this.mesh);
-        scene.remove(this.rangeIndicator);
-    }
+function updateHud() {
+  scoreEl.textContent = state.score;
+  resourcesEl.textContent = state.resources;
+  healthEl.textContent = Math.round(state.health);
+  waveEl.textContent = state.wave;
 }
 
-// ============================================================================
-// PROJECTILE SYSTEM
-// ============================================================================
-function updateProjectiles(projectiles, scene, deltaTime) {
-    for (let i = projectiles.length - 1; i >= 0; i--) {
-        const p = projectiles[i];
-        const dist = distance({ x: p.startX, z: p.startZ }, { x: p.targetX, z: p.targetZ });
-        const totalTravelDist = dist;
-        const maxTravelDist = p.speed * deltaTime;
-
-        p.travelled += maxTravelDist;
-
-        if (p.travelled >= totalTravelDist) {
-            if (p.targetEnemy.isAlive) {
-                p.targetEnemy.takeDamage(p.damage);
-                if (p.slow) {
-                    p.targetEnemy.applySlow(CONFIG.towers.slow.slowFactor, 1.5);
-                }
-            }
-            if (p.mesh) scene.remove(p.mesh);
-            projectiles.splice(i, 1);
-        } else {
-            const t = p.travelled / totalTravelDist;
-            const x = lerp(p.startX, p.targetX, t);
-            const z = lerp(p.startZ, p.targetZ, t);
-
-            if (!p.mesh) {
-                // Reuse shared geometry/material to avoid per-projectile allocations
-                p.mesh = new THREE.Mesh(PROJECTILE_GEOMETRY, PROJECTILE_MATERIAL);
-                scene.add(p.mesh);
-            }
-            p.mesh.position.set(x, 0.5, z);
-        }
-    }
+function endGame() {
+  state.running = false;
+  overlayEl.classList.remove('hidden');
+  overlayEl.querySelector('h2').textContent = 'Base Overrun';
+  overlayEl.querySelector('p').textContent = `Final score: ${state.score}. Wave reached: ${state.wave}.`;
+  startBtn.textContent = 'Restart Defense';
+  updateHud();
 }
 
-// ============================================================================
-// THREE.JS SCENE SETUP
-// ============================================================================
-class GameScene {
-    constructor(container) {
-        this.container = container;
-        this.pathWaypoints = [];
-        this.towers = [];
-        this.projectiles = [];
-
-        this.setupScene();
-        this.createGround();
-        this.createPath();
-        this.createLighting();
-
-        // Raycasting helpers reused to avoid allocating per click (single plane and raycaster)
-        this.raycaster = new THREE.Raycaster();
-        const planeGeometry = new THREE.PlaneGeometry(CONFIG.mapWidth + 10, CONFIG.mapHeight + 10);
-        this.raycastPlane = new THREE.Mesh(planeGeometry, new THREE.MeshBasicMaterial({ visible: false }));
-        this.raycastPlane.rotation.x = -Math.PI / 2;
-        this.raycastPlane.position.y = -0.1;
-        this.scene.add(this.raycastPlane);
-    }
-
-    setupScene() {
-        this.scene = new THREE.Scene();
-        // Use background image from original assets for atmosphere
-        this.scene.background = new THREE.TextureLoader().load('assets/bg.png');
-        this.scene.fog = new THREE.Fog(0x1a3a52, 80, 100);
-
-        const canvas = document.getElementById('canvas');
-        const width = canvas.clientWidth || window.innerWidth;
-        const height = canvas.clientHeight || window.innerHeight;
-
-        this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-        this.camera.position.set(20, 25, 25);
-        this.camera.lookAt(20, 0, 15);
-
-        this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-        this.renderer.setSize(width, height);
-        this.renderer.setPixelRatio(window.devicePixelRatio);
-
-        window.addEventListener('resize', () => this.onWindowResize());
-        this.renderer.domElement.addEventListener('click', (e) => this.onCanvasClick(e));
-    }
-
-    createGround() {
-        const texture = new THREE.TextureLoader().load('assets/map.png');
-        const geometry = new THREE.PlaneGeometry(CONFIG.mapWidth, CONFIG.mapHeight);
-        const material = new THREE.MeshLambertMaterial({ map: texture });
-        const ground = new THREE.Mesh(geometry, material);
-        ground.rotation.x = -Math.PI / 2;
-        this.scene.add(ground);
-
-        // Grid
-        const gridHelper = new THREE.GridHelper(
-            CONFIG.mapWidth,
-            CONFIG.mapWidth / CONFIG.tileSize,
-            0x444444,
-            0x222222
-        );
-        gridHelper.position.y = 0.01;
-        this.scene.add(gridHelper);
-    }
-
-    createPath() {
-        // Waypoints for the enemy path
-        this.pathWaypoints = [
-            { x: 0, z: 15 },
-            { x: 10, z: 15 },
-            { x: 10, z: 5 },
-            { x: 20, z: 5 },
-            { x: 20, z: 25 },
-            { x: 35, z: 25 }
-        ];
-
-        // Draw path
-        const pathGeometry = new THREE.BufferGeometry();
-        const pathPoints = this.pathWaypoints.map(p => new THREE.Vector3(p.x, 0.05, p.z));
-        pathGeometry.setFromPoints(pathPoints);
-
-        const pathMaterial = new THREE.LineBasicMaterial({ color: 0xffaa00, linewidth: 3 });
-        const path = new THREE.Line(pathGeometry, pathMaterial);
-        this.scene.add(path);
-
-        // Draw waypoint spheres
-        for (let wp of this.pathWaypoints) {
-            const geometry = new THREE.SphereGeometry(0.4, 8, 8);
-            const material = new THREE.MeshBasicMaterial({ color: 0xff6600 });
-            const sphere = new THREE.Mesh(geometry, material);
-            sphere.position.set(wp.x, 0.4, wp.z);
-            this.scene.add(sphere);
-        }
-    }
-
-    createLighting() {
-        const light1 = new THREE.DirectionalLight(0xffffff, 0.8);
-        light1.position.set(30, 50, 30);
-        light1.castShadow = true;
-        light1.shadow.mapSize.width = 2048;
-        light1.shadow.mapSize.height = 2048;
-        this.scene.add(light1);
-
-        const light2 = new THREE.AmbientLight(0x808080, 0.6);
-        this.scene.add(light2);
-    }
-
-    addTower(type, x, z) {
-        const tower = new Tower(x, z, type, this.scene);
-        this.towers.push(tower);
-        return tower;
-    }
-
-    removeTower(tower) {
-        tower.remove(this.scene);
-        this.towers = this.towers.filter(t => t !== tower);
-    }
-
-    render() {
-        this.renderer.render(this.scene, this.camera);
-    }
-
-    onWindowResize() {
-        const canvas = document.getElementById('canvas');
-        const width = canvas.clientWidth || window.innerWidth;
-        const height = canvas.clientHeight || window.innerHeight;
-        this.camera.aspect = width / height;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(width, height);
-    }
-
-    onCanvasClick(event) {
-        const gameInstance = window.gameInstance;
-        if (!gameInstance) return;
-
-        const mouse = new THREE.Vector2();
-
-        const rect = this.renderer.domElement.getBoundingClientRect();
-        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-        this.raycaster.setFromCamera(mouse, this.camera);
-
-        const intersects = this.raycaster.intersectObject(this.raycastPlane);
-        if (intersects.length > 0) {
-            const point = intersects[0].point;
-            // Constrain to map bounds
-            const x = Math.max(0, Math.min(CONFIG.mapWidth, point.x));
-            const z = Math.max(0, Math.min(CONFIG.mapHeight, point.z));
-            gameInstance.selectPlacementLocation(x, z);
-        }
-    }
+function damageBase(amount) {
+  state.health = Math.max(0, state.health - amount);
+  if (state.health <= 0) endGame();
 }
 
-// ============================================================================
-// UI MANAGEMENT
-// ============================================================================
-class UIManager {
-    constructor() {
-        this.waveCountEl = document.getElementById('wave-count');
-        this.moneyEl = document.getElementById('money');
-        this.livesEl = document.getElementById('lives');
-        this.towerInfoEl = document.getElementById('tower-info');
-        this.towerNameEl = document.getElementById('tower-name');
-        this.towerCostEl = document.getElementById('tower-cost');
-        this.placeTowerBtn = document.getElementById('place-tower-btn');
-        this.gameStateEl = document.getElementById('game-state');
-        this.stateMessageEl = document.getElementById('state-message');
-        this.restartBtn = document.getElementById('restart-btn');
-        this.fpsEl = document.getElementById('fps');
-        this.startScreenEl = document.getElementById('start-screen');
-        this.startBtn = document.getElementById('start-btn');
-
-        this.selectedTower = null;
-        this.selectedLocation = null;
-
-        this.placeTowerBtn.addEventListener('click', () => this.onPlaceTowerClick());
-        this.restartBtn.addEventListener('click', () => this.onRestartClick());
-        this.startBtn.addEventListener('click', () => this.onStartClick());
-    }
-
-    // Simple non-blocking notification shown in the UI overlay (avoids blocking alerts)
-    showNotification(message, duration = 2000) {
-        if (!this._notifEl) {
-            this._notifEl = document.createElement('div');
-            this._notifEl.className = 'notification';
-            document.getElementById('ui-overlay').appendChild(this._notifEl);
-        }
-        this._notifEl.textContent = message;
-        this._notifEl.classList.add('visible');
-        if (this._notifTimeout) clearTimeout(this._notifTimeout);
-        this._notifTimeout = setTimeout(() => this._notifEl.classList.remove('visible'), duration);
-    }
-
-    updateStats(money, lives, wave) {
-        this.moneyEl.textContent = money;
-        this.livesEl.textContent = lives;
-        this.waveCountEl.textContent = (wave + 1);
-    }
-
-    selectTower(towerType) {
-        this.selectedTower = towerType;
-        const config = CONFIG.towers[towerType];
-        this.towerNameEl.textContent = config.name;
-        this.towerCostEl.textContent = `Cost: ${config.cost}`;
-        this.towerInfoEl.classList.remove('hidden');
-    }
-
-    selectLocation(x, z) {
-        this.selectedLocation = { x, z };
-    }
-
-    updateTowerButtonState(canPlace) {
-        this.placeTowerBtn.disabled = !canPlace;
-    }
-
-    showStartScreen() {
-        this.startScreenEl.classList.remove('hidden');
-    }
-
-    hideStartScreen() {
-        this.startScreenEl.classList.add('hidden');
-    }
-
-    showGameOver(isWon) {
-        this.stateMessageEl.textContent = isWon ? 'YOU WIN!' : 'GAME OVER';
-        this.stateMessageEl.style.color = isWon ? '#00ff00' : '#ff4444';
-        this.gameStateEl.classList.remove('hidden');
-    }
-
-    hideGameOverScreen() {
-        this.gameStateEl.classList.add('hidden');
-    }
-
-    updateFPS(fps) {
-        this.fpsEl.textContent = Math.round(fps);
-    }
-
-    onPlaceTowerClick() {
-        if (window.gameInstance) {
-            window.gameInstance.placeTowerAtSelectedLocation();
-        }
-    }
-
-    onRestartClick() {
-        if (window.gameInstance) {
-            window.gameInstance.restart();
-        }
-    }
-
-    onStartClick() {
-        if (window.gameInstance) {
-            window.gameInstance.startGame();
-        }
-    }
+function destroyEnemy(targetEnemy) {
+  targetEnemy.dead = true;
+  const idx = enemies.indexOf(targetEnemy);
+  if (idx !== -1) {
+    scene.remove(targetEnemy.mesh);
+    enemies.splice(idx, 1);
+    state.score += ENEMY_REWARD;
+    state.resources += ENEMY_REWARD;
+  }
 }
 
-// ============================================================================
-// MAIN GAME CLASS
-// ============================================================================
-class TyphoonTycoonGame {
-    constructor() {
-        this.container = document.getElementById('game-container');
-        this.gameState = new GameState();
-        this.scene = new GameScene(this.container);
-        this.waveManager = new WaveManager(this.scene.pathWaypoints);
-        this.ui = new UIManager();
-
-        // Wire up simple callbacks so WaveManager can notify about kills/reaches
-        this.waveManager.onEnemyReached = (enemy) => { this.gameState.damageBase(1); };
-        this.waveManager.onEnemyKilled = (enemy) => { this.gameState.earnMoney(enemy.reward); };
-
-        this.towerPlacementMode = false;
-        this.selectedPlacementLocation = null;
-        this.isRunning = false;
-
-        this.lastTime = performance.now();
-        this.frameCount = 0;
-        this.fpsTime = 0;
-
-        this.initializeAnimation();
-    }
-
-    initializeAnimation() {
-        this.ui.showStartScreen();
-        this.animate();
-    }
-
-    startGame() {
-        this.isRunning = true;
-        this.ui.hideStartScreen();
-        this.gameState.reset();
-        this.ui.updateStats(this.gameState.money, this.gameState.lives, this.gameState.waveIndex);
-        this.ui.hideGameOverScreen();
-        this.startNextWave();
-
-        // Play background audio from original game (may require user interaction in some browsers)
-        try {
-            if (!this.bgAudio) {
-                this.bgAudio = new Audio('assets/sound.mp3');
-                this.bgAudio.loop = true;
-                this.bgAudio.volume = 0.25;
-                this.bgAudio.play().catch(e => console.warn('Audio playback blocked:', e));
-            }
-        } catch (e) {
-            console.warn('Audio init failed', e);
-        }
-    }
-
-    restart() {
-        // Clear scene
-        for (let tower of this.scene.towers) {
-            tower.remove(this.scene.scene);
-        }
-        this.scene.towers = [];
-
-        // Remove any projectile meshes
-        this.scene.projectiles.forEach(p => { if (p.mesh) this.scene.scene.remove(p.mesh); });
-        this.scene.projectiles = [];
-
-        // Remove remaining enemies
-        this.waveManager.enemies.forEach(e => this.scene.scene.remove(e.mesh));
-        this.waveManager.enemies = [];
-
-        // Clear pending next-wave timeout if present
-        if (this.nextWaveTimeout) { clearTimeout(this.nextWaveTimeout); this.nextWaveTimeout = null; }
-
-        // Stop background audio if playing
-        if (this.bgAudio) { try { this.bgAudio.pause(); this.bgAudio.currentTime = 0; } catch (e) {} this.bgAudio = null; }
-
-        this.startGame();
-    }
-
-    startNextWave() {
-        if (this.waveManager.startWave(this.gameState.waveIndex)) {
-            this.gameState.currentWaveActive = true;
-            this.gameState.enemiesSpawned = 0;
-        }
-    }
-
-    selectPlacementLocation(x, z) {
-        if (this.gameState.isGameOver || !this.isRunning) return;
-
-        // Round to grid using CONFIG.tileSize
-        const gridX = Math.round(x / CONFIG.tileSize) * CONFIG.tileSize;
-        const gridZ = Math.round(z / CONFIG.tileSize) * CONFIG.tileSize;
-
-        // Check if too close to path (check distance to segments, not just waypoints)
-        const minDistToPath = 2;
-        let tooCloseToPath = false;
-        for (let i = 0; i < this.scene.pathWaypoints.length - 1; i++) {
-            const a = this.scene.pathWaypoints[i];
-            const b = this.scene.pathWaypoints[i + 1];
-            const distToSeg = pointToSegmentDistance(gridX, gridZ, a, b);
-            if (distToSeg < minDistToPath) {
-                tooCloseToPath = true;
-                break;
-            }
-        }
-
-        if (tooCloseToPath) {
-            console.log('Too close to path');
-            return;
-        }
-
-        // Check if overlaps with existing tower
-        for (let tower of this.scene.towers) {
-            if (distance({ x: gridX, z: gridZ }, { x: tower.x, z: tower.z }) < 2) {
-                console.log('Too close to existing tower');
-                return;
-            }
-        }
-
-        this.selectedPlacementLocation = { x: gridX, z: gridZ };
-
-        // Show tower info and enter placement mode
-        this.selectTowerForPlacement(this.ui.selectedTower || 'gun');
-    }
-
-    selectTowerForPlacement(towerType) {
-        if (!this.selectedPlacementLocation) return;
-        this.towerPlacementMode = true;
-        this.ui.selectTower(towerType);
-        this.ui.selectLocation(this.selectedPlacementLocation.x, this.selectedPlacementLocation.z);
-
-        const config = CONFIG.towers[towerType];
-        const canPlace = this.gameState.money >= config.cost;
-        this.ui.updateTowerButtonState(canPlace);
-    }
-
-    placeTowerAtSelectedLocation() {
-        if (!this.selectedPlacementLocation || !this.towerPlacementMode) return;
-
-        // Use selected tower type from UI; default to 'gun' if none selected
-        const towerType = this.ui.selectedTower || 'gun';
-        const config = CONFIG.towers[towerType];
-
-        if (!this.gameState.spendMoney(config.cost)) {
-            // Non-blocking notification instead of alert
-            this.ui.showNotification('Not enough money!');
-            return;
-        }
-
-        const tower = this.scene.addTower(towerType, this.selectedPlacementLocation.x, this.selectedPlacementLocation.z);
-        
-        this.towerPlacementMode = false;
-        this.selectedPlacementLocation = null;
-        this.ui.towerInfoEl.classList.add('hidden');
-        this.ui.updateStats(this.gameState.money, this.gameState.lives, this.gameState.waveIndex);
-    }
-
-    update(deltaTime) {
-        if (!this.isRunning) return;
-
-        // Update wave
-        this.waveManager.update(deltaTime, this.scene.scene, this.gameState);
-
-        // Update towers (compute active enemies once per frame to avoid per-tower allocations)
-        const activeEnemies = this.waveManager.getActiveEnemies();
-        for (let tower of this.scene.towers) {
-            tower.update(deltaTime, activeEnemies, this.scene.projectiles, this.scene.scene);
-        }
-
-        // Update projectiles
-        updateProjectiles(this.scene.projectiles, this.scene.scene, deltaTime);
-
-        // Check for wave completion
-        if (this.gameState.currentWaveActive && this.waveManager.isWaveComplete()) {
-            this.gameState.currentWaveActive = false;
-            this.gameState.nextWave();
-
-            if (!this.gameState.isGameOver) {
-                // Store timeout id so it can be cleared on restart to avoid duplicate wave starts
-                this.nextWaveTimeout = setTimeout(() => this.startNextWave(), 1000);
-            }
-        }
-
-        // Update UI
-        this.ui.updateStats(this.gameState.money, this.gameState.lives, this.gameState.waveIndex);
-
-        // Check game over
-        if (this.gameState.isGameOver) {
-            this.isRunning = false;
-            this.ui.showGameOver(this.gameState.isWon);
-        }
-    }
-
-    animate() {
-        requestAnimationFrame(() => this.animate());
-
-        const now = performance.now();
-        const deltaTime = (now - this.lastTime) / 1000;
-        this.lastTime = now;
-
-        if (this.isRunning) {
-            this.update(deltaTime);
-        }
-
-        this.scene.render();
-
-        // FPS calculation
-        this.frameCount++;
-        this.fpsTime += deltaTime;
-        if (this.fpsTime >= 1) {
-            this.ui.updateFPS(this.frameCount / this.fpsTime);
-            this.frameCount = 0;
-            this.fpsTime = 0;
-        }
-    }
+function fireFromTurret(turret, enemy) {
+  _fireStart.copy(turret.group.position).setY(0.9);
+  _fireTarget.copy(enemy.mesh.position).setY(0.75);
+  const velocity = _fireVelocity.copy(_fireTarget).sub(_fireStart).normalize().multiplyScalar(18).clone();
+  const mesh = new THREE.Mesh(projectileGeo, projectileMat);
+  mesh.position.copy(_fireStart);
+  scene.add(mesh);
+  projectiles.push({ mesh, velocity, damage: 18, life: 0.9, target: enemy });
+  turret.cooldown = 0.65;
 }
 
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
-window.addEventListener('DOMContentLoaded', () => {
-    window.gameInstance = new TyphoonTycoonGame();
+function updateCursor(dt) {
+  const move = turretMove.set(0, 0, 0);
+  if (keys.has('KeyW') || keys.has('ArrowUp')) move.z -= 1;
+  if (keys.has('KeyS') || keys.has('ArrowDown')) move.z += 1;
+  if (keys.has('KeyA') || keys.has('ArrowLeft')) move.x -= 1;
+  if (keys.has('KeyD') || keys.has('ArrowRight')) move.x += 1;
+
+  if (move.lengthSq() > 0) {
+    move.normalize().multiplyScalar(9 * dt);
+    cursor.position.add(move);
+    cursor.position.x = THREE.MathUtils.clamp(cursor.position.x, -ARENA_LIMIT + 2, ARENA_LIMIT - 2);
+    cursor.position.z = THREE.MathUtils.clamp(cursor.position.z, -ARENA_LIMIT + 2, ARENA_LIMIT - 2);
+  }
+
+  const direction = turretAim.subVectors(targetPoint, cursor.position).setY(0);
+  if (direction.lengthSq() > 0.001) {
+    cursor.rotation.y = Math.atan2(direction.x, direction.z);
+  }
+
+  cursorPad.material.color.set(
+    canPlaceTurret(cursor.position) && state.resources >= TURRET_COST ? 0xffd166 : 0xff6959
+  );
+}
+
+function updateEnemies(dt) {
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const enemy = enemies[i];
+    const dir = enemyDirection.subVectors(base.position, enemy.mesh.position).setY(0);
+    const distance = dir.length();
+    if (distance <= BASE_RADIUS) {
+      enemy.dead = true;
+      scene.remove(enemy.mesh);
+      enemies.splice(i, 1);
+      damageBase(12);
+      continue;
+    }
+    if (distance > 0) {
+      enemy.mesh.position.addScaledVector(dir.divideScalar(distance), enemy.speed * dt);
+    }
+    enemy.mesh.rotation.x += dt * 2;
+    enemy.mesh.rotation.y += dt * 3;
+    const healthRatio = THREE.MathUtils.clamp(enemy.hp / enemy.maxHp, 0.25, 1);
+    enemy.mesh.scale.setScalar(0.75 + healthRatio * 0.35);
+  }
+}
+
+function updateTurrets(dt) {
+  for (const turret of turrets) {
+    turret.cooldown = Math.max(0, turret.cooldown - dt);
+    let target = null;
+    let nearestSq = turret.range ** 2;
+    _nearbyEnemies(turret.group.position, nearestSq, (enemy) => {
+      const d = turret.group.position.distanceToSquared(enemy.mesh.position);
+      if (d < nearestSq) {
+        nearestSq = d;
+        target = enemy;
+      }
+    });
+    if (!target) continue;
+    const aim = turretAim.subVectors(target.mesh.position, turret.group.position).setY(0);
+    if (aim.lengthSq() > 0.001) {
+      turret.group.rotation.y = Math.atan2(aim.x, aim.z);
+    }
+    if (turret.cooldown <= 0) fireFromTurret(turret, target);
+  }
+}
+
+function updateProjectiles(dt) {
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const p = projectiles[i];
+    p.mesh.position.addScaledVector(p.velocity, dt);
+    p.life -= dt;
+    let hit = null;
+    _nearbyEnemies(p.mesh.position, PROJECTILE_HITBOX_RADIUS_SQ, (e) => { hit = e; return true; });
+    if (hit) {
+      hit.hp -= p.damage;
+      scene.remove(p.mesh);
+      projectiles.splice(i, 1);
+      if (hit.hp <= 0) destroyEnemy(hit);
+      continue;
+    }
+    if (p.life <= 0) {
+      scene.remove(p.mesh);
+      projectiles.splice(i, 1);
+    }
+  }
+}
+
+function updateWave(dt) {
+  state.spawnTimer -= dt;
+  if (state.spawnTimer <= 0 && state.spawnedThisWave < waveSize()) {
+    spawnEnemy();
+    state.spawnTimer = spawnEvery();
+  }
+  if (state.spawnedThisWave >= waveSize() && enemies.length === 0) {
+    state.nextWaveDelay += dt;
+    if (state.nextWaveDelay >= 2) {
+      state.wave++;
+      state.health = Math.min(100, state.health + 8);
+      state.spawnedThisWave = 0;
+      state.spawnTimer = 0.8;
+      state.nextWaveDelay = 0;
+    }
+  }
+}
+
+function tick() {
+  // Check win condition: survive 10 waves and clear all enemies
+  if (state.running && state.wave >= 10 && enemies.length === 0) {
+    // Win condition achieved
+    state.running = false;
+    overlayEl.classList.remove('hidden');
+    overlayEl.querySelector('h2').textContent = 'Victory!';
+    overlayEl.querySelector('p').textContent = `You survived ${state.wave} waves and earned ${state.score} points.`;
+    startBtn.textContent = 'Play Again';
+    updateHud();
+    return; // Skip rest of tick
+  }
+
+  const dt = Math.min(clock.getDelta(), 0.1);
+  if (state.running) {
+    updateCursor(dt);
+    updateWave(dt);
+    updateEnemies(dt);
+    _buildGrid();
+    updateTurrets(dt);
+    updateProjectiles(dt);
+  }
+  if (frameCount++ % 15 === 0) updateHud();
+  visualBaseRing.rotation.z += dt * 0.9;
+  renderer.render(scene, camera);
+  if (state.running) _tickRafId = requestAnimationFrame(tick);
+}
+
+function updatePointer(clientX, clientY) {
+  pointer.x = (clientX / window.innerWidth) * 2 - 1;
+  pointer.y = -(clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  raycaster.ray.intersectPlane(groundPlane, targetPoint);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
 
-// Allow restart from console
-window.restartGame = () => {
-    if (window.gameInstance) window.gameInstance.restart();
-};
+window.addEventListener('pointermove', (e) => updatePointer(e.clientX, e.clientY));
+window.addEventListener('pointerdown', (e) => {
+  if (!state.running || e.target !== renderer.domElement) return;
+  updatePointer(e.clientX, e.clientY);
+  cursor.position.set(
+    THREE.MathUtils.clamp(targetPoint.x, -ARENA_LIMIT + 2, ARENA_LIMIT - 2),
+    0.08,
+    THREE.MathUtils.clamp(targetPoint.z, -ARENA_LIMIT + 2, ARENA_LIMIT - 2)
+  );
+  tryPlaceTurret();
+});
+
+window.addEventListener('keydown', (e) => {
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+  keys.add(e.code);
+  if (e.code === 'Space' && !e.repeat) tryPlaceTurret();
+});
+window.addEventListener('keyup', (e) => keys.delete(e.code));
+window.addEventListener('blur', () => keys.clear());
+
+document.addEventListener('visibilitychange', () => { if (document.hidden) keys.clear(); });
+
+overlayEl.classList.remove('hidden');
+overlayEl.querySelector('h2').textContent = 'Defend the Island';
+overlayEl.querySelector('p').textContent = 'Move the cursor, spend resources on towers, and stop typhoons before they reach the base.';
+startBtn.textContent = 'Start Defense';
+startBtn.addEventListener('click', resetGame);
+
+updateHud();
+tick();
