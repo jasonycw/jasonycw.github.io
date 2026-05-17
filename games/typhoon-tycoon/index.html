@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Typhoon Tycoon</title>
+  <link rel="icon" type="image/x-icon" href="../../img/favicon.ico" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <!-- Start overlay -->
+  <div id="overlay">
+    <div class="card">
+      <h1>Typhoon Tycoon</h1>
+      <p>Build your own Li's Field to safeguard Hong Kong from incoming typhoons!</p>
+      <div class="controls-info">
+        <p><strong>Controls:</strong></p>
+        <p>Click a tower/building button, then click on the map to build.</p>
+        <p>1-4: Select towers · Q/W/E/R: Select buildings</p>
+        <p>Towers build on <span class="sea-text">sea</span> · Buildings build on <span class="land-text">land</span></p>
+        <p>Keep HSI above 0. Build power plants to power your towers!</p>
+      </div>
+      <button id="startBtn" type="button">Start Game</button>
+    </div>
+  </div>
+
+  <!-- Game over overlay -->
+  <div id="gameover" class="hidden">
+    <div class="card">
+      <h1>Game Over</h1>
+      <p>The economy of Hong Kong has collapsed!</p>
+      <p id="gameoverStat"></p>
+      <button id="restartBtn" type="button">Play Again</button>
+    </div>
+  </div>
+
+  <!-- Win overlay -->
+  <div id="winoverlay" class="hidden">
+    <div class="card">
+      <h1>Victory!</h1>
+      <p>Hong Kong is safe... for now.</p>
+      <p id="winStat"></p>
+      <button id="winRestartBtn" type="button">Play Again</button>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="hud-top">
+      <div id="hud-left">
+        <span class="stat"><span class="label">Wave</span> <span id="waveDisplay">1</span></span>
+        <span class="stat"><span class="label">HSI</span> <span id="hsiDisplay">5000</span></span>
+        <span class="stat"><span class="label">Lives</span> <span id="livesDisplay">100</span></span>
+        <span class="stat"><span class="label">Enemies</span> <span id="enemyCount">0</span></span>
+      </div>
+      <div id="hud-right">
+        <div id="powerDisplay">
+          <span class="label">Power</span>
+          <div id="powerBarBg">
+            <div id="powerBar" style="width: 0%"></div>
+          </div>
+          <span id="powerText">0 / 0</span>
+        </div>
+      </div>
+    </div>
+    <div id="toolbar">
+      <button type="button" class="build-btn" data-type="LaserTower" data-cost="500" data-power="-3" data-req="none" title="Laser Tower — Cost: 500 HSI, Power: -3">
+        <span class="btn-icon">⚡</span>
+        <span class="btn-label">Laser</span>
+        <span class="btn-hotkey">1</span>
+      </button>
+      <button type="button" class="build-btn disabled" data-type="FreezeTower" data-cost="700" data-power="-6" data-req="University" title="Freeze Tower — Cost: 700 HSI, Power: -6 (Requires: University)">
+        <span class="btn-icon">❄️</span>
+        <span class="btn-label">Freeze</span>
+        <span class="btn-hotkey">2</span>
+      </button>
+      <button type="button" class="build-btn disabled" data-type="RepelTower" data-cost="2500" data-power="-10" data-req="ResearchCenter" title="Repel Tower — Cost: 2500 HSI, Power: -10 (Requires: Research Center)">
+        <span class="btn-icon">🌀</span>
+        <span class="btn-label">Repel</span>
+        <span class="btn-hotkey">3</span>
+      </button>
+      <span class="toolbar-sep"></span>
+      <button type="button" class="build-btn" data-type="PowerPlant" data-cost="1000" data-power="+10" data-req="none" title="Power Plant — Cost: 1000 HSI, Power: +10">
+        <span class="btn-icon">🔋</span>
+        <span class="btn-label">Plant</span>
+        <span class="btn-hotkey">4</span>
+      </button>
+      <button type="button" class="build-btn disabled" data-type="NuclearPlant" data-cost="5000" data-power="+40" data-req="ResearchCenter" title="Nuclear Plant — Cost: 5000 HSI, Power: +40 (Requires: Research Center)">
+        <span class="btn-icon">☢️</span>
+        <span class="btn-label">Nuclear</span>
+        <span class="btn-hotkey">Q</span>
+      </button>
+      <span class="toolbar-sep"></span>
+      <button type="button" class="build-btn disabled" data-type="University" data-cost="2500" data-power="-20" data-req="none" title="University — Cost: 2500 HSI, Power: -20. Unlocks Freeze Tower, upgrades Laser Tower">
+        <span class="btn-icon">🎓</span>
+        <span class="btn-label">Uni</span>
+        <span class="btn-hotkey">W</span>
+      </button>
+      <button type="button" class="build-btn disabled" data-type="ResearchCenter" data-cost="4000" data-power="-30" data-req="University" title="Research Center — Cost: 4000 HSI, Power: -30. Unlocks Repel Tower and Nuclear Plant">
+        <span class="btn-icon">🔬</span>
+        <span class="btn-label">Research</span>
+        <span class="btn-hotkey">E</span>
+      </button>
+      <button type="button" class="build-btn disabled" data-type="CheungKong" data-cost="7000" data-power="-50" data-req="ResearchCenter" title="CheungKong HQ — Cost: 7000 HSI, Power: -50. Upgrades Repel Tower, doubles HSI gain">
+        <span class="btn-icon">🏢</span>
+        <span class="btn-label">C.K.H.</span>
+        <span class="btn-hotkey">R</span>
+      </button>
+      <span class="toolbar-sep"></span>
+      <button type="button" id="cancelBtn" class="build-btn" title="Cancel current selection">
+        <span class="btn-icon">✕</span>
+        <span class="btn-label">Cancel</span>
+        <span class="btn-hotkey">Esc</span>
+      </button>
+    </div>
+    <div id="statusMsg" class="status-msg">Click a structure to build, then click on the map.</div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.165.0/build/three.module.js"
+    }
+  }
+  </script>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
