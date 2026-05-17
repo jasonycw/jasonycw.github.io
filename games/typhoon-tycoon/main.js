@@ -124,11 +124,12 @@ class Enemy {
     }
 
     createMesh() {
-        const geometry = new THREE.SphereGeometry(CONFIG.enemyRadius, 12, 12);
-        const color = this.type === 'fast' ? 0xff6b6b : this.type === 'strong' ? 0x8b0000 : 0xffa500;
-        const material = new THREE.MeshPhongMaterial({ color });
-        const mesh = new THREE.Mesh(geometry, material);
-        return mesh;
+        // Use original typhoon sprite for enemies
+        const map = new THREE.TextureLoader().load('assets/typhoon.png');
+        const material = new THREE.SpriteMaterial({ map: map, color: 0xffffff });
+        const sprite = new THREE.Sprite(material);
+        sprite.scale.set(1.6, 1.6, 1);
+        return sprite;
     }
 
     update(deltaTime) {
@@ -422,8 +423,9 @@ class GameScene {
     }
 
     createGround() {
+        const texture = new THREE.TextureLoader().load('assets/map.png');
         const geometry = new THREE.PlaneGeometry(CONFIG.mapWidth, CONFIG.mapHeight);
-        const material = new THREE.MeshLambertMaterial({ color: 0x2d5016 });
+        const material = new THREE.MeshLambertMaterial({ map: texture });
         const ground = new THREE.Mesh(geometry, material);
         ground.rotation.x = -Math.PI / 2;
         this.scene.add(ground);
