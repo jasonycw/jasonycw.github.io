@@ -1599,6 +1599,15 @@ function startGame() {
 
   // Clear entities
   for (const e of enemies) {
+    // Remove health bar meshes (added directly to scene, not part of typhoonGroup)
+    if (e.hpBar) {
+      scene.remove(e.hpBar.bg);
+      scene.remove(e.hpBar.fill);
+      e.hpBar.bg.material.dispose();
+      e.hpBar.bg.geometry.dispose();
+      e.hpBar.fill.material.dispose();
+      e.hpBar.fill.geometry.dispose();
+    }
     scene.remove(e.mesh);
     e.mesh.traverse(child => {
       if (child.material) {
