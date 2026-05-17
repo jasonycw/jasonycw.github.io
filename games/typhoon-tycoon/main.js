@@ -51,6 +51,24 @@ function lerp(a, b, t) {
     return a + (b - a) * t;
 }
 
+// Distance from point (px,pz) to segment a->b in XZ plane
+function pointToSegmentDistance(px, pz, a, b) {
+    const vx = b.x - a.x;
+    const vz = b.z - a.z;
+    const wx = px - a.x;
+    const wz = pz - a.z;
+    const c1 = vx * wx + vz * wz;
+    if (c1 <= 0) return Math.sqrt(wx * wx + wz * wz);
+    const c2 = vx * vx + vz * vz;
+    if (c2 <= c1) return Math.sqrt((px - b.x) * (px - b.x) + (pz - b.z) * (pz - b.z));
+    const t = c1 / c2;
+    const projx = a.x + t * vx;
+    const projz = a.z + t * vz;
+    const dx = px - projx;
+    const dz = pz - projz;
+    return Math.sqrt(dx * dx + dz * dz);
+}
+
 // Shared projectile geometry/material to avoid repeated allocations
 const PROJECTILE_GEOMETRY = new THREE.SphereGeometry(0.15, 8, 8);
 const PROJECTILE_MATERIAL = new THREE.MeshBasicMaterial({ color: 0xffff00 });
@@ -767,11 +785,14 @@ class TyphoonTycoonGame {
         const gridX = Math.round(x / 1) * 1;
         const gridZ = Math.round(z / 1) * 1;
 
-        // Check if too close to path
+        // Check if too close to path (check distance to segments, not just waypoints)
         const minDistToPath = 2;
         let tooCloseToPath = false;
-        for (let waypoint of this.scene.pathWaypoints) {
-            if (distance({ x: gridX, z: gridZ }, waypoint) < minDistToPath) {
+        for (let i = 0; i < this.scene.pathWaypoints.length - 1; i++) {
+            const a = this.scene.pathWaypoints[i];
+            const b = this.scene.pathWaypoints[i + 1];
+            const distToSeg = pointToSegmentDistance(gridX, gridZ, a, b);
+            if (distToSeg < minDistToPath) {
                 tooCloseToPath = true;
                 break;
             }
