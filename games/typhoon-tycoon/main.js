@@ -221,7 +221,8 @@ class WaveManager {
         this.spawnTimer = 0;
         this.spawnIndex = 0;
 
-        // Precompute segment distances for the path (cached on the waypoints array)
+        // Precompute segment distances for the static path once (cached on the waypoints array)
+        // This avoids recomputing segment distances every frame for each enemy.
         if (!this.pathWaypoints._segmentDistances) {
             const segs = [];
             let total = 0;
