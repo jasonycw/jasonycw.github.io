@@ -881,6 +881,7 @@ class TyphoonTycoonGame {
             this.gameState.nextWave();
 
             if (!this.gameState.isGameOver) {
+                // Store timeout id so it can be cleared on restart to avoid duplicate wave starts
                 this.nextWaveTimeout = setTimeout(() => this.startNextWave(), 1000);
             }
         }
