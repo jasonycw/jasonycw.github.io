@@ -348,6 +348,7 @@ class Tower {
         return enemies.filter(e => {
             const dx = this.x - e.position.x;
             const dz = this.z - e.position.z;
+            // Compare squared distances to avoid costly Math.sqrt and allocations
             return (dx * dx + dz * dz) <= rangeSq;
         });
     }
