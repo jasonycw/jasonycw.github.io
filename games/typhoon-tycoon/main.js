@@ -795,6 +795,7 @@ class TyphoonTycoonGame {
     placeTowerAtSelectedLocation() {
         if (!this.selectedPlacementLocation || !this.towerPlacementMode) return;
 
+        // Use selected tower type from UI; default to 'gun' if none selected
         const towerType = this.ui.selectedTower || 'gun';
         const config = CONFIG.towers[towerType];
 
