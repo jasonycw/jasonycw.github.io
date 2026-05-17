@@ -1492,16 +1492,16 @@ function updateTowers(dt) {
 
     t.cooldown -= dt;
 
-    // Find nearest enemy in range
+    // Find nearest enemy in range (squared distance to avoid Math.sqrt)
     let nearest = null;
-    let nearDist = t.range;
+    let nearDistSq = t.range * t.range;
     for (const e of enemies) {
       if (!e.alive) continue;
       const dx = e.x - t.wx;
       const dz = e.z - t.wz;
-      const dist = Math.sqrt(dx * dx + dz * dz);
-      if (dist < nearDist) {
-        nearDist = dist;
+      const distSq = dx * dx + dz * dz;
+      if (distSq < nearDistSq) {
+        nearDistSq = distSq;
         nearest = e;
       }
     }
