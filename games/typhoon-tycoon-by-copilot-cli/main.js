@@ -324,7 +324,6 @@ class Tower {
         this.config = CONFIG.towers[type];
 
         this.fireTimer = 0;
-        this.lastTargetId = null;
 
         this.mesh = this.createMesh();
         this.mesh.position.set(x, 0.5, z);
@@ -370,16 +369,6 @@ class Tower {
                 this.fireTimer = 1 / this.config.fireRate;
             }
         }
-    }
-
-    getTargetsInRange(enemies) {
-        const rangeSq = this.config.range * this.config.range;
-        return enemies.filter(e => {
-            const dx = this.x - e.position.x;
-            const dz = this.z - e.position.z;
-            // Compare squared distances to avoid costly Math.sqrt and allocations
-            return (dx * dx + dz * dz) <= rangeSq;
-        });
     }
 
     fire(target, projectiles, scene) {
