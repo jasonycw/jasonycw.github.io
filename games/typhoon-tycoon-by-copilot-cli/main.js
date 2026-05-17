@@ -304,7 +304,8 @@ class WaveManager {
     }
 
     getActiveEnemies() {
-        return this.enemies.filter(e => e.isAlive);
+        // Return enemies directly - update() already removes dead ones
+        return this.enemies;
     }
 
     isWaveComplete() {
