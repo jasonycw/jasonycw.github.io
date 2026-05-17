@@ -410,6 +410,7 @@ function updateProjectiles(projectiles, scene, deltaTime) {
             const z = lerp(p.startZ, p.targetZ, t);
 
             if (!p.mesh) {
+                // Reuse shared geometry/material to avoid per-projectile allocations
                 p.mesh = new THREE.Mesh(PROJECTILE_GEOMETRY, PROJECTILE_MATERIAL);
                 scene.add(p.mesh);
             }
