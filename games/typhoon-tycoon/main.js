@@ -244,7 +244,7 @@ class WaveManager {
         return true;
     }
 
-    update(deltaTime, scene) {
+    update(deltaTime, scene, gameState) {
         if (this.currentWave < 0) return;
 
         const waveConfig = CONFIG.waveConfigs[this.currentWave];
@@ -261,20 +261,19 @@ class WaveManager {
                 scene.add(enemy.mesh);
                 this.spawnIndex++;
                 this.spawnTimer = waveConfig.delay;
+                if (gameState) gameState.enemiesSpawned++;
             }
         }
 
-        // Update enemies
+        // Update enemies and apply side-effects (rewards/damage) here
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
             enemy.update(deltaTime);
             if (!enemy.isAlive) {
                 if (enemy.reachedEnd) {
-                    // Enemy reached the base; notify host
-                    if (typeof this.onEnemyReached === 'function') this.onEnemyReached(enemy);
+                    if (gameState) gameState.damageBase(1);
                 } else if (!enemy.rewardGiven) {
-                    // Enemy was killed; award reward
-                    if (typeof this.onEnemyKilled === 'function') this.onEnemyKilled(enemy);
+                    if (gameState) gameState.earnMoney(enemy.reward);
                     enemy.rewardGiven = true;
                 }
                 scene.remove(enemy.mesh);
@@ -816,7 +815,7 @@ class TyphoonTycoonGame {
         if (!this.isRunning) return;
 
         // Update wave
-        this.waveManager.update(deltaTime, this.scene.scene);
+        this.waveManager.update(deltaTime, this.scene.scene, this.gameState);
 
         // Update towers
         for (let tower of this.scene.towers) {
