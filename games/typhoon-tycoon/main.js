@@ -873,9 +873,20 @@ function fireProjectile(tower) {
   if (!target || !target.alive) return;
 
   if (tower.type === 'LaserTower') {
-    // Beam from tower center (elevated to barrel height) → target center
-    // Using tower center guarantees the beam always connects the tower to the target
-    spawnLaserBeam(tower.wx, 0.8, tower.wz, target.x, 1.0, target.z, 0xffeb3b);
+    // Compute barrel tip = barrel center + 0.35 * targetDir
+    // targetDir = normalize(dx, 0.55, dz) where 0.55 = target Y(1.0) - barrel center Y(0.45)
+    // Same computation used in spawnLaserMuzzle and updateTowers barrel rotation
+    const dx = target.x - tower.wx;
+    const dz = target.z - tower.wz;
+    const aimDist = Math.sqrt(dx * dx + 0.55 * 0.55 + dz * dz);
+    if (aimDist > 0.01) {
+      const bx = tower.wx + 0.35 * dx / aimDist;
+      const by = 0.45 + 0.35 * 0.55 / aimDist;
+      const bz = tower.wz + 0.35 * dz / aimDist;
+      spawnLaserBeam(bx, by, bz, target.x, 1.0, target.z, 0xffeb3b);
+    } else {
+      spawnLaserBeam(tower.wx, 0.5, tower.wz, target.x, 1.0, target.z, 0xffeb3b);
+    }
 
     // Muzzle flash at barrel tip (computed from barrel rotation)
     spawnLaserMuzzle(tower, target);
