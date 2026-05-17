@@ -4,6 +4,35 @@ A 2.5D browser-based tower defense game rebuilt in Three.js, inspired by the ori
 
 **Play online:** https://jasonycw.github.io/games/typhoon-tycoon/
 
+## Screenshots
+
+![Game Menu](assets/screenshot-menu.png)
+*Start screen with the Hong Kong / South China Sea map and concentric danger zone rings.*
+
+![In-Game Action](assets/screenshot-action.png)
+*Gameplay with Laser Towers engaging incoming 3D typhoons. Each typhoon is a volumetric cyclone model featuring a hollow eye, spiral rainbands, orbiting cloud particles, and a satellite texture overlay — all spinning as a unified storm system.*
+
+## Visual Features
+
+### 3D Volumetric Typhoons
+Enemies are no longer flat sprites. Each typhoon is a **full 3D Group** constructed from:
+- **Spiral rainbands** — 3 arms of torus arc segments wrapping inward, creating the distinctive spiral structure of a tropical cyclone
+- **Eye wall** — A hollow translucent cylinder at the center, with a glowing core
+- **Cloud deck** — A wide translucent ring base with an upper wisp layer, suggesting deep convection
+- **Satellite texture** — The original `typhoon.png` rendered as a horizontal plane that rotates with the storm (not a billboard Sprite)
+- **Orbiting particles** — 24 cloud droplets that orbit the center at varying radii and speeds
+
+The entire storm system **spins on its Y axis** at a visible rate, giving a strong sense of cyclonic rotation.
+
+### Curved Trajectories
+Each typhoon follows a **sinusoidal wobble path** instead of a straight line toward center. The wobble amplitude is randomized per enemy and decays as it approaches the island, creating natural-looking spiral approaches like real storm tracks.
+
+### Attack VFX
+- **Laser Towers** fire instant beams from the turret barrel to the typhoon body, followed by a particle burst at the impact point
+- All projectile types leave **fading particle trails**
+- Hit effects use **multi-particle bursts** (flying outward with gravity) instead of single expanding spheres
+- Kill explosions release a 12-particle burst
+
 ## Background
 
 In the year 21XX, the Li's field (李氏力場) becomes reality in the form of a tower defense system. The system seeks to weaken, if not totally destroy, incoming typhoons into Hong Kong. Li's enterprise has appointed you to control the typhoon defence system. Defend Hong Kong from incoming typhoons by building towers and managing power resources.

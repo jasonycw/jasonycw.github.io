@@ -332,20 +332,112 @@ function spawnEnemy() {
   const hp = CONFIG.enemyBaseHP + state.gameTime * 1.5;
   const speed = CONFIG.enemyBaseSpeed + state.gameTime / 100;
 
-  // Typhoon sprite (uses original typhoon.png — always faces camera)
-  const spriteMat = new THREE.SpriteMaterial({
-    map: typhoonSpriteTexture,
-    transparent: true,
-    opacity: 0.9,
-    depthWrite: false
-  });
-  const typhoon = new THREE.Sprite(spriteMat);
-  typhoon.position.set(x, 1.2, z);
-  const s = 1.4;
-  typhoon.scale.set(s, s, 1);
-  scene.add(typhoon);
+  // ===================== 3D TyPhoon (volumetric cyclone) =====================
+  const typhoonGroup = new THREE.Group();
+  typhoonGroup.position.set(x, 1.2, z);
 
-  // Health bar background
+  // All typhoon materials — for cleanup / opacity-from-HP traversal
+  const allTyphoonMats = [];
+
+  // --- Wide cloud base deck ---
+  const deckMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff, transparent: true, opacity: 0.08,
+    side: THREE.DoubleSide, depthWrite: false
+  });
+  allTyphoonMats.push(deckMat);
+  const deck = new THREE.Mesh(new THREE.RingGeometry(0.8, 2.6, 48), deckMat);
+  deck.rotation.x = -Math.PI / 2;
+  deck.position.y = -0.25;
+  typhoonGroup.add(deck);
+
+  // --- Upper cloud wisp ---
+  const wispMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff, transparent: true, opacity: 0.05,
+    side: THREE.DoubleSide, depthWrite: false
+  });
+  allTyphoonMats.push(wispMat);
+  const wisp = new THREE.Mesh(new THREE.RingGeometry(0.6, 2.1, 40), wispMat);
+  wisp.rotation.x = -Math.PI / 2;
+  wisp.position.y = 0.12;
+  typhoonGroup.add(wisp);
+
+  // --- Eye wall (hollow cylinder — the storm's eye) ---
+  const eyeMat = new THREE.MeshBasicMaterial({
+    color: 0xb3e5fc, transparent: true, opacity: 0.3,
+    side: THREE.DoubleSide, depthWrite: false
+  });
+  allTyphoonMats.push(eyeMat);
+  const eyeMesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.22, 0.38, 0.75, 16, 1, true), eyeMat
+  );
+  eyeMesh.position.y = 0.1;
+  typhoonGroup.add(eyeMesh);
+
+  // --- Core glow (eye brightness) ---
+  const coreMat = new THREE.MeshBasicMaterial({
+    color: 0x4fc3f7, transparent: true, opacity: 0.55
+  });
+  allTyphoonMats.push(coreMat);
+  const core = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 10), coreMat);
+  core.position.y = 0.05;
+  typhoonGroup.add(core);
+
+  // --- Spiral rainbands (3 arms × arc segments) ---
+  const armMats = [];
+  for (let arm = 0; arm < 3; arm++) {
+    const baseAngle = (arm / 3) * Math.PI * 2;
+    for (let seg = 0; seg < 6; seg++) {
+      const radius = 0.45 + seg * 0.34;
+      const arcLen = Math.PI * 0.4 + seg * 0.15;
+      const angle = baseAngle + seg * 0.85;
+      const aMat = new THREE.MeshBasicMaterial({
+        color: 0xe3f2fd, transparent: true, opacity: 0.12 + seg * 0.05,
+        side: THREE.DoubleSide, depthWrite: false
+      });
+      armMats.push(aMat);
+      allTyphoonMats.push(aMat);
+      const arc = new THREE.Mesh(
+        new THREE.TorusGeometry(radius, 0.035 + seg * 0.008, 4, 12, arcLen), aMat
+      );
+      arc.rotation.x = Math.PI / 2;
+      arc.rotation.z = angle;
+      arc.position.y = -0.12 + seg * 0.04;
+      typhoonGroup.add(arc);
+    }
+  }
+
+  // --- Typhoon texture plane (PlaneGeometry, rotates WITH group — NOT a Sprite!) ---
+  const planeMat = new THREE.MeshBasicMaterial({
+    map: typhoonSpriteTexture, transparent: true, opacity: 0.2,
+    side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending
+  });
+  allTyphoonMats.push(planeMat);
+  const texPlane = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 3.4), planeMat);
+  texPlane.rotation.x = -Math.PI / 2; // horizontal — rotates with group.rotation.y
+  texPlane.position.y = 0.06;
+  typhoonGroup.add(texPlane);
+
+  // --- Orbiting particles (rain-streak / cloud droplets) ---
+  const particleData = [];
+  for (let i = 0; i < 24; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = 0.4 + Math.random() * 2.2;
+    const pMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true, opacity: 0.2 + Math.random() * 0.3
+    });
+    allTyphoonMats.push(pMat);
+    const pMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.025 + Math.random() * 0.025, 4, 4), pMat
+    );
+    pMesh.position.set(Math.cos(a) * r, (Math.random() - 0.5) * 0.3, Math.sin(a) * r);
+    typhoonGroup.add(pMesh);
+    particleData.push({ mesh: pMesh, angle: a, radius: r, speed: 0.6 + Math.random() * 0.8 });
+  }
+  typhoonGroup.userData.particles = particleData;
+
+  scene.add(typhoonGroup);
+
+  // ===================== Health bar =====================
   const hpBg = new THREE.Mesh(
     new THREE.BoxGeometry(0.8, 0.04, 0.06),
     new THREE.MeshBasicMaterial({ color: 0x444444 })
@@ -353,7 +445,6 @@ function spawnEnemy() {
   hpBg.position.set(x, 1.6, z);
   scene.add(hpBg);
 
-  // Health bar fill
   const hpFill = new THREE.Mesh(
     new THREE.BoxGeometry(0.76, 0.04, 0.05),
     new THREE.MeshBasicMaterial({ color: 0x66bb6a })
@@ -362,8 +453,11 @@ function spawnEnemy() {
   scene.add(hpFill);
 
   const enemy = {
-    mesh: typhoon,
-    core: typhoon, // sprite is both mesh and core
+    mesh: typhoonGroup,
+    coreMat,
+    eyeMat,
+    armMats,
+    allTyphoonMats,
     hpBar: { bg: hpBg, fill: hpFill },
     x, z,
     hp,
@@ -376,7 +470,11 @@ function spawnEnemy() {
     repelX: 0,
     repelZ: 0,
     alive: true,
-    reachedCenter: false
+    reachedCenter: false,
+    // Trajectory wobble
+    wobbleSpeed: 1.0 + Math.random() * 2.5,
+    wobblePhase: Math.random() * Math.PI * 2,
+    wobbleAmp: 1.5 + Math.random() * 3
   };
 
   enemies.push(enemy);
@@ -393,6 +491,16 @@ function updateEnemies(dt) {
     let moveX = Math.cos(targetAngle);
     let moveZ = Math.sin(targetAngle);
 
+    // ---------- Trajectory wobble (sinusoidal perpendicular offset) ----------
+    const distToCenter = Math.sqrt(e.x * e.x + e.z * e.z);
+    const progress = 1 - Math.min(distToCenter / CONFIG.enemySpawnRadius, 1);
+    const wobbleFactor = Math.sin(state.gameTime * e.wobbleSpeed + e.wobblePhase) * e.wobbleAmp * (1 - progress);
+    // Perpendicular direction (using original moveX/moveZ before modification)
+    const perpX = -moveZ;
+    const perpZ = moveX;
+    moveX += perpX * wobbleFactor * 0.15;
+    moveZ += perpZ * wobbleFactor * 0.15;
+
     // Apply repel force
     if (e.repelX !== 0 || e.repelZ !== 0) {
       moveX += e.repelX;
@@ -408,18 +516,25 @@ function updateEnemies(dt) {
 
     // Apply speed (with slow — time-based)
     let spd = e.speed * dt;
-    if (e.isSlowed > 0) {
+    const slowed = e.isSlowed > 0;
+    if (slowed) {
       spd *= (1 - e.slowFactor);
       e.isSlowed -= dt;
-      e.mesh.material.color.setHex(0x81d4fa);
+    }
+
+    // Color shift on slow (core + eye + spiral arms)
+    if (slowed) {
+      e.coreMat.color.setHex(0x81d4fa);
+      e.eyeMat.color.setHex(0x90caf9);
+      for (const am of e.armMats) am.color.setHex(0x81d4fa);
     } else {
-      e.mesh.material.color.setHex(0xff3d00);
+      e.coreMat.color.setHex(0x4fc3f7);
+      e.eyeMat.color.setHex(0xb3e5fc);
+      for (const am of e.armMats) am.color.setHex(0xe3f2fd);
     }
 
     e.mesh.position.x += moveX * spd;
     e.mesh.position.z += moveZ * spd;
-    e.core.position.x = e.mesh.position.x;
-    e.core.position.z = e.mesh.position.z;
     e.x = e.mesh.position.x;
     e.z = e.mesh.position.z;
 
@@ -431,12 +546,29 @@ function updateEnemies(dt) {
     const hpColor = hpRatio > 0.5 ? 0x66bb6a : (hpRatio > 0.25 ? 0xffa726 : 0xef5350);
     e.hpBar.fill.material.color.setHex(hpColor);
 
-    // Rotate typhoon
-    e.mesh.rotation.z += dt * 3;
-    e.mesh.rotation.x = Math.PI / 2; // flat ring
+    // === 3D typhoon animations ===
+
+    // Y-axis spin (cyclone rotation)
+    e.mesh.rotation.y += dt * 3;
+
+    // Orbit particles around core
+    if (e.mesh.userData.particles) {
+      for (const pd of e.mesh.userData.particles) {
+        pd.angle += dt * pd.speed;
+        pd.mesh.position.x = Math.cos(pd.angle) * pd.radius;
+        pd.mesh.position.z = Math.sin(pd.angle) * pd.radius;
+      }
+    }
+
+    // Core pulsing + opacity fade with HP (hpRatio reused from HP bar above)
+    e.coreMat.opacity = (0.6 + Math.sin(state.gameTime * 4) * 0.1) * (0.3 + hpRatio * 0.7);
+    e.eyeMat.opacity = 0.3 * (0.3 + hpRatio * 0.7);
+    for (const am of e.armMats) {
+      const base = (am._bop || 0.3);
+      am.opacity = base * (0.3 + hpRatio * 0.7);
+    }
 
     // Check if reached center
-    const distToCenter = Math.sqrt(e.x * e.x + e.z * e.z);
     if (distToCenter < CONFIG.islandRadius + 0.5) {
       // Deal damage to lives
       console.log(`ENEMY_REACHED: hp=${e.hp.toFixed(0)} dist=${distToCenter.toFixed(1)}`);
@@ -459,10 +591,6 @@ function updateEnemies(dt) {
       removeEnemy(i);
       continue;
     }
-
-    // Update visibility based on health
-    e.mesh.material.opacity = 0.3 + (e.hp / e.maxHp) * 0.5;
-    e.core.material.color.setHex(0xff6d00);
   }
 }
 
@@ -470,7 +598,13 @@ function removeEnemy(index) {
   const e = enemies[index];
   if (!e) return;
   scene.remove(e.mesh);
-  scene.remove(e.core);
+  e.mesh.traverse(child => {
+    if (child.material) {
+      if (Array.isArray(child.material)) child.material.forEach(m => { m.dispose(); });
+      else child.material.dispose();
+    }
+    if (child.geometry) child.geometry.dispose();
+  });
   if (e.hpBar) {
     scene.remove(e.hpBar.bg);
     scene.remove(e.hpBar.fill);
@@ -479,8 +613,6 @@ function removeEnemy(index) {
     e.hpBar.fill.material.dispose();
     e.hpBar.fill.geometry.dispose();
   }
-  e.mesh.material.dispose();
-  e.core.material.dispose();
   e.alive = false;
   state.enemyCount--;
   enemies.splice(index, 1);
@@ -493,8 +625,9 @@ function damageEnemy(enemy, damage) {
     console.log(`ENEMY_KILLED: hp was ${enemy.hp+damage}, took ${damage} dmg`);
     state.hsi += CONFIG.killRewardHSI;
     state.enemiesKilled++;
-    // Explosion effect
-    spawnEffect(enemy.x, 0.5, enemy.z, 0xffab00, 0.6);
+    // Explosion burst
+    spawnBurst(enemy.x, 0.5, enemy.z, 0xffab00, 12);
+    spawnEffect(enemy.x, 0.5, enemy.z, 0xff6d00, 0.4);
     const idx = enemies.indexOf(enemy);
     if (idx !== -1) removeEnemy(idx);
   }
@@ -684,15 +817,36 @@ function createBuildingMesh(type) {
 
 // ==================== PROJECTILE SYSTEM ====================
 function fireProjectile(tower) {
-  const cfg = getStructConfig(tower.type);
   const target = tower.target;
+  if (!target || !target.alive) return;
 
-  let color, size, speed;
   if (tower.type === 'LaserTower') {
-    color = 0xffeb3b;
-    size = 0.12;
-    speed = 12;
-  } else if (tower.type === 'FreezeTower') {
+    // Instant beam from turret barrel → typhoon body
+    const tPos = tower.mesh.position;
+    const ePos = target.mesh.position;
+    // Offset start point toward target (from barrel tip)
+    const dx = ePos.x - tPos.x;
+    const dz = ePos.z - tPos.z;
+    const d = Math.sqrt(dx * dx + dz * dz);
+    const ox = d > 0 ? (dx / d) * 0.35 : 0;
+    const oz = d > 0 ? (dz / d) * 0.35 : 0;
+    spawnLaserBeam(tPos.x + ox, 0.8, tPos.z + oz, ePos.x, 1.0, ePos.z, 0xffeb3b);
+
+    // Deal damage immediately
+    const cfg = getStructConfig('LaserTower');
+    let dmg = cfg.damage;
+    if (state.universityCount > 0) dmg += state.universityCount * 5;
+    if (state.researchCenterCount > 0) dmg += state.researchCenterCount * 3;
+    damageEnemy(target, dmg);
+
+    // Bright flash burst at impact
+    spawnBurst(target.x, 0.5, target.z, 0xffeb3b, 6);
+    return;
+  }
+
+  // Non-laser towers: traveling sphere projectile
+  let color, size, speed;
+  if (tower.type === 'FreezeTower') {
     color = 0x4fc3f7;
     size = 0.15;
     speed = 8;
@@ -700,6 +854,8 @@ function fireProjectile(tower) {
     color = 0xff6d00;
     size = 0.18;
     speed = 10;
+  } else {
+    return; // unknown tower type
   }
 
   const proj = new THREE.Mesh(
@@ -717,7 +873,8 @@ function fireProjectile(tower) {
     speed,
     type: tower.type,
     alive: true,
-    startPos: proj.position.clone()
+    startPos: proj.position.clone(),
+    trailTimer: 0
   });
 }
 
@@ -740,20 +897,11 @@ function updateProjectiles(dt) {
     if (dist < 0.5) {
       // Hit!
       console.log(`PROJ_HIT: ${p.type} dmg deal, enemy hp before=${p.target.hp.toFixed(0)}`);
-      if (p.type === 'LaserTower') {
-        const cfg = getStructConfig('LaserTower');
-        let dmg = cfg.damage;
-        // University upgrade bonus
-        if (state.universityCount > 0) dmg += state.universityCount * 5;
-        if (state.researchCenterCount > 0) dmg += state.researchCenterCount * 3;
-        damageEnemy(p.target, dmg);
-        spawnEffect(p.target.x, 0.5, p.target.z, 0xffeb3b, 0.3);
-      } else if (p.type === 'FreezeTower') {
-        p.target.isSlowed = 2.0; // slow duration in seconds
+      if (p.type === 'FreezeTower') {
+        p.target.isSlowed = 2.0;
         p.target.slowFactor = 0.5;
-        spawnEffect(p.target.x, 0.5, p.target.z, 0x4fc3f7, 0.4);
+        spawnBurst(p.target.x, 0.5, p.target.z, 0x4fc3f7, 10);
       } else if (p.type === 'RepelTower') {
-        // Push enemy away from tower
         const dx = p.target.x - p.tower.mesh.position.x;
         const dz = p.target.z - p.tower.mesh.position.z;
         const d = Math.sqrt(dx * dx + dz * dz);
@@ -761,13 +909,31 @@ function updateProjectiles(dt) {
           p.target.repelX += (dx / d) * 6;
           p.target.repelZ += (dz / d) * 6;
         }
-        spawnEffect(p.target.x, 0.5, p.target.z, 0xff6d00, 0.4);
+        spawnBurst(p.target.x, 0.5, p.target.z, 0xff6d00, 8);
+        // Expanding ring effect
+        spawnEffect(p.target.x, 0.5, p.target.z, 0xff8a65, 0.3);
       }
 
       scene.remove(p.mesh);
       p.mesh.material.dispose();
       projectiles.splice(i, 1);
       continue;
+    }
+
+    // Particle trail
+    p.trailTimer -= dt;
+    if (p.trailTimer <= 0) {
+      p.trailTimer = 0.04;
+      const trailColor = p.mesh.material.color.getHex();
+      const tGeom = new THREE.SphereGeometry(
+        (p.mesh.geometry.parameters ? p.mesh.geometry.parameters.radius : 0.12) * 0.6, 4, 4);
+      const tMat = new THREE.MeshBasicMaterial({
+        color: trailColor, transparent: true, opacity: 0.5
+      });
+      const tMesh = new THREE.Mesh(tGeom, tMat);
+      tMesh.position.copy(p.mesh.position);
+      scene.add(tMesh);
+      effects.push({ mesh: tMesh, mat: tMat, life: 0.25, maxLife: 0.25, geom: tGeom });
     }
 
     // Move toward target (use dt so projectiles maintain consistent speed at any framerate)
@@ -786,6 +952,54 @@ function spawnEffect(x, y, z, color, duration) {
   effects.push({ mesh, mat, life: duration, maxLife: duration });
 }
 
+/** Multi-particle burst flying outward from a point */
+function spawnBurst(x, y, z, color, count) {
+  const n = count || 8;
+  for (let i = 0; i < n; i++) {
+    const angle = (i / n) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+    const speed = 1.5 + Math.random() * 3;
+    const geom = new THREE.SphereGeometry(0.04, 4, 4);
+    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1 });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.position.set(x, y, z);
+    scene.add(mesh);
+    effects.push({
+      mesh, mat, life: 0.5, maxLife: 0.5, geom,
+      _vx: Math.cos(angle) * speed,
+      _vz: Math.sin(angle) * speed,
+      _vy: 0.8 + Math.random() * 1.5,
+      _burst: true
+    });
+  }
+}
+
+/** Thin glowing beam between two points (for LaserTower) */
+function spawnLaserBeam(x1, y1, z1, x2, y2, z2, color) {
+  const start = new THREE.Vector3(x1, y1, z1);
+  const end = new THREE.Vector3(x2, y2, z2);
+  const mid = start.clone().add(end).multiplyScalar(0.5);
+  const dir = end.clone().sub(start);
+  const len = dir.length();
+  if (len < 0.1) return;
+
+  const beamGeom = new THREE.CylinderGeometry(0.025, 0.06, len, 4);
+  const beamMat = new THREE.MeshBasicMaterial({
+    color: color || 0xffeb3b,
+    transparent: true,
+    opacity: 0.85,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  const beam = new THREE.Mesh(beamGeom, beamMat);
+  beam.position.copy(mid);
+  beam.quaternion.setFromUnitVectors(
+    new THREE.Vector3(0, 1, 0),
+    dir.clone().normalize()
+  );
+  scene.add(beam);
+  effects.push({ mesh: beam, mat: beamMat, life: 0.1, maxLife: 0.1, geom: beamGeom });
+}
+
 function updateEffects(dt) {
   for (let i = effects.length - 1; i >= 0; i--) {
     const e = effects[i];
@@ -793,13 +1007,25 @@ function updateEffects(dt) {
     if (e.life <= 0) {
       scene.remove(e.mesh);
       e.mat.dispose();
-      e.geom && e.geom.dispose();
+      if (e.geom) e.geom.dispose();
       effects.splice(i, 1);
       continue;
     }
     const ratio = e.life / e.maxLife;
     e.mat.opacity = ratio;
-    e.mesh.scale.setScalar(1 + (1 - ratio) * 2);
+
+    if (e._burst) {
+      // Burst particles fly outward with gravity
+      e.mesh.position.x += e._vx * dt;
+      e.mesh.position.z += e._vz * dt;
+      e.mesh.position.y += e._vy * dt;
+      e._vx *= 0.96;
+      e._vz *= 0.96;
+      e._vy -= 2.5 * dt;
+      e.mesh.scale.setScalar(0.8 + (1 - ratio) * 0.6);
+    } else {
+      e.mesh.scale.setScalar(1 + (1 - ratio) * 2);
+    }
   }
 }
 
@@ -1253,9 +1479,13 @@ function startGame() {
   // Clear entities
   for (const e of enemies) {
     scene.remove(e.mesh);
-    scene.remove(e.core);
-    e.mesh.material.dispose();
-    e.core.material.dispose();
+    e.mesh.traverse(child => {
+      if (child.material) {
+        if (Array.isArray(child.material)) child.material.forEach(m => { m.dispose(); });
+        else child.material.dispose();
+      }
+      if (child.geometry) child.geometry.dispose();
+    });
   }
   enemies.length = 0;
 
