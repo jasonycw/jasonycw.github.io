@@ -866,7 +866,7 @@ class TyphoonTycoonGame {
         // Update wave
         this.waveManager.update(deltaTime, this.scene.scene, this.gameState);
 
-        // Update towers (compute active enemies once per frame)
+        // Update towers (compute active enemies once per frame to avoid per-tower allocations)
         const activeEnemies = this.waveManager.getActiveEnemies();
         for (let tower of this.scene.towers) {
             tower.update(deltaTime, activeEnemies, this.scene.projectiles, this.scene.scene);
