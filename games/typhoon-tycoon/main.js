@@ -735,9 +735,21 @@ class TyphoonTycoonGame {
             tower.remove(this.scene.scene);
         }
         this.scene.towers = [];
+
+        // Remove any projectile meshes
+        this.scene.projectiles.forEach(p => { if (p.mesh) this.scene.scene.remove(p.mesh); });
         this.scene.projectiles = [];
+
+        // Remove remaining enemies
         this.waveManager.enemies.forEach(e => this.scene.scene.remove(e.mesh));
-        
+        this.waveManager.enemies = [];
+
+        // Clear pending next-wave timeout if present
+        if (this.nextWaveTimeout) { clearTimeout(this.nextWaveTimeout); this.nextWaveTimeout = null; }
+
+        // Stop background audio if playing
+        if (this.bgAudio) { try { this.bgAudio.pause(); this.bgAudio.currentTime = 0; } catch (e) {} this.bgAudio = null; }
+
         this.startGame();
     }
 
