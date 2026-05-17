@@ -129,7 +129,8 @@ class Enemy {
     }
 
     createMesh() {
-        // Use original typhoon sprite for enemies (reuse texture and material)
+        // Use original typhoon sprite for enemies (texture/material preloaded and reused)
+        // The texture and spriteMaterial are created once above and reused across instances.
         const map = Enemy.texture || (Enemy.texture = new THREE.TextureLoader().load('assets/typhoon.png'));
         const material = Enemy.spriteMaterial || (Enemy.spriteMaterial = new THREE.SpriteMaterial({ map: map, color: 0xffffff }));
         const sprite = new THREE.Sprite(material);
