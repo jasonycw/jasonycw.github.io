@@ -1009,7 +1009,7 @@ function spawnEffect(x, y, z, color, duration) {
   const mesh = new THREE.Mesh(geom, mat);
   mesh.position.set(x, y, z);
   scene.add(mesh);
-  effects.push({ mesh, mat, life: duration, maxLife: duration });
+  effects.push({ mesh, mat, geom, life: duration, maxLife: duration });
 }
 
 /** Multi-particle burst flying outward from a point */
