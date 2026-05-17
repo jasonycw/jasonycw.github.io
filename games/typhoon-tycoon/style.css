@@ -260,3 +260,24 @@ html, body {
         font-size: 16px;
     }
 }
+
+/* Notification */
+.notification {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 2px solid rgba(255,255,255,0.06);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 200ms ease, transform 200ms ease;
+    z-index: 1200;
+}
+.notification.visible {
+    opacity: 1;
+    transform: translateY(0);
+}

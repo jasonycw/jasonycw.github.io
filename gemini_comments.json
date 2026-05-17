@@ -1,0 +1,74 @@
+﻿[
+    {
+        "id":  3254122123,
+        "body":  "![high](https://www.gstatic.com/codereviewagent/high-priority.svg)\n\nCreating a new `TextureLoader` and loading the same image for every enemy instance is highly inefficient and will lead to significant memory leaks, as textures are not being disposed. You should load the texture once and reuse it across all enemy sprites.\n\n```suggestion\n        const map = Enemy.texture || (Enemy.texture = new THREE.TextureLoader().load(\u0027assets/typhoon.png\u0027));\n```",
+        "line":  128,
+        "html_url":  "https://github.com/jasonycw/jasonycw.github.io/pull/12#discussion_r3254122123"
+    },
+    {
+        "id":  3254122128,
+        "body":  "![high](https://www.gstatic.com/codereviewagent/high-priority.svg)\n\nThere is a logic bug where enemies are removed from the `enemies` array before their `reachedEnd` or death status is processed for rewards and base damage in the main game loop. Moving this logic into the `WaveManager.update` method ensures that side effects are handled exactly when an enemy is removed.\n\n```javascript\n    update(deltaTime, scene, gameState) {\n        if (this.currentWave \u003c 0) return;\n\n        const waveConfig = CONFIG.waveConfigs[this.currentWave];\n        \n        // Spawn enemies\n        if (this.spawnIndex \u003c waveConfig.count) {\n            this.spawnTimer -= deltaTime;\n            if (this.spawnTimer \u003c= 0) {\n                const enemyType = waveConfig.enemyType === \u0027mixed\u0027\n                    ? (Math.random() \u003e 0.6 ? \u0027fast\u0027 : \u0027strong\u0027)\n                    : waveConfig.enemyType;\n                const enemy = new Enemy(this.pathWaypoints, enemyType);\n                this.enemies.push(enemy);\n                scene.add(enemy.mesh);\n                this.spawnIndex++;\n                this.spawnTimer = waveConfig.delay;\n            }\n        }\n\n        // Update enemies\n        for (let i = this.enemies.length - 1; i \u003e= 0; i--) {\n            const enemy = this.enemies[i];\n            enemy.update(deltaTime);\n            if (!enemy.isAlive) {\n                if (enemy.reachedEnd) {\n                    gameState.damageBase(1);\n                } else if (!enemy.rewardGiven) {\n                    gameState.earnMoney(enemy.reward);\n                    enemy.rewardGiven = true;\n                }\n                scene.remove(enemy.mesh);\n                this.enemies.splice(i, 1);\n            }\n        }\n    }\n```",
+        "line":  252,
+        "html_url":  "https://github.com/jasonycw/jasonycw.github.io/pull/12#discussion_r3254122128"
+    },
+    {
+        "id":  3254122130,
+        "body":  "![high](https://www.gstatic.com/codereviewagent/high-priority.svg)\n\nThe main update loop contains redundant and broken logic for rewards and base damage (as enemies are removed before these checks run). Consolidating this logic into the `WaveManager.update` call simplifies the loop and fixes the bug.\n\n```javascript\n    update(deltaTime) {\n        if (!this.isRunning) return;\n\n        // Update wave and handle rewards/damage\n        this.waveManager.update(deltaTime, this.scene.scene, this.gameState);\n\n        // Update towers\n        for (let tower of this.scene.towers) {\n            tower.update(deltaTime, this.waveManager.getActiveEnemies(), this.scene.projectiles, this.scene.scene);\n        }\n\n        // Update projectiles\n        updateProjectiles(this.scene.projectiles, this.scene.scene, deltaTime);\n\n        // Check for wave completion\n        if (this.gameState.currentWaveActive \u0026\u0026 this.waveManager.isWaveComplete()) {\n            this.gameState.currentWaveActive = false;\n            this.gameState.nextWave();\n\n            if (!this.gameState.isGameOver) {\n                setTimeout(() =\u003e this.startNextWave(), 1000);\n            }\n        }\n\n        // Update UI\n        this.ui.updateStats(this.gameState.money, this.gameState.lives, this.gameState.waveIndex);\n\n        // Check game over\n        if (this.gameState.isGameOver) {\n            this.isRunning = false;\n            this.ui.showGameOver(this.gameState.isWon);\n        }\n    }\n```",
+        "line":  811,
+        "html_url":  "https://github.com/jasonycw/jasonycw.github.io/pull/12#discussion_r3254122130"
+    },
+    {
+        "id":  3254122132,
+        "body":  "![medium](https://www.gstatic.com/codereviewagent/medium-priority.svg)\n\nThe `rewardGiven` property is used in the game loop to prevent multiple rewards for the same enemy, but it is not initialized in the constructor. Initializing it here ensures a consistent object shape and avoids potential issues with undefined checks.\n\n```suggestion\n        this.slowEndTime = 0;\n        this.rewardGiven = false;\n    }\n```",
+        "line":  124,
+        "html_url":  "https://github.com/jasonycw/jasonycw.github.io/pull/12#discussion_r3254122132"
+    },
+    {
+        "id":  3254122133,
+        "body":  "![medium](https://www.gstatic.com/codereviewagent/medium-priority.svg)\n\nThis line is inefficient because it creates a new object literal `{ x: this.x, z: this.z }` and calls `Math.sqrt` (via `distance`) for every enemy, every frame, for every tower. Using squared distance comparison avoids both object allocation and the expensive square root operation.\n\n```javascript\n            const dx = this.x - e.position.x;\n            const dz = this.z - e.position.z;\n            return (dx * dx + dz * dz) \u003c= (this.config.range * this.config.range);\n```",
+        "line":  317,
+        "html_url":  "https://github.com/jasonycw/jasonycw.github.io/pull/12#discussion_r3254122133"
+    },
+    {
+        "id":  3254122134,
+        "body":  "![medium](https://www.gstatic.com/codereviewagent/medium-priority.svg)\n\nCreating a new `PlaneGeometry` and `Mesh` on every click is inefficient and will cause frequent garbage collection. It is better to create a single raycasting plane once and reuse it.\n\n```javascript\n        if (!this.raycastPlane) {\n            this.raycastPlane = new THREE.Mesh(new THREE.PlaneGeometry(CONFIG.mapWidth + 10, CONFIG.mapHeight + 10));\n            this.raycastPlane.rotation.x = -Math.PI / 2;\n            this.raycastPlane.visible = false;\n            this.scene.add(this.raycastPlane);\n        }\n\n        const intersects = raycaster.intersectObject(this.raycastPlane);\n```",
+        "line":  528,
+        "html_url":  "https://github.com/jasonycw/jasonycw.github.io/pull/12#discussion_r3254122134"
+    },
+    {
+        "id":  3254122135,
+        "body":  "![medium](https://www.gstatic.com/codereviewagent/medium-priority.svg)\n\nThe tower type is currently hardcoded to `\u0027gun\u0027`, which means the player cannot place the \u0027Slow\u0027 or \u0027Heavy\u0027 towers even if they select them in the UI. This should use the selected tower type from the UI manager.\n\n```suggestion\n        const towerType = this.ui.selectedTower || \u0027gun\u0027;\n```",
+        "line":  748,
+        "html_url":  "https://github.com/jasonycw/jasonycw.github.io/pull/12#discussion_r3254122135"
+    },
+    {
+        "id":  3254135829,
+        "body":  "![high](https://www.gstatic.com/codereviewagent/high-priority.svg)\n\nInstantiating a `TextureLoader` and loading the texture inside the `Enemy` constructor is highly inefficient. This triggers a new load operation and object allocation for every enemy spawned. You should load the texture once at the application level and reuse the material across all enemy instances.",
+        "line":  129,
+        "html_url":  "https://github.com/jasonycw/jasonycw.github.io/pull/12#discussion_r3254135829"
+    },
+    {
+        "id":  3254135834,
+        "body":  "![high](https://www.gstatic.com/codereviewagent/high-priority.svg)\n\nCreating a new `SphereGeometry` and `MeshBasicMaterial` for every single projectile inside the update loop is a significant performance bottleneck. These Three.js objects should be instantiated once and reused across all projectiles to minimize memory allocation and garbage collection overhead.",
+        "line":  379,
+        "html_url":  "https://github.com/jasonycw/jasonycw.github.io/pull/12#discussion_r3254135834"
+    },
+    {
+        "id":  3254135837,
+        "body":  "![medium](https://www.gstatic.com/codereviewagent/medium-priority.svg)\n\nThe distance between waypoints is calculated every frame for every active enemy. Since the path is static, these segment distances should be pre-calculated once (e.g., in the `WaveManager` or when the path is defined) and stored to avoid redundant mathematical operations in the update loop.",
+        "line":  164,
+        "html_url":  "https://github.com/jasonycw/jasonycw.github.io/pull/12#discussion_r3254135837"
+    },
+    {
+        "id":  3254135840,
+        "body":  "![medium](https://www.gstatic.com/codereviewagent/medium-priority.svg)\n\nThe tower type is currently hardcoded to `\u0027gun\u0027`, which ignores the other tower types (Slow, Heavy) defined in the `CONFIG` and mentioned in the `README.md`. This logic should be updated to use the tower type selected by the player in the UI.",
+        "line":  748,
+        "html_url":  "https://github.com/jasonycw/jasonycw.github.io/pull/12#discussion_r3254135840"
+    },
+    {
+        "id":  3254135842,
+        "body":  "![medium](https://www.gstatic.com/codereviewagent/medium-priority.svg)\n\nUsing `alert()` is generally discouraged in games as it blocks the main execution thread and freezes the entire application. Consider implementing a non-blocking UI notification system to inform the player about insufficient funds.",
+        "line":  752,
+        "html_url":  "https://github.com/jasonycw/jasonycw.github.io/pull/12#discussion_r3254135842"
+    }
+]

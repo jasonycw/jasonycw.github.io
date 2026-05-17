@@ -51,6 +51,10 @@ function lerp(a, b, t) {
     return a + (b - a) * t;
 }
 
+// Shared projectile geometry/material to avoid repeated allocations
+const PROJECTILE_GEOMETRY = new THREE.SphereGeometry(0.15, 8, 8);
+const PROJECTILE_MATERIAL = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+
 // ============================================================================
 // GAME STATE
 // ============================================================================
@@ -121,12 +125,13 @@ class Enemy {
 
         this.slowSpeed = 1;
         this.slowEndTime = 0;
+        this.rewardGiven = false;
     }
 
     createMesh() {
-        // Use original typhoon sprite for enemies
-        const map = new THREE.TextureLoader().load('assets/typhoon.png');
-        const material = new THREE.SpriteMaterial({ map: map, color: 0xffffff });
+        // Use original typhoon sprite for enemies (reuse texture and material)
+        const map = Enemy.texture || (Enemy.texture = new THREE.TextureLoader().load('assets/typhoon.png'));
+        const material = Enemy.spriteMaterial || (Enemy.spriteMaterial = new THREE.SpriteMaterial({ map: map, color: 0xffffff }));
         const sprite = new THREE.Sprite(material);
         sprite.scale.set(1.6, 1.6, 1);
         return sprite;
@@ -156,12 +161,13 @@ class Enemy {
 
     updatePosition() {
         const waypoints = this.pathWaypoints;
-        const totalDist = this.getTotalPathDistance();
+        const segs = waypoints._segmentDistances || [];
+        const totalDist = waypoints._totalDist || this.getTotalPathDistance();
         const targetDist = totalDist * this.pathProgress;
 
         let dist = 0;
         for (let i = 0; i < waypoints.length - 1; i++) {
-            const segmentDist = distance(waypoints[i], waypoints[i + 1]);
+            const segmentDist = segs[i] || distance(waypoints[i], waypoints[i + 1]);
             if (dist + segmentDist >= targetDist) {
                 const t = (targetDist - dist) / segmentDist;
                 this.position.x = lerp(waypoints[i].x, waypoints[i + 1].x, t);
@@ -209,6 +215,19 @@ class WaveManager {
         this.currentWave = -1;
         this.spawnTimer = 0;
         this.spawnIndex = 0;
+
+        // Precompute segment distances for the path (cached on the waypoints array)
+        if (!this.pathWaypoints._segmentDistances) {
+            const segs = [];
+            let total = 0;
+            for (let i = 0; i < pathWaypoints.length - 1; i++) {
+                const d = distance(pathWaypoints[i], pathWaypoints[i + 1]);
+                segs.push(d);
+                total += d;
+            }
+            this.pathWaypoints._segmentDistances = segs;
+            this.pathWaypoints._totalDist = total;
+        }
     }
 
     startWave(waveIndex) {
@@ -243,9 +262,18 @@ class WaveManager {
 
         // Update enemies
         for (let i = this.enemies.length - 1; i >= 0; i--) {
-            this.enemies[i].update(deltaTime);
-            if (!this.enemies[i].isAlive) {
-                scene.remove(this.enemies[i].mesh);
+            const enemy = this.enemies[i];
+            enemy.update(deltaTime);
+            if (!enemy.isAlive) {
+                if (enemy.reachedEnd) {
+                    // Enemy reached the base; notify host
+                    if (typeof this.onEnemyReached === 'function') this.onEnemyReached(enemy);
+                } else if (!enemy.rewardGiven) {
+                    // Enemy was killed; award reward
+                    if (typeof this.onEnemyKilled === 'function') this.onEnemyKilled(enemy);
+                    enemy.rewardGiven = true;
+                }
+                scene.remove(enemy.mesh);
                 this.enemies.splice(i, 1);
             }
         }
@@ -313,9 +341,11 @@ class Tower {
     }
 
     getTargetsInRange(enemies) {
+        const rangeSq = this.config.range * this.config.range;
         return enemies.filter(e => {
-            const d = distance({ x: this.x, z: this.z }, e.position);
-            return d <= this.config.range;
+            const dx = this.x - e.position.x;
+            const dz = this.z - e.position.z;
+            return (dx * dx + dz * dz) <= rangeSq;
         });
     }
 
@@ -375,9 +405,7 @@ function updateProjectiles(projectiles, scene, deltaTime) {
             const z = lerp(p.startZ, p.targetZ, t);
 
             if (!p.mesh) {
-                const geometry = new THREE.SphereGeometry(0.15, 8, 8);
-                const material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-                p.mesh = new THREE.Mesh(geometry, material);
+                p.mesh = new THREE.Mesh(PROJECTILE_GEOMETRY, PROJECTILE_MATERIAL);
                 scene.add(p.mesh);
             }
             p.mesh.position.set(x, 0.5, z);
@@ -399,6 +427,14 @@ class GameScene {
         this.createGround();
         this.createPath();
         this.createLighting();
+
+        // Raycasting helpers reused to avoid allocating per click
+        this.raycaster = new THREE.Raycaster();
+        const planeGeometry = new THREE.PlaneGeometry(CONFIG.mapWidth + 10, CONFIG.mapHeight + 10);
+        this.raycastPlane = new THREE.Mesh(planeGeometry, new THREE.MeshBasicMaterial({ visible: false }));
+        this.raycastPlane.rotation.x = -Math.PI / 2;
+        this.raycastPlane.position.y = -0.1;
+        this.scene.add(this.raycastPlane);
     }
 
     setupScene() {
@@ -512,22 +548,15 @@ class GameScene {
         const gameInstance = window.gameInstance;
         if (!gameInstance) return;
 
-        const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
         const rect = this.renderer.domElement.getBoundingClientRect();
         mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-        raycaster.setFromCamera(mouse, this.camera);
+        this.raycaster.setFromCamera(mouse, this.camera);
 
-        // Create a plane for click detection on the ground
-        const planeGeometry = new THREE.PlaneGeometry(CONFIG.mapWidth + 10, CONFIG.mapHeight + 10);
-        const plane = new THREE.Mesh(planeGeometry);
-        plane.rotation.x = -Math.PI / 2;
-        plane.position.y = -0.1;
-
-        const intersects = raycaster.intersectObject(plane);
+        const intersects = this.raycaster.intersectObject(this.raycastPlane);
         if (intersects.length > 0) {
             const point = intersects[0].point;
             // Constrain to map bounds
@@ -563,6 +592,19 @@ class UIManager {
         this.placeTowerBtn.addEventListener('click', () => this.onPlaceTowerClick());
         this.restartBtn.addEventListener('click', () => this.onRestartClick());
         this.startBtn.addEventListener('click', () => this.onStartClick());
+    }
+
+    // Simple non-blocking notification shown in the UI overlay
+    showNotification(message, duration = 2000) {
+        if (!this._notifEl) {
+            this._notifEl = document.createElement('div');
+            this._notifEl.className = 'notification';
+            document.getElementById('ui-overlay').appendChild(this._notifEl);
+        }
+        this._notifEl.textContent = message;
+        this._notifEl.classList.add('visible');
+        if (this._notifTimeout) clearTimeout(this._notifTimeout);
+        this._notifTimeout = setTimeout(() => this._notifEl.classList.remove('visible'), duration);
     }
 
     updateStats(money, lives, wave) {
@@ -638,6 +680,10 @@ class TyphoonTycoonGame {
         this.scene = new GameScene(this.container);
         this.waveManager = new WaveManager(this.scene.pathWaypoints);
         this.ui = new UIManager();
+
+        // Wire up simple callbacks so WaveManager can notify about kills/reaches
+        this.waveManager.onEnemyReached = (enemy) => { this.gameState.damageBase(1); };
+        this.waveManager.onEnemyKilled = (enemy) => { this.gameState.earnMoney(enemy.reward); };
 
         this.towerPlacementMode = false;
         this.selectedPlacementLocation = null;
@@ -728,7 +774,7 @@ class TyphoonTycoonGame {
         this.selectedPlacementLocation = { x: gridX, z: gridZ };
 
         // Show tower info and enter placement mode
-        this.selectTowerForPlacement('gun');
+        this.selectTowerForPlacement(this.ui.selectedTower || 'gun');
     }
 
     selectTowerForPlacement(towerType) {
@@ -745,11 +791,12 @@ class TyphoonTycoonGame {
     placeTowerAtSelectedLocation() {
         if (!this.selectedPlacementLocation || !this.towerPlacementMode) return;
 
-        const towerType = 'gun'; // Simple: always place gun towers
+        const towerType = this.ui.selectedTower || 'gun';
         const config = CONFIG.towers[towerType];
 
         if (!this.gameState.spendMoney(config.cost)) {
-            alert('Not enough money!');
+            // Non-blocking notification instead of alert
+            this.ui.showNotification('Not enough money!');
             return;
         }
 
@@ -775,13 +822,6 @@ class TyphoonTycoonGame {
         // Update projectiles
         updateProjectiles(this.scene.projectiles, this.scene.scene, deltaTime);
 
-        // Check for enemies reaching end
-        for (let enemy of this.waveManager.enemies) {
-            if (enemy.reachedEnd && !enemy.isAlive) {
-                this.gameState.damageBase(1);
-            }
-        }
-
         // Check for wave completion
         if (this.gameState.currentWaveActive && this.waveManager.isWaveComplete()) {
             this.gameState.currentWaveActive = false;
@@ -789,14 +829,6 @@ class TyphoonTycoonGame {
 
             if (!this.gameState.isGameOver) {
                 setTimeout(() => this.startNextWave(), 1000);
-            }
-        }
-
-        // Check rewards for dead enemies
-        for (let enemy of this.waveManager.enemies) {
-            if (!enemy.isAlive && !enemy.reachedEnd && !enemy.rewardGiven) {
-                enemy.rewardGiven = true;
-                this.gameState.earnMoney(enemy.reward);
             }
         }
 
