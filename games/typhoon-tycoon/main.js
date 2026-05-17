@@ -22,7 +22,7 @@ const CONFIG = {
   livesMax: 100,
 
   // Enemies
-  enemyBaseHP: 200,
+  enemyBaseHP: 100,
   enemyBaseSpeed: 1.8,
   enemyReward: 50,
   enemySpawnRadius: 14,
@@ -36,8 +36,8 @@ const CONFIG = {
   // Structures
   structures: {
     LaserTower: {
-      title: 'Laser Tower', power: -3, cost: 500, range: 8, damage: 20,
-      req: null, builtOn: 'sea', attackInterval: 0.8, color: 0x4fc3f7
+      title: 'Laser Tower', power: -3, cost: 500, range: 8, damage: 25,
+      req: null, builtOn: 'sea', attackInterval: 0.5, color: 0x4fc3f7
     },
     FreezeTower: {
       title: 'Freeze Tower', power: -6, cost: 700, range: 5, damage: 0,
@@ -406,11 +406,11 @@ function updateEnemies(dt) {
     const len = Math.sqrt(moveX * moveX + moveZ * moveZ);
     if (len > 0) { moveX /= len; moveZ /= len; }
 
-    // Apply speed (with slow)
+    // Apply speed (with slow — time-based)
     let spd = e.speed * dt;
     if (e.isSlowed > 0) {
       spd *= (1 - e.slowFactor);
-      e.isSlowed--;
+      e.isSlowed -= dt;
       e.mesh.material.color.setHex(0x81d4fa);
     } else {
       e.mesh.material.color.setHex(0xff3d00);
@@ -749,7 +749,7 @@ function updateProjectiles(dt) {
         damageEnemy(p.target, dmg);
         spawnEffect(p.target.x, 0.5, p.target.z, 0xffeb3b, 0.3);
       } else if (p.type === 'FreezeTower') {
-        p.target.isSlowed = 120; // 2 seconds at 60fps
+        p.target.isSlowed = 2.0; // slow duration in seconds
         p.target.slowFactor = 0.5;
         spawnEffect(p.target.x, 0.5, p.target.z, 0x4fc3f7, 0.4);
       } else if (p.type === 'RepelTower') {
@@ -770,8 +770,8 @@ function updateProjectiles(dt) {
       continue;
     }
 
-    // Move toward target
-    const step = Math.min(p.speed * 0.016, dist);
+    // Move toward target (use dt so projectiles maintain consistent speed at any framerate)
+    const step = Math.min(p.speed * dt, dist);
     p.mesh.position.add(dir.normalize().multiplyScalar(step));
   }
 }
@@ -1317,12 +1317,7 @@ function startGame() {
 }
 
 // Debug helper - expose internals for testing
-window.__debug = () => ({
-  towers: towers.map(t => ({ type: t.type, online: t.online, cd: t.cooldown, range: t.range, hasTarget: !!t.target, wx: t.wx, wz: t.wz })),
-  enemies: enemies.map(e => ({ hp: e.hp, alive: e.alive, dist: Math.sqrt(e.x*e.x + e.z*e.z), x: e.x, z: e.z })),
-  projs: projectiles.length,
-  state: { wave: state.wave, lives: state.lives, hsi: state.hsi, phase: state.phase, enemiesKilled: state.enemiesKilled, powerQuota: state.powerQuota, powerUsed: state.powerUsed }
-});
+window.__debug = { state, enemies, towers, projectiles, effects, placeStructure, gridCells, getStructConfig, CONFIG };
 
 // Start / Restart buttons
 document.getElementById('startBtn').addEventListener('click', startGame);
