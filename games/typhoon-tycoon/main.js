@@ -351,8 +351,8 @@ function getStructureCost(type) {
 
 function isStructureUnlocked(type) {
   if (type === 'LaserTower' || type === 'PowerPlant' || type === 'University') return true;
-  if (type === 'FreezeTower') return state.hasUniversity;
-  if (type === 'RepelTower' || type === 'NuclearPlant' || type === 'ResearchCenter') return state.hasResearchCenter;
+  if (type === 'FreezeTower' || type === 'ResearchCenter') return state.hasUniversity;
+  if (type === 'RepelTower' || type === 'NuclearPlant') return state.hasResearchCenter;
   if (type === 'CheungKong') return state.hasResearchCenter;
   return false;
 }
