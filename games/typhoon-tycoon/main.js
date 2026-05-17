@@ -369,7 +369,8 @@ function isSeaAt(wx, wz) {
   const cx = Math.round(wx / CONFIG.cellSize);
   const cz = Math.round(wz / CONFIG.cellSize);
   if (Math.abs(cx) > halfCells || Math.abs(cz) > halfCells) return true; // outside grid = sea
-  const cell = gridCells.find(c => c.cx === cx && c.cz === cz);
+  const cols = halfCells * 2 + 1;
+  const cell = gridCells[(cx + halfCells) * cols + (cz + halfCells)];
   return cell ? !cell.isLand : true;
 }
 
@@ -1330,9 +1331,9 @@ const planeIntersect = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 function getGridCell(worldX, worldZ) {
   const cx = Math.round(worldX / CONFIG.cellSize);
   const cz = Math.round(worldZ / CONFIG.cellSize);
-  // Clamp
   if (Math.abs(cx) > halfCells || Math.abs(cz) > halfCells) return null;
-  return gridCells.find(c => c.cx === cx && c.cz === cz) || null;
+  const cols = halfCells * 2 + 1;
+  return gridCells[(cx + halfCells) * cols + (cz + halfCells)] || null;
 }
 
 function getMouseWorld(event) {
