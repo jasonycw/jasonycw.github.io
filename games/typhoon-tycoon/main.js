@@ -359,10 +359,10 @@ function isStructureUnlocked(type) {
 
 // ==================== ENEMY SYSTEM ====================
 const typhoonSpriteTexture = textureLoader.load('assets/typhoon.png');
-const hpBarBgMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
+const hpBarBgMat = new THREE.MeshBasicMaterial({ color: 0x444444 });
 const hpBarBgGeom = new THREE.BoxGeometry(0.8, 0.04, 0.06);
-const hpBarFillMat = new THREE.MeshBasicMaterial({ color: 0x4caf50 });
-const hpBarFillGeom = new THREE.BoxGeometry(0.8, 0.04, 0.06);
+const hpBarFillMat = new THREE.MeshBasicMaterial({ color: 0x66bb6a });
+const hpBarFillGeom = new THREE.BoxGeometry(0.76, 0.04, 0.05);
 
 /** Check if a world position is over sea (using hitarea-classified grid) */
 function isSeaAt(wx, wz) {
@@ -491,18 +491,12 @@ function spawnEnemy() {
 
   scene.add(typhoonGroup);
 
-  // ===================== Health bar =====================
-  const hpBg = new THREE.Mesh(
-    new THREE.BoxGeometry(0.8, 0.04, 0.06),
-    new THREE.MeshBasicMaterial({ color: 0x444444 })
-  );
+  // ===================== Health bar (reusing shared geometry/material) =====================
+  const hpBg = new THREE.Mesh(hpBarBgGeom, hpBarBgMat);
   hpBg.position.set(x, 1.6, z);
   scene.add(hpBg);
 
-  const hpFill = new THREE.Mesh(
-    new THREE.BoxGeometry(0.76, 0.04, 0.05),
-    new THREE.MeshBasicMaterial({ color: 0x66bb6a })
-  );
+  const hpFill = new THREE.Mesh(hpBarFillGeom, hpBarFillMat);
   hpFill.position.set(x, 1.6, z);
   scene.add(hpFill);
 
@@ -662,10 +656,7 @@ function removeEnemy(index) {
   if (e.hpBar) {
     scene.remove(e.hpBar.bg);
     scene.remove(e.hpBar.fill);
-    e.hpBar.bg.material.dispose();
-    e.hpBar.bg.geometry.dispose();
-    e.hpBar.fill.material.dispose();
-    e.hpBar.fill.geometry.dispose();
+    // Shared geometry/material — not disposed per-enemy
   }
   e.alive = false;
   state.enemyCount--;
@@ -1604,10 +1595,7 @@ function startGame() {
     if (e.hpBar) {
       scene.remove(e.hpBar.bg);
       scene.remove(e.hpBar.fill);
-      e.hpBar.bg.material.dispose();
-      e.hpBar.bg.geometry.dispose();
-      e.hpBar.fill.material.dispose();
-      e.hpBar.fill.geometry.dispose();
+      // Shared geometry/material — not disposed per-enemy
     }
     scene.remove(e.mesh);
     e.mesh.traverse(child => {
