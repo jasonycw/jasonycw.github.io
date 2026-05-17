@@ -208,6 +208,10 @@ class Enemy {
     }
 }
 
+// Ensure enemy sprite texture/material are loaded once and reused
+Enemy.texture = Enemy.texture || new THREE.TextureLoader().load('assets/typhoon.png');
+Enemy.spriteMaterial = Enemy.spriteMaterial || new THREE.SpriteMaterial({ map: Enemy.texture, color: 0xffffff });
+
 class WaveManager {
     constructor(pathWaypoints) {
         this.pathWaypoints = pathWaypoints;
