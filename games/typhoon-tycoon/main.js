@@ -943,6 +943,7 @@ function updateProjectiles(dt) {
     if (!p.alive || !p.target || !p.target.alive) {
       scene.remove(p.mesh);
       p.mesh.material.dispose();
+      p.mesh.geometry.dispose();
       projectiles.splice(i, 1);
       continue;
     }
@@ -1612,6 +1613,7 @@ function startGame() {
   for (const p of projectiles) {
     scene.remove(p.mesh);
     p.mesh.material.dispose();
+    p.mesh.geometry.dispose();
   }
   projectiles.length = 0;
 
