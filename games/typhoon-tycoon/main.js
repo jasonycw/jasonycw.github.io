@@ -601,7 +601,7 @@ class UIManager {
         this.startBtn.addEventListener('click', () => this.onStartClick());
     }
 
-    // Simple non-blocking notification shown in the UI overlay
+    // Simple non-blocking notification shown in the UI overlay (avoids blocking alerts)
     showNotification(message, duration = 2000) {
         if (!this._notifEl) {
             this._notifEl = document.createElement('div');
