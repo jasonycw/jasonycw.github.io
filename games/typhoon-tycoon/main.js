@@ -403,7 +403,8 @@ class GameScene {
 
     setupScene() {
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x1a3a52);
+        // Use background image from original assets for atmosphere
+        this.scene.background = new THREE.TextureLoader().load('assets/bg.png');
         this.scene.fog = new THREE.Fog(0x1a3a52, 80, 100);
 
         const canvas = document.getElementById('canvas');
@@ -661,6 +662,18 @@ class TyphoonTycoonGame {
         this.ui.updateStats(this.gameState.money, this.gameState.lives, this.gameState.waveIndex);
         this.ui.hideGameOverScreen();
         this.startNextWave();
+
+        // Play background audio from original game (may require user interaction in some browsers)
+        try {
+            if (!this.bgAudio) {
+                this.bgAudio = new Audio('assets/sound.mp3');
+                this.bgAudio.loop = true;
+                this.bgAudio.volume = 0.25;
+                this.bgAudio.play().catch(e => console.warn('Audio playback blocked:', e));
+            }
+        } catch (e) {
+            console.warn('Audio init failed', e);
+        }
     }
 
     restart() {
