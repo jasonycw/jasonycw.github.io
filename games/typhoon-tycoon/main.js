@@ -9,6 +9,7 @@ const CONFIG = {
   cellSize: 2,
   islandRadius: 4.5, // center island radius
   groundY: 0, // ground plane Y
+  islandHeight: 0.8, // building placement Y offset
 
   // HSI (currency + health)
   hsiInit: 5000,
@@ -1172,7 +1173,7 @@ function placeStructure(cell, type) {
     mesh = createBuildingMesh(type);
   }
   // Buildings sit on island surface (y=0.8), towers on water (y=0)
-  mesh.position.set(cell.wx, isBuilding ? 0.8 : 0, cell.wz);
+  mesh.position.set(cell.wx, isBuilding ? CONFIG.islandHeight : 0, cell.wz);
   scene.add(mesh);
 
   // Apply power
