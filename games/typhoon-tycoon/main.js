@@ -359,11 +359,18 @@ class Tower {
     update(deltaTime, enemies, projectiles, scene) {
         this.fireTimer -= deltaTime;
 
-        const targets = this.getTargetsInRange(enemies);
-        if (targets.length > 0 && this.fireTimer <= 0) {
-            const target = targets[0];
-            this.fire(target, projectiles, scene);
-            this.fireTimer = 1 / this.config.fireRate;
+        if (this.fireTimer <= 0) {
+            const rangeSq = this.config.range * this.config.range;
+            const target = enemies.find(e => {
+                const dx = this.x - e.position.x;
+                const dz = this.z - e.position.z;
+                return (dx * dx + dz * dz) <= rangeSq;
+            });
+
+            if (target) {
+                this.fire(target, projectiles, scene);
+                this.fireTimer = 1 / this.config.fireRate;
+            }
         }
     }
 
