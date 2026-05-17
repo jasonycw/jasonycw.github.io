@@ -817,9 +817,10 @@ class TyphoonTycoonGame {
         // Update wave
         this.waveManager.update(deltaTime, this.scene.scene, this.gameState);
 
-        // Update towers
+        // Update towers (compute active enemies once per frame)
+        const activeEnemies = this.waveManager.getActiveEnemies();
         for (let tower of this.scene.towers) {
-            tower.update(deltaTime, this.waveManager.getActiveEnemies(), this.scene.projectiles, this.scene.scene);
+            tower.update(deltaTime, activeEnemies, this.scene.projectiles, this.scene.scene);
         }
 
         // Update projectiles
@@ -831,7 +832,7 @@ class TyphoonTycoonGame {
             this.gameState.nextWave();
 
             if (!this.gameState.isGameOver) {
-                setTimeout(() => this.startNextWave(), 1000);
+                this.nextWaveTimeout = setTimeout(() => this.startNextWave(), 1000);
             }
         }
 
