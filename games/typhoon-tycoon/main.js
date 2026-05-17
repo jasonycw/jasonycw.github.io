@@ -792,9 +792,9 @@ class TyphoonTycoonGame {
     selectPlacementLocation(x, z) {
         if (this.gameState.isGameOver || !this.isRunning) return;
 
-        // Round to grid
-        const gridX = Math.round(x / 1) * 1;
-        const gridZ = Math.round(z / 1) * 1;
+        // Round to grid using CONFIG.tileSize
+        const gridX = Math.round(x / CONFIG.tileSize) * CONFIG.tileSize;
+        const gridZ = Math.round(z / CONFIG.tileSize) * CONFIG.tileSize;
 
         // Check if too close to path (check distance to segments, not just waypoints)
         const minDistToPath = 2;
