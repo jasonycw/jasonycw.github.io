@@ -372,11 +372,13 @@ class Tower {
     }
 
     fire(target, projectiles, scene) {
+        const dist = distance({ x: this.x, z: this.z }, { x: target.position.x, z: target.position.z });
         projectiles.push({
             startX: this.x,
             startZ: this.z,
             targetX: target.position.x,
             targetZ: target.position.z,
+            totalDist: dist,
             targetEnemy: target,
             damage: this.config.damage,
             speed: 15,
@@ -406,8 +408,8 @@ class Tower {
 function updateProjectiles(projectiles, scene, deltaTime) {
     for (let i = projectiles.length - 1; i >= 0; i--) {
         const p = projectiles[i];
-        const dist = distance({ x: p.startX, z: p.startZ }, { x: p.targetX, z: p.targetZ });
-        const totalTravelDist = dist;
+        // Use precomputed totalDist instead of recalculating every frame
+        const totalTravelDist = p.totalDist;
         const maxTravelDist = p.speed * deltaTime;
 
         p.travelled += maxTravelDist;
