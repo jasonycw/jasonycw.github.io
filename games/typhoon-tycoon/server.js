@@ -18,7 +18,12 @@ function startServer(port, attempt) {
   const server = http.createServer((req, res) => {
     let url = req.url.split('?')[0];
     if (url.endsWith('/')) url += 'index.html';
-    let fp = path.join(root, url);
+    let fp = path.normalize(path.join(root, url));
+    if (!fp.startsWith(root)) {
+      res.writeHead(403);
+      res.end('Forbidden');
+      return;
+    }
     try {
       let c = fs.readFileSync(fp);
       let ext = path.extname(fp);
@@ -30,7 +35,7 @@ function startServer(port, attempt) {
       res.end(c);
     } catch (e) {
       res.writeHead(404);
-      res.end('Not found: ' + fp);
+      res.end('Not found');
     }
   });
 
