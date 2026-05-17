@@ -16,9 +16,12 @@ const CONFIG = {
 
     // Enemy settings
     enemyRadius: 0.4,
-    enemySpeed: 2,
-    enemyBaseHealth: 20,
     enemySpacing: 0.8,
+    enemyTypes: {
+        fast: { speed: 3.5, health: 15, reward: 10 },
+        strong: { speed: 1.5, health: 40, reward: 30 },
+        default: { speed: 2.5, health: 20, reward: 15 }
+    },
 
     // Tower settings
     towers: {
@@ -128,10 +131,11 @@ class Enemy {
     constructor(pathWaypoints, type = 'fast') {
         this.pathWaypoints = pathWaypoints;
         this.type = type;
-        this.speed = type === 'fast' ? 3.5 : type === 'strong' ? 1.5 : 2.5;
-        this.maxHealth = type === 'fast' ? 15 : type === 'strong' ? 40 : 20;
+        const tcfg = CONFIG.enemyTypes[type] || CONFIG.enemyTypes.default;
+        this.speed = tcfg.speed;
+        this.maxHealth = tcfg.health;
         this.health = this.maxHealth;
-        this.reward = type === 'fast' ? 10 : type === 'strong' ? 30 : 15;
+        this.reward = tcfg.reward;
 
         this.pathProgress = 0;
         this.isAlive = true;
