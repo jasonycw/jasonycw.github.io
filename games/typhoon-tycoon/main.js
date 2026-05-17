@@ -125,7 +125,7 @@ class Enemy {
 
         this.slowSpeed = 1;
         this.slowEndTime = 0;
-        this.rewardGiven = false;
+        this.rewardGiven = false; // prevent multiple reward grants for the same enemy
     }
 
     createMesh() {
