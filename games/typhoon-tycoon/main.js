@@ -25,7 +25,7 @@ const CONFIG = {
   enemyBaseHP: 100,
   enemyBaseSpeed: 1.8,
   enemyReward: 50,
-  enemySpawnRadius: 14,
+  enemySpawnRadius: 16, // beyond grid bounds → guaranteed sea spawn (|cx|>7 returns sea)
   enemyHitRange: 1.2,
   killRewardHSI: 80,
 
@@ -121,12 +121,22 @@ window.addEventListener('resize', () => {
 
 // ==================== MAP CREATION ====================
 
+// Hong Kong position on the 960×600 map.png (yellow cluster center)
+const HK_MAP_PX = { x: 376, y: 236 };
+// UV coordinate of Hong Kong on the texture
+const HK_UV = { u: HK_MAP_PX.x / 960, v: 1 - HK_MAP_PX.y / 600 };
+// Shift map so Hong Kong texture pixel aligns with world origin (0,0,0)
+const MAP_PLANE_SIZE = 28;
+const HK_LOCAL_X = (HK_UV.u - 0.5) * MAP_PLANE_SIZE;
+const HK_LOCAL_Y = (HK_UV.v - 0.5) * MAP_PLANE_SIZE;
+const MAP_OFFSET_X = -HK_LOCAL_X;  // 3.032
+const MAP_OFFSET_Z = HK_LOCAL_Y;   // 2.988
+
 // Load map texture
 const textureLoader = new THREE.TextureLoader();
 const mapTexture = textureLoader.load('assets/map.png');
 
 // Map ground plane (uses original map.png of South China Sea / HK region)
-const MAP_PLANE_SIZE = 28;
 const mapGeom = new THREE.PlaneGeometry(MAP_PLANE_SIZE, MAP_PLANE_SIZE);
 const mapMat = new THREE.MeshStandardMaterial({
   map: mapTexture,
@@ -135,7 +145,7 @@ const mapMat = new THREE.MeshStandardMaterial({
 });
 const mapMesh = new THREE.Mesh(mapGeom, mapMat);
 mapMesh.rotation.x = -Math.PI / 2;
-mapMesh.position.y = -0.01;
+mapMesh.position.set(MAP_OFFSET_X, -0.01, MAP_OFFSET_Z);
 mapMesh.receiveShadow = true;
 scene.add(mapMesh);
 
@@ -170,6 +180,43 @@ scene.add(targetGlow);
 const gridCells = [];
 const cellHalf = CONFIG.cellSize / 2;
 const halfCells = 7; // -7 to +7
+
+// Hitarea-based terrain classification — fallback: simple circle
+let useHitareaClassification = false;
+
+// Load hitarea mask to classify land vs sea from the actual map
+const hitareaImg = new Image();
+hitareaImg.onload = () => {
+  const cvs = document.createElement('canvas');
+  cvs.width = hitareaImg.width;
+  cvs.height = hitareaImg.height;
+  const ctx = cvs.getContext('2d');
+  ctx.drawImage(hitareaImg, 0, 0);
+  const data = ctx.getImageData(0, 0, cvs.width, cvs.height).data;
+
+  // Convert pixel-coord → world-coord → UV → hitarea sample
+  function sampleHitarea(wx, wz) {
+    // World → local on rotated plane
+    const lx = wx - MAP_OFFSET_X;
+    const ly = MAP_OFFSET_Z - wz;
+    const uvx = (lx + MAP_PLANE_SIZE / 2) / MAP_PLANE_SIZE;
+    const uvy = (ly + MAP_PLANE_SIZE / 2) / MAP_PLANE_SIZE;
+    if (uvx < 0 || uvx > 1 || uvy < 0 || uvy > 1) return false;
+    const px = Math.round(uvx * 960);
+    const py = Math.round((1 - uvy) * 600);
+    const idx = (py * 960 + px) * 4;
+    // White (255) = land, Black (0) = sea
+    return data[idx] > 128;
+  }
+
+  // Re-classify all cells
+  for (const cell of gridCells) {
+    cell.isLand = sampleHitarea(cell.wx, cell.wz);
+  }
+  useHitareaClassification = true;
+  console.log('MAP: hitarea loaded, cells classified');
+};
+hitareaImg.src = 'assets/map-hitarea.png';
 
 for (let cx = -halfCells; cx <= halfCells; cx++) {
   for (let cz = -halfCells; cz <= halfCells; cz++) {
@@ -317,17 +364,23 @@ const hpBarBgGeom = new THREE.BoxGeometry(0.8, 0.04, 0.06);
 const hpBarFillMat = new THREE.MeshBasicMaterial({ color: 0x4caf50 });
 const hpBarFillGeom = new THREE.BoxGeometry(0.8, 0.04, 0.06);
 
+/** Check if a world position is over sea (using hitarea-classified grid) */
+function isSeaAt(wx, wz) {
+  const cx = Math.round(wx / CONFIG.cellSize);
+  const cz = Math.round(wz / CONFIG.cellSize);
+  if (Math.abs(cx) > halfCells || Math.abs(cz) > halfCells) return true; // outside grid = sea
+  const cell = gridCells.find(c => c.cx === cx && c.cz === cz);
+  return cell ? !cell.isLand : true;
+}
+
 function spawnEnemy() {
-  // Spawn at random edge position
-  const side = Math.floor(Math.random() * 4);
-  let x, z;
+  // Spawn from sea-facing angles only (southeast→south→southwest)
+  // Camera is at (18,18,18) so points at Z=0 appear in the upper/land part of screen.
+  // Constrain to [π/6, 5π/6] = 30° to 150° giving Z >= 8 (clearly in southern sea)
   const r = CONFIG.enemySpawnRadius;
-  switch (side) {
-    case 0: x = (Math.random() - 0.5) * 2 * r; z = -r; break;
-    case 1: x = r; z = (Math.random() - 0.5) * 2 * r; break;
-    case 2: x = (Math.random() - 0.5) * 2 * r; z = r; break;
-    case 3: x = -r; z = (Math.random() - 0.5) * 2 * r; break;
-  }
+  const angle = Math.PI / 6 + Math.random() * Math.PI * 2 / 3; // π/6 to 5π/6
+  const x = Math.cos(angle) * r;
+  const z = Math.sin(angle) * r;
 
   const hp = CONFIG.enemyBaseHP + state.gameTime * 1.5;
   const speed = CONFIG.enemyBaseSpeed + state.gameTime / 100;
@@ -748,18 +801,17 @@ function createBuildingMesh(type) {
     glow.position.set(0.2, 0.6, 0.2);
     group.add(glow);
   } else if (type === 'NuclearPlant') {
-    const dome = new THREE.Mesh(
-      new THREE.SphereGeometry(0.55, 16, 12),
-      new THREE.MeshStandardMaterial({ color: 0x43a047, emissive: 0x00e676, emissiveIntensity: 0.15, roughness: 0.4 })
-    );
-    dome.position.y = 0.45;
-    group.add(dome);
     const base = new THREE.Mesh(
       new THREE.CylinderGeometry(0.5, 0.6, 0.15, 12),
       new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.7 })
     );
     base.position.y = 0.075;
     group.add(base);
+    const dome = new THREE.Mesh(
+      new THREE.SphereGeometry(0.55, 16, 12),
+      new THREE.MeshStandardMaterial({ color: 0x43a047, emissive: 0x00e676, emissiveIntensity: 0.15, roughness: 0.4 })
+    );
+    dome.position.y = 0.7; // sits on top of base (0.15 + 0.55)
   } else if (type === 'University') {
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(0.9, 0.4, 0.7),
@@ -821,16 +873,12 @@ function fireProjectile(tower) {
   if (!target || !target.alive) return;
 
   if (tower.type === 'LaserTower') {
-    // Instant beam from turret barrel → typhoon body
-    const tPos = tower.mesh.position;
-    const ePos = target.mesh.position;
-    // Offset start point toward target (from barrel tip)
-    const dx = ePos.x - tPos.x;
-    const dz = ePos.z - tPos.z;
-    const d = Math.sqrt(dx * dx + dz * dz);
-    const ox = d > 0 ? (dx / d) * 0.35 : 0;
-    const oz = d > 0 ? (dz / d) * 0.35 : 0;
-    spawnLaserBeam(tPos.x + ox, 0.8, tPos.z + oz, ePos.x, 1.0, ePos.z, 0xffeb3b);
+    // Beam from tower center (elevated to barrel height) → target center
+    // Using tower center guarantees the beam always connects the tower to the target
+    spawnLaserBeam(tower.wx, 0.8, tower.wz, target.x, 1.0, target.z, 0xffeb3b);
+
+    // Muzzle flash at barrel tip (computed from barrel rotation)
+    spawnLaserMuzzle(tower, target);
 
     // Deal damage immediately
     const cfg = getStructConfig('LaserTower');
@@ -977,27 +1025,54 @@ function spawnBurst(x, y, z, color, count) {
 function spawnLaserBeam(x1, y1, z1, x2, y2, z2, color) {
   const start = new THREE.Vector3(x1, y1, z1);
   const end = new THREE.Vector3(x2, y2, z2);
-  const mid = start.clone().add(end).multiplyScalar(0.5);
   const dir = end.clone().sub(start);
   const len = dir.length();
   if (len < 0.1) return;
+  const cols = color || 0xffeb3b;
 
-  const beamGeom = new THREE.CylinderGeometry(0.025, 0.06, len, 4);
-  const beamMat = new THREE.MeshBasicMaterial({
-    color: color || 0xffeb3b,
+  // Core line: always connects start→end correctly (1px but visible with additive blend)
+  const lineGeom = new THREE.BufferGeometry().setFromPoints([start, end]);
+  const lineMat = new THREE.LineBasicMaterial({
+    color: cols,
     transparent: true,
-    opacity: 0.85,
+    opacity: 0.95,
     blending: THREE.AdditiveBlending,
-    depthWrite: false
+    depthWrite: false,
+    depthTest: false
   });
-  const beam = new THREE.Mesh(beamGeom, beamMat);
-  beam.position.copy(mid);
-  beam.quaternion.setFromUnitVectors(
-    new THREE.Vector3(0, 1, 0),
-    dir.clone().normalize()
-  );
-  scene.add(beam);
-  effects.push({ mesh: beam, mat: beamMat, life: 0.1, maxLife: 0.1, geom: beamGeom });
+  const line = new THREE.Line(lineGeom, lineMat);
+  scene.add(line);
+  effects.push({ mesh: line, mat: lineMat, life: 0.2, maxLife: 0.2, geom: lineGeom, _laserBeam: true });
+
+  // Glow spheres: 5 small bright spheres scattered along the beam
+  for (let i = 0; i < 5; i++) {
+    const t = (i + 1) / 6; // space them evenly, first is slightly past start
+    const pos = start.clone().add(dir.clone().multiplyScalar(t));
+    const r = 0.04 + t * 0.06;
+    const geom = new THREE.SphereGeometry(r, 6, 6);
+    const mat = new THREE.MeshBasicMaterial({
+      color: cols, transparent: true, opacity: 1,
+      blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false
+    });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.position.copy(pos);
+    scene.add(mesh);
+    effects.push({ mesh, mat, life: 0.2, maxLife: 0.2, geom, _laserBeam: true });
+  }
+}
+
+/** Spawn muzzle flash at the computed barrel tip position */
+function spawnLaserMuzzle(tower, target) {
+  const dx = target.x - tower.wx;
+  const dz = target.z - tower.wz;
+  const aimDist = Math.sqrt(dx * dx + 0.55 * 0.55 + dz * dz);
+  if (aimDist > 0.01) {
+    const bx = tower.wx + 0.35 * dx / aimDist;
+    const by = 0.45 + 0.35 * 0.55 / aimDist;
+    const bz = tower.wz + 0.35 * dz / aimDist;
+    spawnEffect(bx, by, bz, 0xffeb3b, 0.15);
+    spawnEffect(bx, by, bz, 0xffffff, 0.08);
+  }
 }
 
 function updateEffects(dt) {
@@ -1023,13 +1098,25 @@ function updateEffects(dt) {
       e._vz *= 0.96;
       e._vy -= 2.5 * dt;
       e.mesh.scale.setScalar(0.8 + (1 - ratio) * 0.6);
-    } else {
+    } else if (!e._laserBeam) {
+      // Laser beam pieces fade without expanding (no scaling)
       e.mesh.scale.setScalar(1 + (1 - ratio) * 2);
     }
   }
 }
 
 // ==================== TOWER PLACEMENT & UPDATES ====================
+
+/** Check if a world position falls within the visible map texture (UV 0…1) */
+function isOnMap(wx, wz) {
+  const lx = wx - MAP_OFFSET_X;
+  const ly = MAP_OFFSET_Z - wz;
+  const half = MAP_PLANE_SIZE / 2;
+  const uvx = (lx + half) / MAP_PLANE_SIZE;
+  const uvy = (ly + half) / MAP_PLANE_SIZE;
+  return uvx >= 0 && uvx <= 1 && uvy >= 0 && uvy <= 1;
+}
+
 function placeStructure(cell, type) {
   const cfg = getStructConfig(type);
   if (!cfg) return false;
@@ -1043,6 +1130,12 @@ function placeStructure(cell, type) {
   // Check requirements
   if (!meetsRequirements(type)) {
     setStatus(`Requires: ${cfg.req}`, '#ff5252');
+    return false;
+  }
+
+  // Check if cell is on the visible map
+  if (!isOnMap(cell.wx, cell.wz)) {
+    setStatus('Cannot build outside the map area!', '#ff5252');
     return false;
   }
 
@@ -1274,6 +1367,7 @@ function updatePreview(event) {
     const cfg = getStructConfig(state.selectedType);
     const isLandStruct = cfg && cfg.builtOn === 'land';
     const valid = !cell.occupied &&
+      isOnMap(cell.wx, cell.wz) &&
       (isLandStruct ? cell.isLand : !cell.isLand) &&
       state.hsi >= (cfg ? cfg.cost : Infinity) &&
       meetsRequirements(state.selectedType);
@@ -1401,11 +1495,20 @@ function updateTowers(dt) {
 
     t.target = nearest;
 
-    // Rotate tower turret toward target
+    // Rotate tower turret to aim at target
     if (nearest && t.mesh.userData.turret) {
-      const angle = Math.atan2(nearest.x - t.wx, nearest.z - t.wz);
-      t.mesh.userData.turret.rotation.x = Math.sin(angle) * 0.3;
-      t.mesh.userData.turret.rotation.z = Math.cos(angle) * 0.3;
+      const dx = nearest.x - t.wx;
+      const dz = nearest.z - t.wz;
+      const dist2d = Math.sqrt(dx * dx + dz * dz);
+      if (dist2d > 0.1) {
+        const up = new THREE.Vector3(0, 1, 0);
+        const targetDir = new THREE.Vector3(dx, 1.0 - 0.45, dz).normalize();
+        t.mesh.userData.turret.quaternion.setFromUnitVectors(up, targetDir);
+        // Also rotate the turret ring (yaw) to face target
+        if (t.mesh.userData.ring) {
+          t.mesh.userData.ring.rotation.z = Math.atan2(dx, dz);
+        }
+      }
     }
 
     // Animate special tower visuals
@@ -1432,6 +1535,12 @@ function gameLoop() {
   const dt = Math.min(0.05, clock.getDelta());
 
   if (state.phase === 'playing') {
+    // Place default buildings once hitarea has classified cells
+    if (useHitareaClassification && !state.defaultBuildingsPlaced) {
+      placeDefaultBuildings();
+      state.defaultBuildingsPlaced = true;
+    }
+
     // Update systems
     updateWaves(dt);
     updateEnemies(dt);
@@ -1523,6 +1632,7 @@ function startGame() {
 
   // Reset grid cells
   for (const cell of gridCells) cell.occupied = null;
+  state.defaultBuildingsPlaced = false;
 
   // Reset structure buttons
   const lockedTypes = ['FreezeTower', 'RepelTower', 'NuclearPlant', 'ResearchCenter', 'CheungKong'];
@@ -1546,8 +1656,42 @@ function startGame() {
   updateUI();
 }
 
+/** Place starter buildings at the home island once hitarea classifies cells */
+function placeDefaultBuildings() {
+  // Find unoccupied land cells near center
+  const homeCells = gridCells.filter(c => c.isLand && !c.occupied);
+  // Sort by distance to center
+  homeCells.sort((a, b) => (a.wx*a.wx + a.wz*a.wz) - (b.wx*b.wx + b.wz*b.wz));
+
+  if (homeCells.length < 2) {
+    // Fallback: force-place even if cell classified as sea
+    const forced = gridCells.filter(c => !c.occupied).sort(
+      (a, b) => (a.wx*a.wx + a.wz*a.wz) - (b.wx*b.wx + b.wz*b.wz)
+    );
+    for (const cell of forced.slice(0, 3)) {
+      cell.isLand = true; // override classification
+      const type = cell === forced[0] ? 'PowerPlant' : (cell === forced[1] ? 'University' : 'PowerPlant');
+      placeStructure(cell, type);
+    }
+    return;
+  }
+
+  // Place buildings starting from center outward
+  const placements = [
+    { type: 'PowerPlant', offset: 0 },
+    { type: 'University', offset: 1 },
+    { type: 'PowerPlant', offset: 2 },
+  ];
+  for (const p of placements) {
+    if (p.offset < homeCells.length && !homeCells[p.offset].occupied) {
+      placeStructure(homeCells[p.offset], p.type);
+    }
+  }
+  console.log('DEFAULT BUILDINGS PLACED');
+}
+
 // Debug helper - expose internals for testing
-window.__debug = { state, enemies, towers, projectiles, effects, placeStructure, gridCells, getStructConfig, CONFIG };
+window.__debug = { state, enemies, towers, buildings, projectiles, effects, placeStructure, gridCells, getStructConfig, CONFIG };
 
 // Start / Restart buttons
 document.getElementById('startBtn').addEventListener('click', startGame);
