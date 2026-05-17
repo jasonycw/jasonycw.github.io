@@ -1198,7 +1198,7 @@ function placeStructure(cell, type) {
     cz: cell.cz,
     wx: cell.wx,
     wz: cell.wz,
-    online: true,
+    online: isTower ? !state.powerOutage : true,
     cooldown: 0,
     target: null,
     ...(isTower ? { range: cfg.range } : {})
