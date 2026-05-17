@@ -432,7 +432,7 @@ class GameScene {
         this.createPath();
         this.createLighting();
 
-        // Raycasting helpers reused to avoid allocating per click
+        // Raycasting helpers reused to avoid allocating per click (single plane and raycaster)
         this.raycaster = new THREE.Raycaster();
         const planeGeometry = new THREE.PlaneGeometry(CONFIG.mapWidth + 10, CONFIG.mapHeight + 10);
         this.raycastPlane = new THREE.Mesh(planeGeometry, new THREE.MeshBasicMaterial({ visible: false }));
