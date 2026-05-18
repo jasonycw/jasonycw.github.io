@@ -436,11 +436,35 @@ function playGameOverSound() {
   } catch (e) { /* audio not available */ }
 }
 
+// ==================== BGM CONTROLLER ====================
+const bgm = new Audio('./assets/bgm.mp3');
+bgm.loop = true;
+bgm.volume = 0.4;
+let bgmPlaying = false;
+
+function toggleBGM() {
+  const btn = document.getElementById('musicBtn');
+  if (bgmPlaying) {
+    bgm.pause();
+    bgmPlaying = false;
+    btn.classList.remove('playing');
+    btn.classList.add('muted');
+    btn.textContent = '🎵 BGM';
+  } else {
+    bgm.play().catch(() => {});
+    bgmPlaying = true;
+    btn.classList.add('playing');
+    btn.classList.remove('muted');
+    btn.textContent = '🎵 BGM';
+  }
+}
+
+// Wire up BGM button after DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('musicBtn').addEventListener('click', toggleBGM);
+});
+
 // ==================== SCENERY SHARED GEOMETRIES ====================
-const bldgColors = [0xef5350, 0x42a5f5, 0x66bb6a, 0xffa726, 0xab47bc, 0x26c6da, 0x8d6e63, 0x78909c];
-const roofColors = [0x37474f, 0x455a64, 0x546e7a, 0x616161];
-const bldgHeights = [0.5, 0.8, 1.0, 1.3, 1.6, 2.0];
-const bldgWidths = [0.25, 0.3, 0.35, 0.4];
 const treeTrunkGeom = new THREE.CylinderGeometry(0.03, 0.04, 0.2, 4);
 const treeTrunkMat = new THREE.MeshBasicMaterial({ color: 0x5d4037 });
 const treeCrownGeom = new THREE.ConeGeometry(0.18, 0.25, 6);
@@ -459,14 +483,15 @@ function isSeaAt(wx, wz) {
 }
 
 function spawnEnemy() {
-  // Spawn from the 4 sea-facing directions the user specified:
+  // Spawn from the 4 sea-facing directions:
   // right (0°), bottom-right (45°), bottom (90°), bottom-left (135°)
-  // with ±30° jitter. No negative-X spawns from the western/land side.
+  // with narrow jitter. No negative-X spawns from the western/land side.
   // Camera at (18,18,18): +X=right/east(sea), +Z=bottom/south(sea), -X=left/west(land=China).
   const r = CONFIG.enemySpawnRadius;
   const dirs = [0, Math.PI/4, Math.PI/2, 3*Math.PI/4];
   const dir = dirs[Math.floor(Math.random() * dirs.length)];
-  const angle = dir + (Math.random() - 0.5) * Math.PI/6;
+  // Narrow jitter (±10°) so spawns don't drift into land (west/left) side
+  const angle = dir + (Math.random() - 0.5) * Math.PI/9;
   const x = Math.cos(angle) * r;
   const z = Math.sin(angle) * r;
 
@@ -672,6 +697,11 @@ function updateEnemies(dt) {
     e.mesh.position.z += moveZ * spd;
     e.x = e.mesh.position.x;
     e.z = e.mesh.position.z;
+
+    // Typhoon proximity destroys nearby scenery (blown away as typhoon passes)
+    if (distToCenter > CONFIG.islandRadius + 0.5) {
+      destroySceneryNear(e.x, e.z, 1.8);
+    }
 
     // Update HP bar position
     e.hpBar.bg.position.set(e.x, 1.6, e.z);
@@ -1254,6 +1284,9 @@ function placeStructure(cell, type) {
     return false;
   }
 
+  // Remove any decorative scenery at this cell (so it doesn't clip with the structure)
+  removeSceneryAt(cell.wx, cell.wz);
+
   // Deduct cost
   state.hsi -= cfg.cost;
 
@@ -1778,80 +1811,155 @@ function startGame() {
   updateUI();
 }
 
-/** Populate land cells with decorative scenery */
+/** Populate land with decorative scenery — free-placed (not grid-aligned) */
 function setupScenery() {
-  const HK_RADIUS = 5.5; // buildings only within this distance from center (Hong Kong)
-  const elev = CONFIG.groundY; // sit flush with map surface
+  const elev = CONFIG.groundY;
 
-  // Trees on all unoccupied land cells (sorted by distance so HK-adjacent gets priority)
-  const treeCells = gridCells.filter(c => c.isLand && c.occupied === null)
-    .sort((a, b) => (a.wx*a.wx + a.wz*a.wz) - (b.wx*b.wx + b.wz*b.wz));
+  // --- Skyscraper palette ---
+  const bodyColors = [0x263238, 0x37474F, 0x455A64, 0x546E7A, 0x616161, 0x4E342E, 0x3E2723];
+  const glassColors = [0x1565C0, 0x1976D2, 0x0D47A1, 0x00838F, 0x0277BD, 0x1A237E, 0x00ACC1, 0x2962FF, 0x448AFF, 0x82B1FF];
+  const accentColors = [0xFF6F00, 0xE65100, 0x1B5E20, 0xBF360C, 0x4A148C, 0xC62828];
+  const crownColors = [0x607D8B, 0x78909C, 0x90A4AE, 0xB0BEC5, 0xCFD8DC, 0xECEFF1];
 
-  // Buildings on the nearest cells within HK_RADIUS
-  const bldgCells = treeCells.filter(c => Math.hypot(c.wx, c.wz) < HK_RADIUS);
-  // Remaining cells (outside HK radius) get trees only
-  const outerTreeCells = treeCells.filter(c => Math.hypot(c.wx, c.wz) >= HK_RADIUS);
-
-  // Place buildings on HK cells
-  for (const cell of bldgCells) {
-    const isSkyscraper = Math.random() < 0.35;
-    const h = bldgHeights[Math.floor(Math.random() * bldgHeights.length)];
-    const w = bldgWidths[Math.floor(Math.random() * bldgWidths.length)];
-    const color = bldgColors[Math.floor(Math.random() * bldgColors.length)];
+  // --- Helper: build one realistic skyscraper at (wx, wz) ---
+  function makeSkyscraper(wx, wz) {
     const parts = [];
-    const bldgElem = [];
-    const mat = new THREE.MeshBasicMaterial({ color });
-    const geom = new THREE.BoxGeometry(w, h, w);
-    const body = new THREE.Mesh(geom, mat);
-    body.position.set(cell.wx, elev + h / 2, cell.wz);
+    const allocs = [];
+
+    const totalH = 0.8 + Math.random() * 1.2;
+    const w = 0.08 + Math.random() * 0.08;
+    const bodyColor = bodyColors[Math.floor(Math.random() * bodyColors.length)];
+    const glassColor = glassColors[Math.floor(Math.random() * glassColors.length)];
+    const crownColor = crownColors[Math.floor(Math.random() * crownColors.length)];
+
+    // 1) Main body
+    const bodyMat = new THREE.MeshBasicMaterial({ color: bodyColor });
+    const bodyGeom = new THREE.BoxGeometry(w, totalH, w);
+    const body = new THREE.Mesh(bodyGeom, bodyMat);
+    body.position.set(wx, elev + totalH / 2, wz);
     scene.add(body);
     parts.push(body);
-    bldgElem.push({ mat, geom });
+    allocs.push({ mat: bodyMat, geom: bodyGeom });
 
-    // Roof: slightly wider flat slab on top
-    const roofMat = new THREE.MeshBasicMaterial({ color: roofColors[Math.floor(Math.random() * roofColors.length)] });
-    const roofGeom = new THREE.BoxGeometry(w * 1.1, 0.03, w * 1.1);
-    const roof = new THREE.Mesh(roofGeom, roofMat);
-    roof.position.set(cell.wx, elev + h, cell.wz);
-    scene.add(roof);
-    parts.push(roof);
-    bldgElem.push({ mat: roofMat, geom: roofGeom });
-
-    // Skyscraper: add antenna on top
-    if (isSkyscraper) {
-      const antMat = new THREE.MeshBasicMaterial({ color: 0x616161 });
-      const antGeom = new THREE.CylinderGeometry(0.01, 0.015, 0.15, 3);
-      const ant = new THREE.Mesh(antGeom, antMat);
-      ant.position.set(cell.wx, elev + h + 0.08, cell.wz);
-      scene.add(ant);
-      parts.push(ant);
-      bldgElem.push({ mat: antMat, geom: antGeom });
-      // Small red tip light
-      const tipMat = new THREE.MeshBasicMaterial({ color: 0xff1744 });
-      const tipGeom = new THREE.SphereGeometry(0.015, 4, 4);
-      const tip = new THREE.Mesh(tipGeom, tipMat);
-      tip.position.set(cell.wx, elev + h + 0.16, cell.wz);
-      scene.add(tip);
-      parts.push(tip);
-      bldgElem.push({ mat: tipMat, geom: tipGeom });
+    // 2) Window bands at regular intervals
+    const bandH = 0.025;
+    const bandSpread = 0.02;
+    const bandMat = new THREE.MeshBasicMaterial({ color: glassColor });
+    const bandGeom = new THREE.BoxGeometry(w + bandSpread, bandH, w + bandSpread);
+    const bandInterval = 0.25 + Math.random() * 0.15;
+    const bandCount = Math.floor(Math.max(0, totalH - 0.4) / bandInterval);
+    for (let i = 0; i < bandCount; i++) {
+      const yPos = 0.2 + i * bandInterval + bandH / 2;
+      if (yPos + bandH / 2 > totalH) break;
+      const band = new THREE.Mesh(bandGeom, bandMat);
+      band.position.set(wx, elev + yPos, wz);
+      scene.add(band);
+      parts.push(band);
+      allocs.push({ mat: bandMat, geom: bandGeom });
     }
 
-    scenery.push({ type: 'building', parts, worldX: cell.wx, worldZ: cell.wz, alive: true, allocs: bldgElem });
+    // 3) Crown / top
+    const crownW = w * (0.5 + Math.random() * 0.25);
+    const crownH = 0.15 + Math.random() * 0.2;
+    const crownMat = new THREE.MeshBasicMaterial({ color: crownColor });
+    const crownGeom = new THREE.BoxGeometry(crownW, crownH, crownW);
+    const crown = new THREE.Mesh(crownGeom, crownMat);
+    crown.position.set(wx, elev + totalH - crownH / 2, wz);
+    scene.add(crown);
+    parts.push(crown);
+    allocs.push({ mat: crownMat, geom: crownGeom });
+
+    // 4) Antenna (40%)
+    if (Math.random() < 0.4) {
+      const antMat = new THREE.MeshBasicMaterial({ color: 0x616161 });
+      const antH = 0.15 + Math.random() * 0.2;
+      const antGeom = new THREE.CylinderGeometry(0.008, 0.012, antH, 3);
+      const ant = new THREE.Mesh(antGeom, antMat);
+      ant.position.set(wx, elev + totalH + antH / 2, wz);
+      scene.add(ant);
+      parts.push(ant);
+      allocs.push({ mat: antMat, geom: antGeom });
+      // Red tip light
+      const tipMat = new THREE.MeshBasicMaterial({ color: 0xFF1744 });
+      const tipGeom = new THREE.SphereGeometry(0.012, 4, 4);
+      const tip = new THREE.Mesh(tipGeom, tipMat);
+      tip.position.set(wx, elev + totalH + antH + 0.01, wz);
+      scene.add(tip);
+      parts.push(tip);
+      allocs.push({ mat: tipMat, geom: tipGeom });
+    }
+
+    // 5) Accent ring (30%)
+    if (Math.random() < 0.3) {
+      const accColor = accentColors[Math.floor(Math.random() * accentColors.length)];
+      const accMat = new THREE.MeshBasicMaterial({ color: accColor });
+      const accH = 0.03;
+      const accGeom = new THREE.BoxGeometry(w * 1.15, accH, w * 1.15);
+      const accRing = new THREE.Mesh(accGeom, accMat);
+      accRing.position.set(wx, elev + totalH * 0.85, wz);
+      scene.add(accRing);
+      parts.push(accRing);
+      allocs.push({ mat: accMat, geom: accGeom });
+    }
+
+    scenery.push({ type: 'building', parts, worldX: wx, worldZ: wz, alive: true, allocs });
   }
 
-  // Place trees on outer cells (and some among buildings too)
-  for (const cell of outerTreeCells) {
+  // --- Helper: mid-rise ---
+  function makeMidrise(wx, wz) {
+    const parts = [];
+    const allocs = [];
+    const totalH = 0.6 + Math.random() * 0.8;
+    const w = 0.14 + Math.random() * 0.1;
+    const color = bodyColors[Math.floor(Math.random() * bodyColors.length)];
+
+    const bodyMat = new THREE.MeshBasicMaterial({ color });
+    const bodyGeom = new THREE.BoxGeometry(w, totalH, w);
+    const body = new THREE.Mesh(bodyGeom, bodyMat);
+    body.position.set(wx, elev + totalH / 2, wz);
+    scene.add(body);
+    parts.push(body);
+    allocs.push({ mat: bodyMat, geom: bodyGeom });
+
+    const roofMat = new THREE.MeshBasicMaterial({ color: crownColors[Math.floor(Math.random() * crownColors.length)] });
+    const roofGeom = new THREE.BoxGeometry(w * 1.05, 0.03, w * 1.05);
+    const roof = new THREE.Mesh(roofGeom, roofMat);
+    roof.position.set(wx, elev + totalH, wz);
+    scene.add(roof);
+    parts.push(roof);
+    allocs.push({ mat: roofMat, geom: roofGeom });
+
+    scenery.push({ type: 'building', parts, worldX: wx, worldZ: wz, alive: true, allocs });
+  }
+
+  // === SKYSCRAPERS: free-placed tightly clustered near Hong Kong center ===
+  const numSkyscrapers = 4 + Math.floor(Math.random() * 4); // 4-7
+  for (let i = 0; i < numSkyscrapers; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 0.3 + Math.random() * 1.5; // 0.3–1.8 from center
+    const wx = Math.cos(angle) * dist;
+    const wz = Math.sin(angle) * dist;
+    if (Math.random() < 0.7) makeSkyscraper(wx, wz);
+    else makeMidrise(wx, wz);
+  }
+
+  // === TREES: free-placed on land cells with jitter ===
+  const landCells = gridCells.filter(c => c.isLand && c.occupied === null);
+  for (const cell of landCells) {
+    // 60% chance per cell; jitter offset ±0.3
+    if (Math.random() > 0.6) continue;
+    const jx = cell.wx + (Math.random() - 0.5) * 0.6;
+    const jz = cell.wz + (Math.random() - 0.5) * 0.6;
     const trunk = new THREE.Mesh(treeTrunkGeom, treeTrunkMat);
-    trunk.position.set(cell.wx, elev + 0.1, cell.wz);
+    trunk.position.set(jx, elev + 0.1, jz);
     scene.add(trunk);
-    const crown = new THREE.Mesh(treeCrownGeom, treeCrownMat);
-    crown.position.set(cell.wx, elev + 0.35, cell.wz);
-    scene.add(crown);
-    // Second denser crown layer
+    const crown1 = new THREE.Mesh(treeCrownGeom, treeCrownMat);
+    crown1.position.set(jx, elev + 0.35, jz);
+    scene.add(crown1);
     const crown2 = new THREE.Mesh(treeCrown2Geom, treeCrown2Mat);
-    crown2.position.set(cell.wx, elev + 0.25, cell.wz);
+    crown2.position.set(jx, elev + 0.25, jz);
     scene.add(crown2);
-    scenery.push({ type: 'tree', parts: [trunk, crown, crown2], worldX: cell.wx, worldZ: cell.wz, alive: true });
+    scenery.push({ type: 'tree', parts: [trunk, crown1, crown2], worldX: jx, worldZ: jz, alive: true });
   }
 }
 
@@ -1860,23 +1968,27 @@ function destroySceneryNear(wx, wz, radius) {
   const hit = scenery.filter(s => s.alive && Math.hypot(s.worldX - wx, s.worldZ - wz) < radius);
   for (const s of hit) {
     s.alive = false;
+    // Remove all meshes from scene first
     for (const part of s.parts) {
       scene.remove(part);
-      // Only dispose non-shared geometries/materials
-      if (s.type === 'building' && s.allocs) {
-        for (const a of s.allocs) {
-          if (a.geom) a.geom.dispose();
-          if (a.mat) a.mat.dispose();
+    }
+    // Dispose geometries/materials
+    if (s.type === 'building' && s.allocs) {
+      for (const a of s.allocs) {
+        if (a.geom) a.geom.dispose();
+        if (a.mat) a.mat.dispose();
+      }
+    } else {
+      // Trees — dispose per-part, skip shared geometries
+      for (const part of s.parts) {
+        if (part.geometry &&
+            part !== treeTrunkGeom && part !== treeCrownGeom && part !== treeCrown2Geom) {
+          part.geometry.dispose();
         }
-        break; // handled via allocs, skip per-part disposal
-      }
-      if (part.geometry &&
-          part !== treeTrunkGeom && part !== treeCrownGeom && part !== treeCrown2Geom) {
-        part.geometry.dispose();
-      }
-      if (part.material &&
-          part !== treeTrunkMat && part !== treeCrownMat && part !== treeCrown2Mat) {
-        part.material.dispose();
+        if (part.material &&
+            part !== treeTrunkMat && part !== treeCrownMat && part !== treeCrown2Mat) {
+          part.material.dispose();
+        }
       }
     }
     // Spawn debris burst
@@ -1886,7 +1998,7 @@ function destroySceneryNear(wx, wz, radius) {
       const speed = 1 + Math.random() * 2;
       const dGeom = new THREE.SphereGeometry(0.04, 3, 3);
       const dMat = new THREE.MeshBasicMaterial({
-        color: s.type === 'tree' ? 0x4caf50 : bldgColors[Math.floor(Math.random() * bldgColors.length)],
+        color: s.type === 'tree' ? 0x4caf50 : 0x78909C,
         transparent: true, opacity: 1
       });
       const dMesh = new THREE.Mesh(dGeom, dMat);
@@ -1897,6 +2009,21 @@ function destroySceneryNear(wx, wz, radius) {
         _vx: Math.cos(angle) * speed, _vz: Math.sin(angle) * speed,
         _vy: 1.2 + Math.random() * 1.5, _burst: true
       });
+    }
+  }
+}
+
+/** Silently remove scenery at a world position (no debris burst — used when player builds on a cell) */
+function removeSceneryAt(wx, wz) {
+  const hit = scenery.filter(s => s.alive && Math.hypot(s.worldX - wx, s.worldZ - wz) < 0.6);
+  for (const s of hit) {
+    s.alive = false;
+    for (const part of s.parts) scene.remove(part);
+    if (s.type === 'building' && s.allocs) {
+      for (const a of s.allocs) {
+        if (a.geom) a.geom.dispose();
+        if (a.mat) a.mat.dispose();
+      }
     }
   }
 }
