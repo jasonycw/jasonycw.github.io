@@ -1,0 +1,87 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #000;
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+#game-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+#ui-overlay {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    pointer-events: none;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+}
+
+#info-panel {
+    background: rgba(0, 0, 0, 0.6);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin-bottom: 20px;
+    pointer-events: auto;
+}
+
+#info-panel h1 {
+    margin: 0 0 10px 0;
+    font-size: 24px;
+    color: #00f2ff;
+}
+
+#info-panel p {
+    margin: 5px 0;
+    font-size: 18px;
+}
+
+#tower-selection {
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.tower-btn {
+    background: rgba(50, 50, 50, 0.8);
+    color: white;
+    border: 2px solid #555;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.tower-btn:hover {
+    background: rgba(80, 80, 80, 0.9);
+    border-color: #888;
+}
+
+.tower-btn.active {
+    background: #005f73;
+    border-color: #00f2ff;
+    box-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+}
+
+#start-button {
+    pointer-events: auto;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
