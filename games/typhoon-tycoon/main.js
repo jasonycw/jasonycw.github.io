@@ -376,11 +376,11 @@ function isSeaAt(wx, wz) {
 }
 
 function spawnEnemy() {
-  // Spawn from sea-facing angles only (southeast→south→southwest)
-  // Camera is at (18,18,18) so points at Z=0 appear in the upper/land part of screen.
-  // Constrain to [π/6, 5π/6] = 30° to 150° giving Z >= 8 (clearly in southern sea)
+  // Spawn from sea-facing directions only: right → bottom-right → bottom → bottom-left
+  // [0, 3π/4] = 0° to 135° excludes the western/land side (negative-X angles).
+  // Camera at (18,18,18): +X=right/east, +Z=bottom/south, -X=left/west(=land=China).
   const r = CONFIG.enemySpawnRadius;
-  const angle = Math.PI / 6 + Math.random() * Math.PI * 2 / 3; // π/6 to 5π/6
+  const angle = Math.random() * Math.PI * 3 / 4; // 0 to 3π/4
   const x = Math.cos(angle) * r;
   const z = Math.sin(angle) * r;
 
