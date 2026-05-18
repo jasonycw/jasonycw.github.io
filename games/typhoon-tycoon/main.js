@@ -627,6 +627,8 @@ function spawnEnemy() {
     repelX: 0,
     repelZ: 0,
     alive: true,
+    passedHK: false,  // has entered HK zone
+    clearedHK: false, // has left HK zone after entering
     // Trajectory turning
     turnRate: 0.3 + Math.random() * 0.5, // radians/sec of random drift
     wobbleSpeed: 0.5 + Math.random() * 1.5,
@@ -659,9 +661,18 @@ function updateEnemies(dt) {
     // Random drift (creates organic curved paths)
     e.moveAngle += (Math.random() - 0.5) * e.turnRate * dt;
 
+    // After clearing HK, gently push outward to prevent lingering near center
+    if (e.clearedHK) {
+      const exitAngle = Math.atan2(e.z, e.x); // away from center
+      const angleDiff = e.moveAngle - exitAngle;
+      // Normalize to [-PI, PI]
+      const normDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff));
+      e.moveAngle -= normDiff * 0.3 * dt; // steer toward outward direction
+    }
+
     // Sinusoidal wobble (adds weave perpendicular to direction)
     const wobble = Math.sin(state.gameTime * e.wobbleSpeed + e.wobblePhase) * e.wobbleAmp;
-    e.moveAngle += wobble * 0.02 * dt;
+    e.moveAngle += wobble * dt;
 
     // Slow effect reduces effective speed, not angle
     let spd = e.speed * dt;
@@ -732,14 +743,20 @@ function updateEnemies(dt) {
     const hpColor = hpRatio > 0.5 ? 0x66bb6a : (hpRatio > 0.25 ? 0xffa726 : 0xef5350);
     e.hpBar.fill.material.color.setHex(hpColor);
 
-    // === Continuous HSI drain while covering HK ===
+    // === HSI drain while typhoon covers HK (once per pass) ===
     if (distToCenter < CONFIG.islandRadius + 0.5) {
-      const hsiDrain = e.hp * 0.03 * dt; // % of current HP per frame
-      state.hsi -= hsiDrain;
-      if (state.hsi <= 0) {
-        state.hsi = 0;
-        gameOver();
+      if (!e.passedHK) e.passedHK = true;
+      if (!e.clearedHK && e.passedHK) {
+        const hsiDrain = e.hp * 0.01 * dt; // 1% of HP per second
+        state.hsi -= hsiDrain;
+        if (state.hsi <= 0) {
+          state.hsi = 0;
+          gameOver();
+        }
       }
+    } else if (e.passedHK && !e.clearedHK) {
+      // Typhoon has left HK zone — mark cleared to prevent further drain
+      e.clearedHK = true;
     }
 
     // === 3D typhoon animations ===
