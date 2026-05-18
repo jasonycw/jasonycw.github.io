@@ -1,0 +1,118 @@
+import * as THREE from 'three';
+import { scene } from './three-setup.js';
+
+// ==================== VISUAL EFFECTS ====================
+export const effects = [];
+
+export function spawnEffect(x, y, z, color, duration) {
+  const geom = new THREE.SphereGeometry(0.1, 6, 6);
+  const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1 });
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.position.set(x, y, z);
+  scene.add(mesh);
+  effects.push({ mesh, mat, geom, life: duration, maxLife: duration });
+}
+
+/** Multi-particle burst flying outward from a point */
+export function spawnBurst(x, y, z, color, count) {
+  const n = count || 8;
+  for (let i = 0; i < n; i++) {
+    const angle = (i / n) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+    const speed = 1.5 + Math.random() * 3;
+    const geom = new THREE.SphereGeometry(0.04, 4, 4);
+    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1 });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.position.set(x, y, z);
+    scene.add(mesh);
+    effects.push({
+      mesh, mat, life: 0.5, maxLife: 0.5, geom,
+      _vx: Math.cos(angle) * speed,
+      _vz: Math.sin(angle) * speed,
+      _vy: 0.8 + Math.random() * 1.5,
+      _burst: true
+    });
+  }
+}
+
+/** Thin glowing beam between two points (for LaserTower) */
+export function spawnLaserBeam(x1, y1, z1, x2, y2, z2, color) {
+  const start = new THREE.Vector3(x1, y1, z1);
+  const end = new THREE.Vector3(x2, y2, z2);
+  const dir = end.clone().sub(start);
+  const len = dir.length();
+  if (len < 0.1) return;
+  const cols = color || 0xffeb3b;
+
+  // Core line
+  const lineGeom = new THREE.BufferGeometry().setFromPoints([start, end]);
+  const lineMat = new THREE.LineBasicMaterial({
+    color: cols,
+    transparent: true,
+    opacity: 0.95,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: false
+  });
+  const line = new THREE.Line(lineGeom, lineMat);
+  scene.add(line);
+  effects.push({ mesh: line, mat: lineMat, life: 0.2, maxLife: 0.2, geom: lineGeom, _laserBeam: true });
+
+  // Glow spheres: 5 small bright spheres scattered along the beam
+  for (let i = 0; i < 5; i++) {
+    const t = (i + 1) / 6;
+    const pos = start.clone().add(dir.clone().multiplyScalar(t));
+    const r = 0.04 + t * 0.06;
+    const geom = new THREE.SphereGeometry(r, 6, 6);
+    const mat = new THREE.MeshBasicMaterial({
+      color: cols, transparent: true, opacity: 1,
+      blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false
+    });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.position.copy(pos);
+    scene.add(mesh);
+    effects.push({ mesh, mat, life: 0.2, maxLife: 0.2, geom, _laserBeam: true });
+  }
+}
+
+/** Spawn muzzle flash at the computed barrel tip position */
+export function spawnLaserMuzzle(tower, target) {
+  const dx = target.x - tower.wx;
+  const dz = target.z - tower.wz;
+  const aimDist = Math.sqrt(dx * dx + 0.55 * 0.55 + dz * dz);
+  if (aimDist > 0.01) {
+    const bx = tower.wx + 0.35 * dx / aimDist;
+    const by = 0.45 + 0.35 * 0.55 / aimDist;
+    const bz = tower.wz + 0.35 * dz / aimDist;
+    spawnEffect(bx, by, bz, 0xffeb3b, 0.15);
+    spawnEffect(bx, by, bz, 0xffffff, 0.08);
+  }
+}
+
+export function updateEffects(dt) {
+  for (let i = effects.length - 1; i >= 0; i--) {
+    const e = effects[i];
+    e.life -= dt;
+    if (e.life <= 0) {
+      scene.remove(e.mesh);
+      e.mat.dispose();
+      if (e.geom) e.geom.dispose();
+      effects.splice(i, 1);
+      continue;
+    }
+    const ratio = e.life / e.maxLife;
+    e.mat.opacity = ratio;
+
+    if (e._burst) {
+      // Burst particles fly outward with gravity
+      e.mesh.position.x += e._vx * dt;
+      e.mesh.position.z += e._vz * dt;
+      e.mesh.position.y += e._vy * dt;
+      e._vx *= 0.96;
+      e._vz *= 0.96;
+      e._vy -= 2.5 * dt;
+      e.mesh.scale.setScalar(0.8 + (1 - ratio) * 0.6);
+    } else if (!e._laserBeam) {
+      e.mesh.scale.setScalar(1 + (1 - ratio) * 2);
+    }
+  }
+}
