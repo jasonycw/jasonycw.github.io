@@ -273,6 +273,7 @@ const towers = [];
 const buildings = [];
 const projectiles = [];
 const effects = []; // visual effects
+const scenery = []; // decorative scenery (buildings, trees)
 
 // ==================== HSI / POWER UPDATE ====================
 function getAvailablePower() {
@@ -365,6 +366,85 @@ const hpBarBgGeom = new THREE.BoxGeometry(0.8, 0.04, 0.06);
 const hpBarFillMat = new THREE.MeshBasicMaterial({ color: 0x66bb6a });
 const hpBarFillGeom = new THREE.BoxGeometry(0.76, 0.04, 0.05);
 
+// ==================== AUDIO ====================
+let audioCtx = null;
+function getAudioCtx() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
+
+function playLaserSound() {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.1);
+  } catch (e) { /* audio not available */ }
+}
+
+function playExplosionSound() {
+  try {
+    const ctx = getAudioCtx();
+    const bufSize = ctx.sampleRate * 0.3;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 2);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    src.connect(gain).connect(ctx.destination);
+    src.start(ctx.currentTime);
+  } catch (e) { /* audio not available */ }
+}
+
+function playHitSound() {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(220, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.15);
+  } catch (e) { /* audio not available */ }
+}
+
+function playGameOverSound() {
+  try {
+    const ctx = getAudioCtx();
+    for (let i = 0; i < 4; i++) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(400 - i * 80, ctx.currentTime + i * 0.15);
+      gain.gain.setValueAtTime(0.06, ctx.currentTime + i * 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.3);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.15);
+      osc.stop(ctx.currentTime + i * 0.15 + 0.3);
+    }
+  } catch (e) { /* audio not available */ }
+}
+
+// ==================== SCENERY SHARED GEOMETRIES ====================
+const bldgColors = [0xef5350, 0x42a5f5, 0x66bb6a, 0xffa726, 0xab47bc, 0x26c6da, 0x8d6e63, 0x78909c];
+const bldgHeights = [0.5, 0.8, 1.0, 1.3, 1.6, 2.0];
+const bldgWidths = [0.25, 0.3, 0.35, 0.4];
+const treeTrunkGeom = new THREE.CylinderGeometry(0.03, 0.04, 0.2, 4);
+const treeTrunkMat = new THREE.MeshBasicMaterial({ color: 0x5d4037 });
+const treeCrownGeom = new THREE.ConeGeometry(0.15, 0.25, 6);
+const treeCrownMat = new THREE.MeshBasicMaterial({ color: 0x4caf50 });
+
 /** Check if a world position is over sea (using hitarea-classified grid) */
 function isSeaAt(wx, wz) {
   const cx = Math.round(wx / CONFIG.cellSize);
@@ -376,11 +456,14 @@ function isSeaAt(wx, wz) {
 }
 
 function spawnEnemy() {
-  // Spawn from sea-facing directions only: right → bottom-right → bottom → bottom-left
-  // [0, 3π/4] = 0° to 135° excludes the western/land side (negative-X angles).
-  // Camera at (18,18,18): +X=right/east, +Z=bottom/south, -X=left/west(=land=China).
+  // Spawn from the 4 sea-facing directions the user specified:
+  // right (0°), bottom-right (45°), bottom (90°), bottom-left (135°)
+  // with ±30° jitter. No negative-X spawns from the western/land side.
+  // Camera at (18,18,18): +X=right/east(sea), +Z=bottom/south(sea), -X=left/west(land=China).
   const r = CONFIG.enemySpawnRadius;
-  const angle = Math.random() * Math.PI * 3 / 4; // 0 to 3π/4
+  const dirs = [0, Math.PI/4, Math.PI/2, 3*Math.PI/4];
+  const dir = dirs[Math.floor(Math.random() * dirs.length)];
+  const angle = dir + (Math.random() - 0.5) * Math.PI/6;
   const x = Math.cos(angle) * r;
   const z = Math.sin(angle) * r;
 
@@ -628,8 +711,12 @@ function updateEnemies(dt) {
       }
       document.getElementById('livesDisplay').textContent = state.lives;
 
-      // Spawn damage effect
-      spawnEffect(e.x, 0.2, e.z, 0xff1744, 0.8);
+      // Spawn explosion effects
+      spawnBurst(e.x, 0.2, e.z, 0xff1744, 12);
+      spawnBurst(e.x, 0.2, e.z, 0xff6d00, 8);
+      spawnBurst(e.x, 0.2, e.z, 0xffffff, 4);
+      destroySceneryNear(e.x, e.z, 3.0);
+      playExplosionSound();
 
       removeEnemy(i);
       continue;
@@ -674,6 +761,7 @@ function damageEnemy(enemy, damage) {
     // Explosion burst
     spawnBurst(enemy.x, 0.5, enemy.z, 0xffab00, 12);
     spawnEffect(enemy.x, 0.5, enemy.z, 0xff6d00, 0.4);
+    playHitSound();
     const idx = enemies.indexOf(enemy);
     if (idx !== -1) removeEnemy(idx);
   }
@@ -883,6 +971,7 @@ function fireProjectile(tower) {
 
     // Muzzle flash at barrel tip (computed from barrel rotation)
     spawnLaserMuzzle(tower, target);
+    playLaserSound();
 
     // Deal damage immediately
     const cfg = getStructConfig('LaserTower');
@@ -1306,6 +1395,7 @@ function gameOver() {
   document.getElementById('gameover').classList.remove('hidden');
   document.getElementById('gameoverStat').textContent =
     `Wave ${state.wave} | Enemies destroyed: ${state.enemiesKilled} | Time: ${Math.floor(state.gameTime)}s`;
+  playGameOverSound();
 }
 
 function winGame() {
@@ -1543,6 +1633,7 @@ function gameLoop() {
     // Place default buildings once hitarea has classified cells
     if (useHitareaClassification && !state.defaultBuildingsPlaced) {
       placeDefaultBuildings();
+      setupScenery();
       state.defaultBuildingsPlaced = true;
     }
 
@@ -1622,6 +1713,16 @@ function startGame() {
   }
   effects.length = 0;
 
+  // Clear scenery
+  for (const s of scenery) {
+    for (const part of s.parts) {
+      scene.remove(part);
+      if (part.geometry && part !== treeTrunkGeom && part !== treeCrownGeom) part.geometry.dispose();
+      if (part.material && part !== treeTrunkMat && part !== treeCrownMat) part.material.dispose();
+    }
+  }
+  scenery.length = 0;
+
   // Remove all placed structures
   for (const t of towers) {
     scene.remove(t.mesh);
@@ -1668,6 +1769,68 @@ function startGame() {
   updateUI();
 }
 
+/** Populate remaining land cells with decorative buildings and trees */
+function setupScenery() {
+  const cells = gridCells.filter(c => c.isLand && c.occupied === null);
+  for (let i = 0; i < cells.length; i++) {
+    const cell = cells[i];
+    // Alternate: every 2nd cell gets a tree, rest get a building
+    if (i % 3 === 0) {
+      // Tree
+      const trunk = new THREE.Mesh(treeTrunkGeom, treeTrunkMat);
+      trunk.position.set(cell.wx, CONFIG.islandHeight + 0.1, cell.wz);
+      scene.add(trunk);
+      const crown = new THREE.Mesh(treeCrownGeom, treeCrownMat);
+      crown.position.set(cell.wx, CONFIG.islandHeight + 0.35, cell.wz);
+      scene.add(crown);
+      scenery.push({ type: 'tree', parts: [trunk, crown], worldX: cell.wx, worldZ: cell.wz, alive: true });
+    } else {
+      // Building
+      const h = bldgHeights[Math.floor(Math.random() * bldgHeights.length)];
+      const w = bldgWidths[Math.floor(Math.random() * bldgWidths.length)];
+      const color = bldgColors[Math.floor(Math.random() * bldgColors.length)];
+      const geom = new THREE.BoxGeometry(w, h, w);
+      const mat = new THREE.MeshBasicMaterial({ color });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.position.set(cell.wx, CONFIG.islandHeight + h / 2, cell.wz);
+      scene.add(mesh);
+      scenery.push({ type: 'building', parts: [mesh], worldX: cell.wx, worldZ: cell.wz, alive: true, geom, mat });
+    }
+  }
+}
+
+/** Destroy and burst scenery within a radius of a world position */
+function destroySceneryNear(wx, wz, radius) {
+  const hit = scenery.filter(s => s.alive && Math.hypot(s.worldX - wx, s.worldZ - wz) < radius);
+  for (const s of hit) {
+    s.alive = false;
+    for (const part of s.parts) {
+      scene.remove(part);
+      if (part.geometry) part.geometry.dispose();
+      if (part.material) part.material.dispose();
+    }
+    // Spawn debris burst
+    const debrisCount = s.type === 'building' ? 6 : 3;
+    for (let i = 0; i < debrisCount; i++) {
+      const angle = (i / debrisCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+      const speed = 1 + Math.random() * 2;
+      const dGeom = new THREE.SphereGeometry(0.04, 3, 3);
+      const dMat = new THREE.MeshBasicMaterial({
+        color: s.type === 'tree' ? 0x4caf50 : bldgColors[Math.floor(Math.random() * bldgColors.length)],
+        transparent: true, opacity: 1
+      });
+      const dMesh = new THREE.Mesh(dGeom, dMat);
+      dMesh.position.set(s.worldX, CONFIG.islandHeight + 0.2, s.worldZ);
+      scene.add(dMesh);
+      effects.push({
+        mesh: dMesh, mat: dMat, life: 0.6, maxLife: 0.6, geom: dGeom,
+        _vx: Math.cos(angle) * speed, _vz: Math.sin(angle) * speed,
+        _vy: 1.2 + Math.random() * 1.5, _burst: true
+      });
+    }
+  }
+}
+
 /** Place starter buildings at the home island once hitarea classifies cells */
 function placeDefaultBuildings() {
   // Find unoccupied land cells near center
@@ -1703,7 +1866,7 @@ function placeDefaultBuildings() {
 }
 
 // Debug helper - expose internals for testing
-window.__debug = { state, enemies, towers, buildings, projectiles, effects, placeStructure, gridCells, getStructConfig, CONFIG };
+window.__debug = { state, enemies, towers, buildings, projectiles, effects, placeStructure, gridCells, getStructConfig, CONFIG, scenery };
 
 // Start / Restart buttons
 document.getElementById('startBtn').addEventListener('click', startGame);
