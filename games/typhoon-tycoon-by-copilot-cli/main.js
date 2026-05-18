@@ -22,6 +22,7 @@ const CONFIG = {
         strong: { speed: 1.5, health: 40, reward: 30 },
         default: { speed: 2.5, health: 20, reward: 15 }
     },
+    mixedEnemyFastRatio: 0.4, // Probability of spawning 'fast' in mixed waves (0.4 = 40% fast, 60% strong)
 
     // Tower settings
     towers: {
@@ -275,7 +276,7 @@ class WaveManager {
             this.spawnTimer -= deltaTime;
             if (this.spawnTimer <= 0) {
                 const enemyType = waveConfig.enemyType === 'mixed'
-                    ? (Math.random() > 0.6 ? 'fast' : 'strong')
+                    ? (Math.random() < CONFIG.mixedEnemyFastRatio ? 'fast' : 'strong')
                     : waveConfig.enemyType;
                 const enemy = new Enemy(this.pathWaypoints, enemyType);
                 this.enemies.push(enemy);
@@ -617,6 +618,19 @@ class UIManager {
         this.placeTowerBtn.addEventListener('click', () => this.onPlaceTowerClick());
         this.restartBtn.addEventListener('click', () => this.onRestartClick());
         this.startBtn.addEventListener('click', () => this.onStartClick());
+
+        // Set total wave count from CONFIG
+        this.updateWaveCountDisplay();
+    }
+
+    updateWaveCountDisplay() {
+        const totalWaves = CONFIG.waveConfigs.length;
+        // Update the displayed total waves (the first span updates per-game, the second is total)
+        const waveUI = document.querySelector('.stat.wave');
+        if (waveUI) {
+            waveUI.innerHTML = `Wave: <span id="wave-count">1</span> / ${totalWaves}`;
+            this.waveCountEl = document.getElementById('wave-count');
+        }
     }
 
     // Simple non-blocking notification shown in the UI overlay (avoids blocking alerts)
@@ -705,10 +719,6 @@ class TyphoonTycoonGame {
         this.scene = new GameScene(this.container);
         this.waveManager = new WaveManager(this.scene.pathWaypoints);
         this.ui = new UIManager();
-
-        // Wire up simple callbacks so WaveManager can notify about kills/reaches
-        this.waveManager.onEnemyReached = (enemy) => { this.gameState.damageBase(1); };
-        this.waveManager.onEnemyKilled = (enemy) => { this.gameState.earnMoney(enemy.reward); };
 
         this.towerPlacementMode = false;
         this.selectedPlacementLocation = null;
