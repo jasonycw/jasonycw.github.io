@@ -247,3 +247,31 @@ body {
   z-index: 5;
   opacity: 0.6;
 }
+
+/* Music toggle button */
+#musicBtn {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  background: rgba(20, 30, 60, 0.8);
+  color: #ccc;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.4rem 0.7rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.15s;
+  z-index: 10;
+}
+#musicBtn:hover {
+  border-color: #4fc3f7;
+  color: #fff;
+  background: rgba(30, 50, 90, 0.9);
+}
+#musicBtn.playing {
+  border-color: #4fc3f7;
+  color: #8ff4ff;
+}
+#musicBtn.muted {
+  opacity: 0.5;
+}
