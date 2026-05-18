@@ -443,18 +443,15 @@ function toggleBGM() {
   if (bgmPlaying) {
     bgm.pause();
     bgmPlaying = false;
-    btn.classList.remove('playing');
-    btn.classList.add('muted');
     btn.textContent = '🎵 BGM';
   } else {
-    bgm.play().catch(() => {});
+    bgm.play().catch(err => {
+      console.warn('BGM play failed:', err);
+    });
     bgmPlaying = true;
-    btn.classList.add('playing');
-    btn.classList.remove('muted');
-    btn.textContent = '🎵 BGM';
+    btn.textContent = '🔊 BGM';
   }
 }
-
 // Wire up BGM button after DOM ready
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('musicBtn').addEventListener('click', toggleBGM);
@@ -491,14 +488,14 @@ function spawnEnemy() {
   const x = Math.cos(angle) * r;
   const z = Math.sin(angle) * r;
 
-  const baseHp = CONFIG.enemyBaseHP + state.gameTime * 1.5;
+  const baseHp = CONFIG.enemyBaseHP + state.gameTime * 4;
   const hp = Math.round(baseHp * (0.8 + Math.random() * 0.4));
 
   // ===================== 3D TyPhoon (volumetric cyclone) =====================
   const typhoonGroup = new THREE.Group();
   typhoonGroup.position.set(x, 1.2, z);
   // Initial size proportional to HP; will be updated dynamically each frame
-  typhoonGroup.scale.setScalar(0.4 + (hp / (CONFIG.enemyBaseHP + state.gameTime * 1.5)) * 1.1);
+  typhoonGroup.scale.setScalar(0.4 + (hp / (CONFIG.enemyBaseHP + state.gameTime * 4)) * 1.1);
 
   // All typhoon materials — for cleanup / opacity-from-HP traversal
   const allTyphoonMats = [];
@@ -620,7 +617,7 @@ function spawnEnemy() {
     x, z,
     hp,
     maxHp: hp,
-    speed: CONFIG.enemyBaseSpeed + state.gameTime / 100,
+    speed: CONFIG.enemyBaseSpeed + state.gameTime / 50,
     moveAngle: Math.atan2(-z, -x), // direction of travel (radians, toward center initially)
     isSlowed: 0,
     slowFactor: 0,
@@ -1370,7 +1367,7 @@ function updateWaves(dt) {
     // Start new wave
     state.wave++;
     state.enemiesSpawnedInWave = 0;
-    state.enemiesPerWave = Math.min(3 + state.wave, 15);
+    state.enemiesPerWave = Math.min(3 + state.wave * 2, 30);
     state.spawnTimer = 0;
     state.waveTimer = CONFIG.waveSpawnInterval + Math.max(0, 10 - state.wave * 0.5);
 
@@ -1385,7 +1382,7 @@ function updateWaves(dt) {
     if (state.spawnTimer <= 0 && state.enemiesSpawnedInWave < state.enemiesPerWave) {
       spawnEnemy();
       state.enemiesSpawnedInWave++;
-      state.spawnTimer = 0.8 + Math.random() * 0.4;
+      state.spawnTimer = Math.max(0.3, 0.8 - state.wave * 0.03) + Math.random() * 0.3;
     }
   }
 
