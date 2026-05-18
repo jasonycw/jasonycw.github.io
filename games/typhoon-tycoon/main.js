@@ -491,15 +491,14 @@ function spawnEnemy() {
   const x = Math.cos(angle) * r;
   const z = Math.sin(angle) * r;
 
-  // Randomize typhoon size (0.6-1.5) — HP proportional, group scaled
-  const size = 0.6 + Math.random() * 0.9;
   const baseHp = CONFIG.enemyBaseHP + state.gameTime * 1.5;
-  const hp = Math.round(baseHp * (0.4 + size * 0.6));
+  const hp = Math.round(baseHp * (0.8 + Math.random() * 0.4));
 
   // ===================== 3D TyPhoon (volumetric cyclone) =====================
   const typhoonGroup = new THREE.Group();
   typhoonGroup.position.set(x, 1.2, z);
-  typhoonGroup.scale.setScalar(size);
+  // Initial size proportional to HP; will be updated dynamically each frame
+  typhoonGroup.scale.setScalar(0.4 + (hp / (CONFIG.enemyBaseHP + state.gameTime * 1.5)) * 1.1);
 
   // All typhoon materials — for cleanup / opacity-from-HP traversal
   const allTyphoonMats = [];
@@ -622,18 +621,17 @@ function spawnEnemy() {
     hp,
     maxHp: hp,
     speed: CONFIG.enemyBaseSpeed + state.gameTime / 100,
-    angle: Math.atan2(-z, -x),
-    size,
+    moveAngle: Math.atan2(-z, -x), // direction of travel (radians, toward center initially)
     isSlowed: 0,
     slowFactor: 0,
     repelX: 0,
     repelZ: 0,
     alive: true,
-    hasHitHK: false,
-    // Trajectory wobble
-    wobbleSpeed: 1.0 + Math.random() * 2.5,
+    // Trajectory turning
+    turnRate: 0.3 + Math.random() * 0.5, // radians/sec of random drift
+    wobbleSpeed: 0.5 + Math.random() * 1.5,
     wobblePhase: Math.random() * Math.PI * 2,
-    wobbleAmp: 1.5 + Math.random() * 3
+    wobbleAmp: 0.4 + Math.random() * 0.8
   };
 
   enemies.push(enemy);
@@ -645,41 +643,39 @@ function updateEnemies(dt) {
     const e = enemies[i];
     if (!e.alive) continue;
 
-    // Calculate movement direction (toward center + repel forces)
-    const targetAngle = Math.atan2(-e.z, -e.x);
-    let moveX = Math.cos(targetAngle);
-    let moveZ = Math.sin(targetAngle);
-
-    // ---------- Trajectory wobble (sinusoidal perpendicular offset) ----------
     const distToCenter = Math.sqrt(e.x * e.x + e.z * e.z);
-    const progress = 1 - Math.min(distToCenter / CONFIG.enemySpawnRadius, 1);
-    const wobbleFactor = Math.sin(state.gameTime * e.wobbleSpeed + e.wobblePhase) * e.wobbleAmp * (1 - progress);
-    // Perpendicular direction (using original moveX/moveZ before modification)
-    const perpX = -moveZ;
-    const perpZ = moveX;
-    moveX += perpX * wobbleFactor * 0.15;
-    moveZ += perpZ * wobbleFactor * 0.15;
 
-    // Apply repel force
+    // ===== Angle-based movement with gradual turning =====
+    // Apply repel force as angle perturbation
     if (e.repelX !== 0 || e.repelZ !== 0) {
-      moveX += e.repelX;
-      moveZ += e.repelZ;
+      const repelAngle = Math.atan2(e.repelZ, e.repelX);
+      e.moveAngle += repelAngle * 0.1 * dt; // nudge direction away
       e.repelX *= 0.95;
       e.repelZ *= 0.95;
       if (Math.abs(e.repelX) < 0.001) e.repelX = 0;
       if (Math.abs(e.repelZ) < 0.001) e.repelZ = 0;
     }
 
-    const len = Math.sqrt(moveX * moveX + moveZ * moveZ);
-    if (len > 0) { moveX /= len; moveZ /= len; }
+    // Random drift (creates organic curved paths)
+    e.moveAngle += (Math.random() - 0.5) * e.turnRate * dt;
 
-    // Apply speed (with slow — time-based)
+    // Sinusoidal wobble (adds weave perpendicular to direction)
+    const wobble = Math.sin(state.gameTime * e.wobbleSpeed + e.wobblePhase) * e.wobbleAmp;
+    e.moveAngle += wobble * 0.02 * dt;
+
+    // Slow effect reduces effective speed, not angle
     let spd = e.speed * dt;
     const slowed = e.isSlowed > 0;
     if (slowed) {
       spd *= (1 - e.slowFactor);
       e.isSlowed -= dt;
     }
+
+    // Compute movement vector from angle
+    let moveX = Math.cos(e.moveAngle);
+    let moveZ = Math.sin(e.moveAngle);
+    const len = Math.sqrt(moveX * moveX + moveZ * moveZ);
+    if (len > 0) { moveX /= len; moveZ /= len; }
 
     // Color shift on slow (core + eye + spiral arms)
     if (slowed) {
@@ -702,6 +698,32 @@ function updateEnemies(dt) {
       destroySceneryNear(e.x, e.z, 1.8);
     }
 
+    // Sea regen / land decay — typhoon strengthens at sea, weakens over land
+    if (distToCenter > CONFIG.islandRadius + 0.5) {
+      // Over sea: slowly regenerate HP (stronger the longer at sea)
+      const regenPerSec = 2 + Math.random() * 3; // 2-5 HP/sec random
+      e.hp = Math.min(e.maxHp, e.hp + regenPerSec * dt);
+    } else {
+      // Over land / near HK: slowly decay HP (typhoon weakens over land)
+      const decayPerSec = 3 + (e.hp / e.maxHp) * 4; // higher HP = faster decay
+      e.hp -= decayPerSec * dt;
+      if (e.hp <= 0) {
+        // Typhoon dissipated over land
+        console.log(`ENEMY_DISSIPATED`);
+        spawnBurst(e.x, 0.5, e.z, 0x4fc3f7, 8);
+        const idx = enemies.indexOf(e);
+        if (idx !== -1) removeEnemy(idx);
+        continue;
+      }
+    }
+
+    // === Size follows current HP ===
+    // Scale typhoon mesh proportional to current HP ratio
+    const newScale = 0.4 + (e.hp / e.maxHp) * 1.1;
+    if (e.mesh.scale.x !== newScale) {
+      e.mesh.scale.setScalar(newScale);
+    }
+
     // Update HP bar position
     e.hpBar.bg.position.set(e.x, 1.6, e.z);
     e.hpBar.fill.position.set(e.x, 1.6, e.z);
@@ -710,22 +732,13 @@ function updateEnemies(dt) {
     const hpColor = hpRatio > 0.5 ? 0x66bb6a : (hpRatio > 0.25 ? 0xffa726 : 0xef5350);
     e.hpBar.fill.material.color.setHex(hpColor);
 
-    // Sea regen / land decay — typhoon strengthens at sea, weakens over land
-    if (distToCenter > CONFIG.islandRadius + 0.5) {
-      // Over sea: slowly regenerate HP (stronger the longer at sea)
-      const regenPerSec = 2 + Math.random() * 3; // 2-5 HP/sec random
-      e.hp = Math.min(e.maxHp, e.hp + regenPerSec * dt);
-    } else {
-      // Over land / near HK: slowly decay HP (typhoon weakens over land)
-      const decayPerSec = 3 + e.size * 2; // larger typhoons decay faster
-      e.hp -= decayPerSec * dt;
-      if (e.hp <= 0) {
-        // Typhoon dissipated over land
-        console.log(`ENEMY_DISSIPATED: size=${e.size.toFixed(2)}`);
-        spawnBurst(e.x, 0.5, e.z, 0x4fc3f7, 8);
-        const idx = enemies.indexOf(e);
-        if (idx !== -1) removeEnemy(idx);
-        continue;
+    // === Continuous HSI drain while covering HK ===
+    if (distToCenter < CONFIG.islandRadius + 0.5) {
+      const hsiDrain = e.hp * 0.03 * dt; // % of current HP per frame
+      state.hsi -= hsiDrain;
+      if (state.hsi <= 0) {
+        state.hsi = 0;
+        gameOver();
       }
     }
 
@@ -751,23 +764,7 @@ function updateEnemies(dt) {
       am.opacity = base * (0.3 + hpRatio * 0.7);
     }
 
-    // Check if reached center — damage HSI and keep going (no instant death)
-    if (distToCenter < CONFIG.islandRadius + 0.5) {
-      if (!e.hasHitHK) {
-        e.hasHitHK = true;
-        const hsiLoss = Math.round(e.hp * 0.6);
-        state.hsi -= hsiLoss;
-        if (state.hsi <= 0) {
-          state.hsi = 0;
-          gameOver();
-        }
-        console.log(`ENEMY_REACHED_HK: hp=${e.hp.toFixed(0)} hsiLoss=${hsiLoss}`);
-        spawnBurst(e.x, 0.2, e.z, 0xff1744, 12);
-        spawnBurst(e.x, 0.2, e.z, 0xff6d00, 8);
-        spawnBurst(e.x, 0.2, e.z, 0xffffff, 4);
-        playExplosionSound();
-      }
-    }
+
 
     // Despawn if too far
     if (Math.abs(e.x) > 20 || Math.abs(e.z) > 20) {
