@@ -10,19 +10,27 @@ A 2.5D browser-based tower defense game rebuilt in Three.js, inspired by the ori
 *Start screen with the Hong Kong / South China Sea map and concentric danger zone rings.*
 
 ![In-Game Action](assets/screenshot-action.png)
-*Gameplay with Laser Towers engaging incoming 3D typhoons. Each typhoon is a volumetric cyclone model featuring a hollow eye, spiral rainbands, orbiting cloud particles, and a satellite texture overlay — all spinning as a unified storm system.*
+*All 8 structure types deployed (Laser/Freeze/Repel Towers, Power/University/Research/Nuclear Plants, CheungKong HQ) defending against realistic 3D typhoons with dark calm eyes, bright eyewalls, asymmetric spiral rainbands, and multi-layer particle systems.*
 
 ## Visual Features
 
-### 3D Volumetric Typhoons
-Enemies are no longer flat sprites. Each typhoon is a **full 3D Group** constructed from:
-- **Spiral rainbands** — 3 arms of torus arc segments wrapping inward, creating the distinctive spiral structure of a tropical cyclone
-- **Eye wall** — A hollow translucent cylinder at the center, with a glowing core
-- **Cloud deck** — A wide translucent ring base with an upper wisp layer, suggesting deep convection
-- **Satellite texture** — The original `typhoon.png` rendered as a horizontal plane that rotates with the storm (not a billboard Sprite)
-- **Orbiting particles** — 24 cloud droplets that orbit the center at varying radii and speeds
+### Realistic 3D Typhoons
+Each typhoon is a **full 3D Group** modeled after real tropical cyclone satellite imagery:
 
-The entire storm system **spins on its Y axis** at a visible rate, giving a strong sense of cyclonic rotation.
+- **Dark calm eye** — A deep blue/navy circle at the center, replicating the clear eye visible from space
+- **Bright eyewall** — Two concentric rings of dense white convection surrounding the eye, where the most violent winds churn
+- **Asymmetric spiral rainbands** — 4 logarithmically-curved arms with varying segment counts and opacities, creating a natural lopsided spiral (real typhoons are never perfectly symmetric)
+- **Cloud canopy** — Two layers of semi-transparent ring decks providing the broad diffuse cloud mass
+- **Satellite texture overlay** — The original `typhoon.png` rendered as a horizontal plane with additive blending for atmospheric depth
+- **Particle system (72 total)** — Three distinct particle types:
+  - *Wind streaks* (32) — fast-tangential flow at mid-radii
+  - *Cloud wisps* (18) — large slow outer-edge particles with radial oscillation
+  - *Rain curtain* (22) — small fast blue-tinted particles bobbing below the cloud deck
+
+The storm spins **counterclockwise** (Northern Hemisphere) with **differential rotation**: inner core particles orbit faster than outer wisps. The core glow pulses with storm intensity, and all elements scale and fade with HP loss — a dying typhoon visibly shrinks and dims.
+
+### Environmental Destruction
+Typhoons destroy decorative scenery (skyscrapers and trees) on contact, leaving particle debris bursts. The contact radius scales with typhoon size (HP), so larger storms clear wider paths of destruction.
 
 ### Curved Trajectories
 Each typhoon follows a **sinusoidal wobble path** instead of a straight line toward center. The wobble amplitude is randomized per enemy and decays as it approaches the island, creating natural-looking spiral approaches like real storm tracks.
