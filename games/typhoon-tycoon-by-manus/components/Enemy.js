@@ -110,7 +110,7 @@ export class Enemy {
     }
 
     getPosition() {
-        return this.mesh.position.clone();
+        return this.mesh.position;
     }
 
     isAlive() {
