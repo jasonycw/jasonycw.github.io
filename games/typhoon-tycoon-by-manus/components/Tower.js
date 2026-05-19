@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+const _direction = new THREE.Vector3(); // Gemini Feedback: Pre-allocated scratch vector
+
 export class Projectile {
     constructor(scene, startPos, target, damage, speed, color) {
         this.scene = scene;
@@ -24,7 +26,7 @@ export class Projectile {
         }
 
         const targetPos = this.target.getPosition();
-        const direction = targetPos.clone().sub(this.mesh.position).normalize();
+        _direction.subVectors(targetPos, this.mesh.position).normalize();
         const moveDistance = this.speed * deltaTime;
 
         const distSq = this.mesh.position.distanceToSquared(targetPos);
@@ -32,7 +34,8 @@ export class Projectile {
             this.target.takeDamage(this.damage);
             this.die();
         } else {
-            this.mesh.position.add(direction.multiplyScalar(moveDistance));
+            // Gemini Feedback: Use addScaledVector to avoid allocations
+            this.mesh.position.addScaledVector(_direction, moveDistance);
         }
     }
 
@@ -92,9 +95,10 @@ export class Tower {
         if (currentTime - this.lastFireTime > 1000 / this.config.attackSpeed) {
             const target = this.findTarget(enemies);
             if (target) {
+                // Gemini Feedback: Avoid unnecessary Vector3 allocation
                 const projectile = new Projectile(
                     this.scene,
-                    this.mesh.position.clone().add(new THREE.Vector3(0, 15, 0)),
+                    new THREE.Vector3(this.position.x, 15, this.position.z),
                     target,
                     this.config.damage,
                     this.config.projectileSpeed || 100,
