@@ -66,11 +66,9 @@ export class GameManager {
             }
         }
 
+        // Gemini Feedback: Simplified projectile collection
         for (const tower of this.towers) {
-            const newProjectiles = tower.update(deltaTime, this.enemies, currentTime);
-            if (newProjectiles && newProjectiles.length > 0) {
-                this.projectiles.push(...newProjectiles);
-            }
+            this.projectiles.push(...tower.update(deltaTime, this.enemies, currentTime));
         }
 
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
@@ -105,11 +103,12 @@ export class GameManager {
         const towerConfig = GameConfig.tower[towerType];
         if (this.money < towerConfig.cost) return false;
 
-        // Prevent tower stacking (Gemini Feedback)
         const towerPosition = new THREE.Vector3(x, 0, z);
         const minDistance = 15; 
+        const minDistanceSq = minDistance * minDistance; // Gemini Feedback: Use distanceToSquared
+        
         for (const existingTower of this.towers) {
-            if (existingTower.position.distanceTo(towerPosition) < minDistance) {
+            if (existingTower.position.distanceToSquared(towerPosition) < minDistanceSq) {
                 return false;
             }
         }
@@ -134,7 +133,6 @@ export class GameManager {
     }
 
     restart(scene) {
-        // Cleanup existing entities (Gemini Feedback)
         for (const tower of this.towers) tower.remove();
         for (const enemy of this.enemies) enemy.die();
         for (const proj of this.projectiles) proj.die();
