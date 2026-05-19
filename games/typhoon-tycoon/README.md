@@ -115,3 +115,4 @@ node server.js
 - **Map assets:** Original `map.png`, `typhoon.png`, and supporting assets from the classic 2D version
 - **Background music:** *Typhoon Tycoon (Final)* by Alexander Cheung — used with permission from the original Typhoon Tycoon team
 - **Three.js:** https://threejs.org/
+- LLM by @deepseek-ai
