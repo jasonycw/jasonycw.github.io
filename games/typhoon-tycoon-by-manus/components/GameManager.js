@@ -1,6 +1,7 @@
 import { GameConfig } from './GameConfig.js';
 import { Enemy } from './Enemy.js';
 import { Tower } from './Tower.js';
+import * as THREE from 'three';
 
 export class GameManager {
     constructor(scene, map) {
@@ -24,12 +25,15 @@ export class GameManager {
         this.timeSinceLastWave = 0;
         this.enemiesSpawnedThisWave = 0;
         this.timeSinceLastSpawn = 0;
+        this.updateUI();
     }
 
     update(deltaTime, currentTime, camera) {
         if (this.state !== 'playing') return;
 
+        let stateChanged = false;
         const enemiesThisWave = GameConfig.wave.enemyCountPerWave(this.wave);
+        
         if (this.enemiesSpawnedThisWave < enemiesThisWave) {
             this.timeSinceLastSpawn += deltaTime;
             if (this.timeSinceLastSpawn >= GameConfig.enemy.spawnInterval / 1000) {
@@ -41,6 +45,7 @@ export class GameManager {
             this.timeSinceLastWave += deltaTime;
             if (this.timeSinceLastWave >= GameConfig.wave.waveInterval) {
                 this.nextWave();
+                stateChanged = true;
             }
         }
 
@@ -49,6 +54,7 @@ export class GameManager {
             if (reachedEnd) {
                 this.lives -= this.enemies[i].damage;
                 this.enemies.splice(i, 1);
+                stateChanged = true;
                 if (this.lives <= 0) {
                     this.lives = 0;
                     this.state = 'lost';
@@ -56,6 +62,7 @@ export class GameManager {
             } else if (!this.enemies[i].isAlive()) {
                 this.money += this.enemies[i].reward;
                 this.enemies.splice(i, 1);
+                stateChanged = true;
             }
         }
 
@@ -73,7 +80,9 @@ export class GameManager {
             }
         }
 
-        this.updateUI();
+        if (stateChanged) {
+            this.updateUI();
+        }
     }
 
     spawnEnemy() {
@@ -96,9 +105,19 @@ export class GameManager {
         const towerConfig = GameConfig.tower[towerType];
         if (this.money < towerConfig.cost) return false;
 
-        const tower = new Tower(this.scene, new THREE.Vector3(x, 0, z), towerType, towerConfig);
+        // Prevent tower stacking (Gemini Feedback)
+        const towerPosition = new THREE.Vector3(x, 0, z);
+        const minDistance = 15; 
+        for (const existingTower of this.towers) {
+            if (existingTower.position.distanceTo(towerPosition) < minDistance) {
+                return false;
+            }
+        }
+
+        const tower = new Tower(this.scene, towerPosition, towerType, towerConfig);
         this.towers.push(tower);
         this.money -= towerConfig.cost;
+        this.updateUI();
         return true;
     }
 
@@ -115,6 +134,7 @@ export class GameManager {
     }
 
     restart(scene) {
+        // Cleanup existing entities (Gemini Feedback)
         for (const tower of this.towers) tower.remove();
         for (const enemy of this.enemies) enemy.die();
         for (const proj of this.projectiles) proj.die();
