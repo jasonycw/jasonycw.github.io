@@ -52,7 +52,12 @@ function gameLoop() {
     if (useHitareaClassification && !state.defaultBuildingsPlaced) {
       placeDefaultBuildings();
       setupScenery();
-      state.defaultBuildingsPlaced = true;
+      // Restore HSI after starter buildings deduct their cost
+      state.hsi = CONFIG.hsiInit;
+      // Only mark as placed if buildings actually succeeded (retry next frame otherwise)
+      if (buildings.length >= 2 && state.universityCount > 0) {
+        state.defaultBuildingsPlaced = true;
+      }
     }
 
     updateWaves(dt);
