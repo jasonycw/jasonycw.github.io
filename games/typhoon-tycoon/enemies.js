@@ -260,10 +260,10 @@ export function updateEnemies(dt) {
     const e = enemies[i];
     if (!e.alive) continue;
 
-    // Repel
+    // Repel — apply as direct position push (not angle tweak)
     if (e.repelX !== 0 || e.repelZ !== 0) {
-      const repelAngle = Math.atan2(e.repelZ, e.repelX);
-      e.moveAngle += repelAngle * 0.1 * dt;
+      e.mesh.position.x += e.repelX * dt;
+      e.mesh.position.z += e.repelZ * dt;
       e.repelX *= 0.95;
       e.repelZ *= 0.95;
       if (Math.abs(e.repelX) < 0.001) e.repelX = 0;
