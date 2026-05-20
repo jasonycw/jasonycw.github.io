@@ -331,8 +331,7 @@ export function updateEnemies(dt) {
       if (e.hp <= 0) {
         console.log(`ENEMY_DISSIPATED`);
         spawnBurst(e.x, 0.5, e.z, 0x4fc3f7, 8);
-        const idx = enemies.indexOf(e);
-        if (idx !== -1) removeEnemy(idx);
+        removeEnemy(i);
         continue;
       }
     }
