@@ -1,6 +1,13 @@
 // ==================== AUDIO ====================
 let audioCtx = null;
-function getAudioCtx() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+// Cache for hit sound buffer — generated once, reused across all hits
+let hitBuffer = null;
 
 // Laser beam sound (high-frequency sweep)
 export function playLaserSound() {
@@ -38,16 +45,18 @@ export function playExplosionSound() {
   } catch (e) { /* audio not available */ }
 }
 
-// Hit sound (short noise burst)
+// Hit sound (short noise burst) — buffer created once and reused
 export function playHitSound() {
   try {
     const ctx = getAudioCtx();
-    const bufSize = ctx.sampleRate * 0.06;
-    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+    if (!hitBuffer) {
+      const size = ctx.sampleRate * 0.06;
+      hitBuffer = ctx.createBuffer(1, size, ctx.sampleRate);
+      const data = hitBuffer.getChannelData(0);
+      for (let i = 0; i < size; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / size);
+    }
     const src = ctx.createBufferSource();
-    src.buffer = buf;
+    src.buffer = hitBuffer;
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.1, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
