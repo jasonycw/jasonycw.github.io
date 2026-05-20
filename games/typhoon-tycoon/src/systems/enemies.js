@@ -401,6 +401,23 @@ export function updateEnemies(dt) {
       continue;
     }
   }
+
+  // Update HK danger overlay — red border flash when typhoon covers HK
+  const dangerEl = document.getElementById('dangerOverlay');
+  if (dangerEl) {
+    const anyOverHK = enemies.some(e => e.alive && !e.clearedHK && e.passedHK);
+    if (anyOverHK) {
+      dangerEl.classList.remove('hidden');
+      // Intensity scales with how low HSI is
+      if (state.hsi < 1500) {
+        dangerEl.className = 'critical';
+      } else {
+        dangerEl.className = 'active';
+      }
+    } else {
+      dangerEl.className = 'hidden';
+    }
+  }
 }
 
 export function removeEnemy(index) {
