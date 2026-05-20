@@ -135,11 +135,11 @@ export function startGame() {
     for (const part of s.parts) {
       scene.remove(part);
       if (part.geometry &&
-          part !== treeTrunkGeom && part !== treeCrownGeom && part !== treeCrown2Geom) {
+          part.geometry !== treeTrunkGeom && part.geometry !== treeCrownGeom && part.geometry !== treeCrown2Geom) {
         part.geometry.dispose();
       }
       if (part.material &&
-          part !== treeTrunkMat && part !== treeCrownMat && part !== treeCrown2Mat) {
+          part.material !== treeTrunkMat && part.material !== treeCrownMat && part.material !== treeCrown2Mat) {
         part.material.dispose();
       }
     }
