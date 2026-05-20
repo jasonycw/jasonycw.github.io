@@ -19,7 +19,7 @@ function startServer(port, attempt) {
     let url = req.url.split('?')[0];
     if (url.endsWith('/')) url += 'index.html';
     let fp = path.normalize(path.join(root, url));
-    if (!fp.startsWith(root)) {
+    if (!fp.startsWith(root + path.sep) && fp !== root) {
       res.writeHead(403);
       res.end('Forbidden');
       return;
