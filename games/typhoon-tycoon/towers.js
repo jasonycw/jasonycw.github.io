@@ -440,7 +440,10 @@ export function updatePower() {
 
   if (isOverload && !state.powerOutage) {
     state.powerOutage = true;
-    for (const t of towers) t.online = false;
+    for (const t of towers) {
+      t.online = false;
+      removeTowerBeam(t);
+    }
     setStatus('POWER OUTAGE — Build more Power Plants!', '#ff5252');
   } else if (!isOverload && state.powerOutage) {
     state.powerOutage = false;
