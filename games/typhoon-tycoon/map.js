@@ -122,9 +122,9 @@ export function createMap(scene) {
       const uvx = (lx + MAP_PLANE_SIZE / 2) / MAP_PLANE_SIZE;
       const uvy = (ly + MAP_PLANE_SIZE / 2) / MAP_PLANE_SIZE;
       if (uvx < 0 || uvx > 1 || uvy < 0 || uvy > 1) return false;
-      const px = Math.round(uvx * 960);
-      const py = Math.round((1 - uvy) * 600);
-      const idx = (py * 960 + px) * 4;
+      const px = Math.min(hitareaImg.width - 1, Math.floor(uvx * hitareaImg.width));
+      const py = Math.min(hitareaImg.height - 1, Math.floor((1 - uvy) * hitareaImg.height));
+      const idx = (py * hitareaImg.width + px) * 4;
       return data[idx] > 128;
     }
 
