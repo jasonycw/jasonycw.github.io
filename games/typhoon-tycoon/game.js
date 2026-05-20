@@ -128,6 +128,7 @@ export function startGame() {
   for (const e of effects) {
     scene.remove(e.mesh);
     e.mat.dispose();
+    if (e.geom) e.geom.dispose();
   }
   effects.length = 0;
 
