@@ -265,32 +265,78 @@ export function destroySceneryNear(wx, wz, radius) {
     } else {
       for (const part of s.parts) {
         if (part.geometry &&
-            part !== treeTrunkGeom && part !== treeCrownGeom && part !== treeCrown2Geom) {
+            part.geometry !== treeTrunkGeom && part.geometry !== treeCrownGeom && part.geometry !== treeCrown2Geom) {
           part.geometry.dispose();
         }
         if (part.material &&
-            part !== treeTrunkMat && part !== treeCrownMat && part !== treeCrown2Mat) {
+            part.material !== treeTrunkMat && part.material !== treeCrownMat && part.material !== treeCrown2Mat) {
           part.material.dispose();
         }
       }
     }
-    const debrisCount = s.type === 'building' ? 6 : 3;
-    for (let i = 0; i < debrisCount; i++) {
-      const angle = (i / debrisCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
-      const speed = 1 + Math.random() * 2;
-      const dGeom = new THREE.SphereGeometry(0.04, 3, 3);
-      const dMat = new THREE.MeshBasicMaterial({
-        color: s.type === 'tree' ? 0x4caf50 : 0x78909C,
-        transparent: true, opacity: 1
-      });
-      const dMesh = new THREE.Mesh(dGeom, dMat);
-      dMesh.position.set(s.worldX, CONFIG.groundY + 0.2, s.worldZ);
-      scene.add(dMesh);
-      effects.push({
-        mesh: dMesh, mat: dMat, life: 0.6, maxLife: 0.6, geom: dGeom,
-        _vx: Math.cos(angle) * speed, _vz: Math.sin(angle) * speed,
-        _vy: 1.2 + Math.random() * 1.5, _burst: true
-      });
+
+    // ===== DRAMATIC DESTRUCTION ANIMATION =====
+    if (s.type === 'tree') {
+      // Trees fly into the sky like getting hit by a tornado
+      for (const part of s.parts) {
+        const angle = Math.random() * Math.PI * 2;
+        const outSpeed = 1.5 + Math.random() * 3;
+        const upSpeed = 3 + Math.random() * 4;
+        const spinSpeed = (Math.random() - 0.5) * 8;
+        // Detach from scene — effect system handles removal
+        scene.remove(part);
+        scene.add(part);
+        effects.push({
+          mesh: part, mat: part.material, life: 1.5, maxLife: 1.5, geom: null,
+          _tornado: true, _spin: spinSpeed, _upSpeed: upSpeed,
+          _vx: Math.cos(angle) * outSpeed,
+          _vz: Math.sin(angle) * outSpeed
+        });
+      }
+      // Green burst of leaves
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+        const s2 = 1.5 + Math.random() * 2.5;
+        const g = new THREE.SphereGeometry(0.03, 3, 3);
+        const m = new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0x66bb6a : 0x4caf50, transparent: true, opacity: 1 });
+        const mesh = new THREE.Mesh(g, m);
+        mesh.position.set(s.worldX, CONFIG.groundY + 0.3, s.worldZ);
+        scene.add(mesh);
+        effects.push({ mesh, mat: m, life: 0.7, maxLife: 0.7, geom: g,
+          _vx: Math.cos(a) * s2, _vz: Math.sin(a) * s2, _vy: 2 + Math.random() * 2, _burst: true });
+      }
+    } else {
+      // Buildings — dramatic collapse/explosion
+      // Large smoke flash at center
+      const flashG = new THREE.SphereGeometry(0.5, 8, 8);
+      const flashM = new THREE.MeshBasicMaterial({ color: 0xff8a65, transparent: true, opacity: 0.9 });
+      const flash = new THREE.Mesh(flashG, flashM);
+      flash.position.set(s.worldX, CONFIG.groundY + 0.5, s.worldZ);
+      scene.add(flash);
+      effects.push({ mesh: flash, mat: flashM, life: 0.4, maxLife: 0.4, geom: flashG, _explosionFlash: true });
+
+      // Concrete debris chunks (larger than current debris spheres)
+      for (let i = 0; i < 10; i++) {
+        const angle = (i / 10) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+        const speed = 2 + Math.random() * 4;
+        const dGeom = i % 3 === 0
+          ? new THREE.BoxGeometry(0.06, 0.06, 0.06)
+          : new THREE.SphereGeometry(0.04 + Math.random() * 0.04, 4, 4);
+        const dMat = new THREE.MeshBasicMaterial({
+          color: i % 2 === 0 ? 0x90a4ae : 0x607d8b,
+          transparent: true, opacity: 1
+        });
+        const dMesh = new THREE.Mesh(dGeom, dMat);
+        dMesh.position.set(s.worldX, CONFIG.groundY + 0.3 + Math.random() * 0.4, s.worldZ);
+        scene.add(dMesh);
+        effects.push({
+          mesh: dMesh, mat: dMat, life: 0.9, maxLife: 0.9, geom: dGeom,
+          _vx: Math.cos(angle) * speed, _vz: Math.sin(angle) * speed,
+          _vy: 2 + Math.random() * 3, _burst: true,
+          _tumbleX: (Math.random() - 0.5) * 10,
+          _tumbleY: (Math.random() - 0.5) * 10
+        });
+      }
     }
   }
 }

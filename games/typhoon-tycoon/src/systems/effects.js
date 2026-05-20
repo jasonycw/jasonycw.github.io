@@ -102,7 +102,19 @@ export function updateEffects(dt) {
     const ratio = e.life / e.maxLife;
     e.mat.opacity = ratio;
 
-    if (e._burst) {
+    if (e._tornado) {
+      // Tree parts fly upward and outward with spin (tornado effect)
+      e.mesh.position.x += e._vx * dt;
+      e.mesh.position.z += e._vz * dt;
+      e.mesh.position.y += e._upSpeed * dt;
+      e._upSpeed -= 0.5 * dt; // gravity
+      e.mesh.rotation.x += e._spin * dt;
+      e.mesh.rotation.z += e._spin * 0.7 * dt;
+      e.mesh.scale.setScalar(0.9 + ratio * 0.3);
+    } else if (e._explosionFlash) {
+      // Smoke flash expands quickly then fades
+      e.mesh.scale.setScalar(1 + (1 - ratio) * 3);
+    } else if (e._burst) {
       // Burst particles fly outward with gravity
       e.mesh.position.x += e._vx * dt;
       e.mesh.position.z += e._vz * dt;
@@ -111,6 +123,9 @@ export function updateEffects(dt) {
       e._vz *= 0.96;
       e._vy -= 2.5 * dt;
       e.mesh.scale.setScalar(0.8 + (1 - ratio) * 0.6);
+      // Building debris tumbles as it flies
+      if (e._tumbleX) e.mesh.rotation.x += e._tumbleX * dt;
+      if (e._tumbleY) e.mesh.rotation.y += e._tumbleY * dt;
     } else if (!e._laserBeam) {
       e.mesh.scale.setScalar(1 + (1 - ratio) * 2);
     }
