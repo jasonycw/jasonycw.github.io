@@ -6,10 +6,10 @@ A 2.5D browser-based tower defense game rebuilt in Three.js, inspired by the ori
 
 ## Screenshots
 
-![Game Menu](assets/screenshot-menu.png)
+![Game Menu](assets/screenshots/menu.png)
 *Start screen with the Hong Kong / South China Sea map and concentric danger zone rings.*
 
-![In-Game Action](assets/screenshot-action.png)
+![In-Game Action](assets/screenshots/action.png)
 *All 8 structure types deployed (Laser/Freeze/Repel Towers, Power/University/Research/Nuclear Plants, CheungKong HQ) defending against realistic 3D typhoons with dark calm eyes, bright eyewalls, asymmetric spiral rainbands, and multi-layer particle systems.*
 
 ## Visual Features
@@ -30,7 +30,27 @@ Each typhoon is a **full 3D Group** modeled after real tropical cyclone satellit
 The storm spins **counterclockwise** (Northern Hemisphere) with **differential rotation**: inner core particles orbit faster than outer wisps. The core glow pulses with storm intensity, and all elements scale and fade with HP loss — a dying typhoon visibly shrinks and dims.
 
 ### Environmental Destruction
-Typhoons destroy decorative scenery (skyscrapers and trees) on contact, leaving particle debris bursts. The contact radius scales with typhoon size (HP), so larger storms clear wider paths of destruction.
+Typhoons destroy decorative scenery (skyscrapers and trees) on contact:
+- **Buildings** explode with a smoke flash and 10 concrete debris chunks that tumble as they fly apart
+- **Trees** are carried into the sky with spin, drifting outward like tornado debris, accompanied by green leaf burst particles
+- The contact radius scales with typhoon size (HP), so larger storms clear wider paths of destruction
+
+### Dynamic Tree Regrowth
+Destroyed trees leave behind spots that regrow after a cooldown period. New trees sprout with an elastic ease-out growth animation, restoring the island's greenery over time.
+
+### HK Hit Warning
+When a typhoon covers Hong Kong, a red pulsating border overlay flashes on screen. The effect intensifies to a fast, deep-red critical pulse when HSI drops below 1500, providing clear visual feedback of impending economic collapse.
+
+### Project Structure
+```
+src/
+  core/         config.js, state.js, three-setup.js           — foundation
+  systems/      audio.js, enemies.js, game.js, effects.js,    — game logic
+                towers.js, placement.js, scenery.js, ui.js,
+                waves.js
+  world/        map.js                                         — terrain
+  main.js                                                      — entry point
+```
 
 ### Curved Trajectories
 Each typhoon follows a **sinusoidal wobble path** instead of a straight line toward center. The wobble amplitude is randomized per enemy and decays as it approaches the island, creating natural-looking spiral approaches like real storm tracks.

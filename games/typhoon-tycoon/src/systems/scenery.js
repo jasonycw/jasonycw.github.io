@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { scene } from '../core/three-setup.js';
 import { CONFIG } from '../core/config.js';
-import { gridCells, useHitareaClassification } from '../world/map.js';
+import { gridCells, useHitareaClassification, isSeaAt, MAP_PLANE_SIZE, MAP_OFFSET_X, MAP_OFFSET_Z } from '../world/map.js';
 import { effects } from './effects.js';
 
 export const scenery = [];
@@ -147,13 +147,12 @@ export function setupScenery() {
     else makeMidrise(wx, wz);
   }
 
-  // Trees — randomly placed on land, not grid-bound
-  const treeCount = 18 + Math.floor(Math.random() * 12); // 18-29 trees
-  for (let attempt = 0; attempt < treeCount * 3 && scenery.filter(s => s.type === 'tree' && s.alive).length < treeCount; attempt++) {
-    const angle = Math.random() * Math.PI * 2;
-    const dist = Math.random() * CONFIG.islandRadius * 0.95;
-    const wx = Math.cos(angle) * dist;
-    const wz = Math.sin(angle) * dist;
+  // Trees — randomly placed on land across the full map, not grid-bound
+  const treeCount = 22 + Math.floor(Math.random() * 14);
+  const mapHalf = MAP_PLANE_SIZE / 2 - 1;
+  for (let attempt = 0; attempt < treeCount * 4 && scenery.filter(s => s.type === 'tree' && s.alive).length < treeCount; attempt++) {
+    const wx = MAP_OFFSET_X + (Math.random() - 0.5) * MAP_PLANE_SIZE * 0.9;
+    const wz = MAP_OFFSET_Z + (Math.random() - 0.5) * MAP_PLANE_SIZE * 0.9;
     if (isValidTreeSpot(wx, wz)) {
       spawnTree(wx, wz, false);
     }
@@ -162,17 +161,20 @@ export function setupScenery() {
 
 /** Check if a world position is valid for a decorative tree */
 function isValidTreeSpot(wx, wz) {
-  // Must be on land
+  // Must be on land (use hitarea-based check, not grid cells, for full island coverage)
+  if (isSeaAt(wx, wz)) return false;
+  // Not too close to existing alive trees or structures
+  for (const s of scenery) {
+    if (s.type === 'tree' && s.alive && Math.hypot(s.worldX - wx, s.worldZ - wz) < 0.4) return false;
+  }
+  // Check no grid cell occupant (player-built structure)
   const cx = Math.round(wx / CONFIG.cellSize);
   const cz = Math.round(wz / CONFIG.cellSize);
   const half = 7;
-  if (Math.abs(cx) > half || Math.abs(cz) > half) return false;
-  const cols = half * 2 + 1;
-  const cell = gridCells[(cx + half) * cols + (cz + half)];
-  if (!cell || !cell.isLand || cell.occupied) return false;
-  // Not too close to existing alive trees
-  for (const s of scenery) {
-    if (s.type === 'tree' && s.alive && Math.hypot(s.worldX - wx, s.worldZ - wz) < 0.35) return false;
+  if (Math.abs(cx) <= half && Math.abs(cz) <= half) {
+    const cols = half * 2 + 1;
+    const cell = gridCells[(cx + half) * cols + (cz + half)];
+    if (cell && cell.occupied) return false;
   }
   return true;
 }

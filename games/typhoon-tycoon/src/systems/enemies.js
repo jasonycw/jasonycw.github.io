@@ -27,7 +27,7 @@ export function spawnEnemy() {
   const z = Math.sin(angle) * r;
 
   const baseHp = CONFIG.enemyBaseHP + state.gameTime * 4;
-  const hp = Math.round(baseHp * (0.8 + Math.random() * 0.4));
+  const hp = Math.round(baseHp * (0.4 + Math.random() * 1.2)); // 40%-160% for size variety
 
   // ===================== 3D TYPHOON (realistic cyclone from above) =====================
   const typhoonGroup = new THREE.Group();
@@ -236,7 +236,7 @@ export function spawnEnemy() {
     x, z,
     hp,
     maxHp: hp,
-    speed: CONFIG.enemyBaseSpeed + state.gameTime / 50,
+    speed: CONFIG.enemyBaseSpeed * 0.7 + state.gameTime / 80, // slower, more deliberate
     moveAngle: Math.atan2(-z, -x),
     isSlowed: 0,
     slowFactor: 0,
@@ -245,10 +245,10 @@ export function spawnEnemy() {
     alive: true,
     passedHK: false,
     clearedHK: false,
-    turnRate: 0.3 + Math.random() * 0.5,
-    wobbleSpeed: 0.5 + Math.random() * 1.5,
+    turnRate: 0.1 + Math.random() * 0.25, // tighter turns, more purposeful
+    wobbleSpeed: 0.4 + Math.random() * 1.2,
     wobblePhase: Math.random() * Math.PI * 2,
-    wobbleAmp: 0.4 + Math.random() * 0.8
+    wobbleAmp: 0.5 + Math.random() * 1.0
   };
 
   enemies.push(enemy);

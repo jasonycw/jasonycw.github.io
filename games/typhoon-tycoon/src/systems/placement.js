@@ -313,4 +313,4 @@ document.getElementById('cancelBtn').addEventListener('click', () => {
 
 // ==================== CIRCULAR-SAFE IMPORTS ====================
 import { updateUI } from './ui.js';
-import { renderer } from './three-setup.js';
+import { renderer } from '../core/three-setup.js';
