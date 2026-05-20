@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { scene } from './three-setup.js';
-import { CONFIG } from './config.js';
-import { state, getStructConfig } from './state.js';
+import { scene } from '../core/three-setup.js';
+import { CONFIG } from '../core/config.js';
+import { state, getStructConfig } from '../core/state.js';
 import { enemies, damageEnemy } from './enemies.js';
 import { effects, spawnBurst, spawnEffect, spawnLaserBeam, spawnLaserMuzzle } from './effects.js';
 import { playLaserSound } from './audio.js';

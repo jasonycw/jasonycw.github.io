@@ -1,11 +1,11 @@
-import { clock, renderer, scene, camera } from './three-setup.js';
-import { CONFIG } from './config.js';
-import { state } from './state.js';
+import { clock, renderer, scene, camera } from '../core/three-setup.js';
+import { CONFIG } from '../core/config.js';
+import { state } from '../core/state.js';
 import { enemies, updateEnemies } from './enemies.js';
 import { towers, buildings, projectiles, updateTowers, updateProjectiles, removeTowerBeam, updatePower } from './towers.js';
 import { effects, updateEffects } from './effects.js';
-import { scenery, setupScenery, treeTrunkGeom, treeCrownGeom, treeCrown2Geom, treeTrunkMat, treeCrownMat, treeCrown2Mat } from './scenery.js';
-import { gridCells, useHitareaClassification } from './map.js';
+import { scenery, setupScenery, updateTreeRegrowth, treeTrunkGeom, treeCrownGeom, treeCrown2Geom, treeTrunkMat, treeCrownMat, treeCrown2Mat } from './scenery.js';
+import { gridCells, useHitareaClassification } from '../world/map.js';
 import { updateWaves } from './waves.js';
 import { setStatus, updateUI, gameOver } from './ui.js';
 import { placeDefaultBuildings, clearPreviewGhost } from './placement.js';
@@ -67,6 +67,7 @@ function gameLoop() {
     updateHSI(dt);
     updateEffects(dt);
     updatePower();
+    updateTreeRegrowth(dt);
   } else {
     updateEffects(dt);
   }

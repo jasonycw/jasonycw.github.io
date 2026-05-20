@@ -1,5 +1,5 @@
-import { state } from './state.js';
-import { getStructConfig } from './state.js';
+import { state } from '../core/state.js';
+import { getStructConfig } from '../core/state.js';
 
 // ==================== UI ====================
 export function setStatus(msg, color) {

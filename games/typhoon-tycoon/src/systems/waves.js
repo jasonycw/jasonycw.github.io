@@ -1,5 +1,5 @@
-import { CONFIG } from './config.js';
-import { state } from './state.js';
+import { CONFIG } from '../core/config.js';
+import { state } from '../core/state.js';
 import { enemies } from './enemies.js';
 import { spawnEnemy } from './enemies.js';
 import { setStatus } from './ui.js';

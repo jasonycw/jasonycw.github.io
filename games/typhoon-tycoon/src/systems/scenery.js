@@ -1,10 +1,19 @@
 import * as THREE from 'three';
-import { scene } from './three-setup.js';
-import { CONFIG } from './config.js';
-import { gridCells } from './map.js';
+import { scene } from '../core/three-setup.js';
+import { CONFIG } from '../core/config.js';
+import { gridCells, useHitareaClassification } from '../world/map.js';
 import { effects } from './effects.js';
 
 export const scenery = [];
+
+// Track destroyed tree positions for regrowth
+export const destroyedSpots = [];
+// Trees currently growing (scale animation)
+const growingTrees = [];
+// Regrowth cooldown: seconds after destruction before regrowth can start
+const REGROW_COOLDOWN = 12;
+// Probability per second per spot that a new tree grows
+const REGROW_CHANCE_PER_SEC = 0.08;
 
 // ==================== SCENERY SHARED GEOMETRIES ====================
 export const treeTrunkGeom = new THREE.CylinderGeometry(0.03, 0.04, 0.2, 4);
@@ -138,23 +147,102 @@ export function setupScenery() {
     else makeMidrise(wx, wz);
   }
 
-  // Trees on land cells
-  const landCells = gridCells.filter(c => c.isLand && c.occupied === null);
-  for (const cell of landCells) {
-    if (Math.random() > 0.6) continue;
-    const jx = cell.wx + (Math.random() - 0.5) * 0.6;
-    const jz = cell.wz + (Math.random() - 0.5) * 0.6;
-    const trunk = new THREE.Mesh(treeTrunkGeom, treeTrunkMat);
-    trunk.position.set(jx, elev + 0.1, jz);
-    scene.add(trunk);
-    const crown1 = new THREE.Mesh(treeCrownGeom, treeCrownMat);
-    crown1.position.set(jx, elev + 0.35, jz);
-    scene.add(crown1);
-    const crown2 = new THREE.Mesh(treeCrown2Geom, treeCrown2Mat);
-    crown2.position.set(jx, elev + 0.25, jz);
-    scene.add(crown2);
-    scenery.push({ type: 'tree', parts: [trunk, crown1, crown2], worldX: jx, worldZ: jz, alive: true });
+  // Trees — randomly placed on land, not grid-bound
+  const treeCount = 18 + Math.floor(Math.random() * 12); // 18-29 trees
+  for (let attempt = 0; attempt < treeCount * 3 && scenery.filter(s => s.type === 'tree' && s.alive).length < treeCount; attempt++) {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = Math.random() * CONFIG.islandRadius * 0.95;
+    const wx = Math.cos(angle) * dist;
+    const wz = Math.sin(angle) * dist;
+    if (isValidTreeSpot(wx, wz)) {
+      spawnTree(wx, wz, false);
+    }
   }
+}
+
+/** Check if a world position is valid for a decorative tree */
+function isValidTreeSpot(wx, wz) {
+  // Must be on land
+  const cx = Math.round(wx / CONFIG.cellSize);
+  const cz = Math.round(wz / CONFIG.cellSize);
+  const half = 7;
+  if (Math.abs(cx) > half || Math.abs(cz) > half) return false;
+  const cols = half * 2 + 1;
+  const cell = gridCells[(cx + half) * cols + (cz + half)];
+  if (!cell || !cell.isLand || cell.occupied) return false;
+  // Not too close to existing alive trees
+  for (const s of scenery) {
+    if (s.type === 'tree' && s.alive && Math.hypot(s.worldX - wx, s.worldZ - wz) < 0.35) return false;
+  }
+  return true;
+}
+
+/** Spawn a single tree at a world position with optional growth animation */
+export function spawnTree(wx, wz, withGrowth) {
+  const elev = CONFIG.groundY;
+  const trunk = new THREE.Mesh(treeTrunkGeom, treeTrunkMat);
+  trunk.position.set(wx, elev + 0.1, wz);
+  const crown1 = new THREE.Mesh(treeCrownGeom, treeCrownMat);
+  crown1.position.set(wx, elev + 0.35, wz);
+  const crown2 = new THREE.Mesh(treeCrown2Geom, treeCrown2Mat);
+  crown2.position.set(wx, elev + 0.25, wz);
+
+  if (withGrowth) {
+    trunk.scale.set(0, 0, 0);
+    crown1.scale.set(0, 0, 0);
+    crown2.scale.set(0, 0, 0);
+    growingTrees.push({ parts: [trunk, crown1, crown2], age: 0, maxAge: 0.6 });
+  }
+
+  scene.add(trunk);
+  scene.add(crown1);
+  scene.add(crown2);
+  scenery.push({ type: 'tree', parts: [trunk, crown1, crown2], worldX: wx, worldZ: wz, alive: true });
+}
+
+/** Update growing tree scale animations */
+function updateGrowingTrees(dt) {
+  for (let i = growingTrees.length - 1; i >= 0; i--) {
+    const gt = growingTrees[i];
+    gt.age += dt;
+    const t = Math.min(1, gt.age / gt.maxAge);
+    // Elastic ease-out
+    const scale = 1 - Math.pow(1 - t, 3) + Math.sin(t * Math.PI * 2) * (1 - t) * 0.15;
+    for (const part of gt.parts) {
+      part.scale.setScalar(Math.max(0, scale));
+    }
+    if (gt.age >= gt.maxAge) {
+      for (const part of gt.parts) part.scale.setScalar(1);
+      growingTrees.splice(i, 1);
+    }
+  }
+}
+
+/** Check destroyed spots for regrowth opportunities */
+export function updateTreeRegrowth(dt) {
+  // Accumulate time on each destroyed spot
+  for (const ds of destroyedSpots) ds.age += dt;
+
+  // Remove old spots that have had a chance to regrow
+  for (let i = destroyedSpots.length - 1; i >= 0; i--) {
+    const ds = destroyedSpots[i];
+    if (ds.age > REGROW_COOLDOWN + 10) {
+      destroyedSpots.splice(i, 1);
+      continue;
+    }
+    // After cooldown, chance to regrow
+    if (ds.age > REGROW_COOLDOWN && Math.random() < REGROW_CHANCE_PER_SEC * dt * 60) {
+      // Spawn near original spot with some jitter
+      const jx = ds.x + (Math.random() - 0.5) * 1.2;
+      const jz = ds.z + (Math.random() - 0.5) * 1.2;
+      if (isValidTreeSpot(jx, jz)) {
+        spawnTree(jx, jz, true);
+        destroyedSpots.splice(i, 1);
+      }
+    }
+  }
+
+  updateGrowingTrees(dt);
 }
 
 /** Destroy and burst scenery within a radius of a world position */
@@ -162,6 +250,10 @@ export function destroySceneryNear(wx, wz, radius) {
   const hit = scenery.filter(s => s.alive && Math.hypot(s.worldX - wx, s.worldZ - wz) < radius);
   for (const s of hit) {
     s.alive = false;
+    // Track destroyed tree position for regrowth
+    if (s.type === 'tree') {
+      destroyedSpots.push({ x: s.worldX, z: s.worldZ, age: 0 });
+    }
     for (const part of s.parts) {
       scene.remove(part);
     }

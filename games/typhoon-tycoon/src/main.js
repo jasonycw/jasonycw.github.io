@@ -1,17 +1,17 @@
-import { scene } from './three-setup.js';
-import { createMap } from './map.js';
-import { state, getStructConfig } from './state.js';
-import { CONFIG } from './config.js';
-import { enemies } from './enemies.js';
-import { towers, buildings, projectiles } from './towers.js';
-import { effects } from './effects.js';
-import { scenery } from './scenery.js';
-import { gridCells } from './map.js';
-import { placeStructure } from './placement.js';
-import { startGame } from './game.js';
-import { toggleBGM } from './audio.js';
+import { scene } from './core/three-setup.js';
+import { createMap } from './world/map.js';
+import { state, getStructConfig } from './core/state.js';
+import { CONFIG } from './core/config.js';
+import { enemies } from './systems/enemies.js';
+import { towers, buildings, projectiles } from './systems/towers.js';
+import { effects } from './systems/effects.js';
+import { scenery } from './systems/scenery.js';
+import { gridCells } from './world/map.js';
+import { placeStructure } from './systems/placement.js';
+import { startGame } from './systems/game.js';
+import { toggleBGM } from './systems/audio.js';
 // Import placement for side effects (DOM listeners registered at module level)
-import './placement.js';
+import './systems/placement.js';
 
 // ==================== MAP INIT ====================
 createMap(scene);

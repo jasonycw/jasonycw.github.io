@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { scene } from './three-setup.js';
-import { CONFIG } from './config.js';
-import { state } from './state.js';
+import { scene } from '../core/three-setup.js';
+import { CONFIG } from '../core/config.js';
+import { state } from '../core/state.js';
 import { effects, spawnBurst, spawnEffect } from './effects.js';
 import { destroySceneryNear } from './scenery.js';
 import { gameOver } from './ui.js';

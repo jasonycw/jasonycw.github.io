@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { scene } from './three-setup.js';
+import { scene } from '../core/three-setup.js';
 
 // ==================== VISUAL EFFECTS ====================
 export const effects = [];
