@@ -356,12 +356,6 @@ export function updateTowers(dt) {
 
 // ==================== TOWER BEAMS ====================
 function updateTowerBeam(tower, target, color) {
-  if (tower._beamGroup) {
-    scene.remove(tower._beamGroup);
-    disposeTowerBeam(tower._beamGroup);
-    tower._beamGroup = null;
-  }
-
   const wx = tower.wx, wz = tower.wz;
   const tx = target.x, tz = target.z;
   const start = new THREE.Vector3(wx, 0.5, wz);
@@ -370,6 +364,29 @@ function updateTowerBeam(tower, target, color) {
   const len = dir.length();
   if (len < 0.1) return;
 
+  if (tower._beamGroup) {
+    // Update existing beam — reposition vertices instead of recreating
+    const line = tower._beamGroup.children[0];
+    if (line && line.isLine) {
+      const pos = line.geometry.attributes.position;
+      pos.setXYZ(0, start.x, start.y, start.z);
+      pos.setXYZ(1, end.x, end.y, end.z);
+      pos.needsUpdate = true;
+    }
+    // Reposition glow spheres along the updated beam
+    for (let i = 0; i < 5; i++) {
+      const child = tower._beamGroup.children[i + 1];
+      if (!child) break;
+      const t = (i + 1) / 6;
+      const pos = start.clone().add(dir.clone().multiplyScalar(t));
+      child.position.copy(pos);
+      // Pulse opacity for visual interest
+      child.material.opacity = 0.6 + Math.sin(state.gameTime * 8 + i) * 0.2;
+    }
+    return;
+  }
+
+  // First frame: create beam group once
   const group = new THREE.Group();
   scene.add(group);
 
@@ -379,6 +396,7 @@ function updateTowerBeam(tower, target, color) {
     blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false
   });
   group.add(new THREE.Line(lineGeom, lineMat));
+  tower._beamLineMat = lineMat;
 
   for (let i = 0; i < 5; i++) {
     const t = (i + 1) / 6;
@@ -395,7 +413,6 @@ function updateTowerBeam(tower, target, color) {
   }
 
   tower._beamGroup = group;
-  tower._beamLineMat = lineMat;
 }
 
 export function removeTowerBeam(tower) {
