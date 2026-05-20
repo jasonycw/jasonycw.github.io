@@ -23,10 +23,10 @@ export function updateWaves(dt) {
     document.getElementById('waveDisplay').textContent = state.wave;
   }
 
-  // Spawn enemies during wave
-  if (state.waveTimer > CONFIG.waveSpawnInterval - 3) {
+  // Spawn enemies during wave — keep spawning until all enemies are out
+  if (state.enemiesSpawnedInWave < state.enemiesPerWave) {
     state.spawnTimer -= dt;
-    if (state.spawnTimer <= 0 && state.enemiesSpawnedInWave < state.enemiesPerWave) {
+    if (state.spawnTimer <= 0) {
       spawnEnemy();
       state.enemiesSpawnedInWave++;
       state.spawnTimer = Math.max(0.3, 0.8 - state.wave * 0.03) + Math.random() * 0.3;
