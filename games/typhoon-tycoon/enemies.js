@@ -220,7 +220,7 @@ export function spawnEnemy() {
   hpBg.position.set(x, 1.6, z);
   scene.add(hpBg);
 
-  const hpFill = new THREE.Mesh(hpBarFillGeom, hpBarFillMat);
+  const hpFill = new THREE.Mesh(hpBarFillGeom, hpBarFillMat.clone());
   hpFill.position.set(x, 1.6, z);
   scene.add(hpFill);
 
@@ -418,6 +418,8 @@ export function removeEnemy(index) {
   if (e.hpBar) {
     scene.remove(e.hpBar.bg);
     scene.remove(e.hpBar.fill);
+    // Each enemy clones the fill material — dispose the clone (bg is shared, not disposed)
+    if (e.hpBar.fill.material) e.hpBar.fill.material.dispose();
   }
   e.alive = false;
   state.enemyCount--;
