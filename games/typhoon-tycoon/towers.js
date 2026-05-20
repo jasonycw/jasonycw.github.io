@@ -9,6 +9,8 @@ import { setStatus } from './ui.js';
 
 export const towers = [];
 export const buildings = [];
+// Shared tiny sphere for projectile trails — reused via scale to avoid per-frame geometry allocation
+const sharedTrailGeom = new THREE.SphereGeometry(1, 4, 4);
 export const projectiles = [];
 
 // ==================== TOWER MESHES ====================
@@ -255,15 +257,16 @@ export function updateProjectiles(dt) {
     if (p.trailTimer <= 0) {
       p.trailTimer = 0.04;
       const trailColor = p.mesh.material.color.getHex();
-      const tGeom = new THREE.SphereGeometry(
-        (p.mesh.geometry.parameters ? p.mesh.geometry.parameters.radius : 0.12) * 0.6, 4, 4);
+      const trailR = (p.mesh.geometry.parameters ? p.mesh.geometry.parameters.radius : 0.12) * 0.6;
+      // Reuse shared sphere geometry via scale
       const tMat = new THREE.MeshBasicMaterial({
         color: trailColor, transparent: true, opacity: 0.5
       });
-      const tMesh = new THREE.Mesh(tGeom, tMat);
+      const tMesh = new THREE.Mesh(sharedTrailGeom, tMat);
+      tMesh.scale.setScalar(trailR);
       tMesh.position.copy(p.mesh.position);
       scene.add(tMesh);
-      effects.push({ mesh: tMesh, mat: tMat, life: 0.25, maxLife: 0.25, geom: tGeom });
+      effects.push({ mesh: tMesh, mat: tMat, life: 0.25, maxLife: 0.25, geom: null });
     }
 
     const step = Math.min(p.speed * dt, dist);
