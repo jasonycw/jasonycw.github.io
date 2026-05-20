@@ -36,7 +36,11 @@ function updateHSI(dt) {
   }
 
   state.hsi = Math.max(0, state.hsi);
-  document.getElementById('hsiDisplay').textContent = Math.round(state.hsi);
+  const roundedHsi = Math.round(state.hsi);
+  const hsiEl = document.getElementById('hsiDisplay');
+  if (hsiEl.textContent !== roundedHsi.toString()) {
+    hsiEl.textContent = roundedHsi;
+  }
 }
 
 // ==================== GAME LOOP ====================
