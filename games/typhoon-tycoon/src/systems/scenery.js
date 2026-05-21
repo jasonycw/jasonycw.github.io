@@ -233,7 +233,7 @@ export function updateTreeRegrowth(dt) {
       continue;
     }
     // After cooldown, chance to regrow
-    if (ds.age > REGROW_COOLDOWN && Math.random() < REGROW_CHANCE_PER_SEC * dt * 60) {
+    if (ds.age > REGROW_COOLDOWN && Math.random() < REGROW_CHANCE_PER_SEC * dt) {
       // Spawn near original spot with some jitter
       const jx = ds.x + (Math.random() - 0.5) * 1.2;
       const jz = ds.z + (Math.random() - 0.5) * 1.2;
