@@ -24,8 +24,12 @@ function startServer(port, attempt) {
       res.end('Forbidden');
       return;
     }
-    try {
-      let c = fs.readFileSync(fp);
+    fs.readFile(fp, (err, c) => {
+      if (err) {
+        res.writeHead(404);
+        res.end('Not found');
+        return;
+      }
       let ext = path.extname(fp);
       if (fp.endsWith('main.js')) {
         const hash = crypto.createHash('md5').update(c).digest('hex');
@@ -33,10 +37,7 @@ function startServer(port, attempt) {
       }
       res.writeHead(200, { 'Content-Type': types[ext] || 'application/octet-stream', 'Cache-Control': 'no-store' });
       res.end(c);
-    } catch (e) {
-      res.writeHead(404);
-      res.end('Not found');
-    }
+    });
   });
 
   server.on('error', (err) => {
