@@ -288,12 +288,12 @@ export function destroySceneryNear(wx, wz, radius) {
         // Detach from scene — effect system handles removal
         scene.remove(part);
         scene.add(part);
-        effects.push({
-          mesh: part, mat: part.material, life: 1.5, maxLife: 1.5, geom: null,
-          _tornado: true, _spin: spinSpeed, _upSpeed: upSpeed,
-          _vx: Math.cos(angle) * outSpeed,
-          _vz: Math.sin(angle) * outSpeed
-        });
+    effects.push({
+      mesh: part, mat: part.material.clone(), life: 1.5, maxLife: 1.5, geom: null,
+      _tornado: true, _spin: spinSpeed, _upSpeed: upSpeed,
+      _vx: Math.cos(angle) * outSpeed,
+      _vz: Math.sin(angle) * outSpeed
+    });
       }
       // Green burst of leaves
       for (let i = 0; i < 8; i++) {
