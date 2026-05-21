@@ -9,10 +9,6 @@ import { setStatus } from './ui.js';
 
 export const towers = [];
 export const buildings = [];
-// Shared tiny sphere for projectile trails — reused via scale to avoid per-frame geometry allocation
-const sharedTrailGeom = new THREE.SphereGeometry(1, 4, 4);
-export const projectiles = [];
-
 // ==================== TOWER MESHES ====================
 export function createTowerMesh(type) {
   const group = new THREE.Group();
@@ -209,69 +205,6 @@ function fireProjectile(tower) {
   damageEnemy(target, dmg);
 
   spawnBurst(target.x, 0.5, target.z, 0xffeb3b, 6);
-}
-
-export function updateProjectiles(dt) {
-  for (let i = projectiles.length - 1; i >= 0; i--) {
-    const p = projectiles[i];
-    if (!p.alive || !p.target || !p.target.alive) {
-      scene.remove(p.mesh);
-      p.mesh.material.dispose();
-      p.mesh.geometry.dispose();
-      projectiles.splice(i, 1);
-      continue;
-    }
-
-    const targetPos = p.target.mesh.position;
-    const dir = new THREE.Vector3()
-      .copy(targetPos)
-      .sub(p.mesh.position);
-    const dist = dir.length();
-
-    if (dist < 0.5) {
-      console.log(`PROJ_HIT: ${p.type} dmg deal, enemy hp before=${p.target.hp.toFixed(0)}`);
-      if (p.type === 'FreezeTower') {
-        p.target.isSlowed = 2.0;
-        p.target.slowFactor = 0.5;
-        spawnBurst(p.target.x, 0.5, p.target.z, 0x4fc3f7, 10);
-      } else if (p.type === 'RepelTower') {
-        const dx = p.target.x - p.tower.mesh.position.x;
-        const dz = p.target.z - p.tower.mesh.position.z;
-        const d = Math.sqrt(dx * dx + dz * dz);
-        if (d > 0) {
-          p.target.repelX += (dx / d) * 6;
-          p.target.repelZ += (dz / d) * 6;
-        }
-        spawnBurst(p.target.x, 0.5, p.target.z, 0xff6d00, 8);
-        spawnEffect(p.target.x, 0.5, p.target.z, 0xff8a65, 0.3);
-      }
-
-      scene.remove(p.mesh);
-      p.mesh.material.dispose();
-      projectiles.splice(i, 1);
-      continue;
-    }
-
-    // Particle trail
-    p.trailTimer -= dt;
-    if (p.trailTimer <= 0) {
-      p.trailTimer = 0.04;
-      const trailColor = p.mesh.material.color.getHex();
-      const trailR = (p.mesh.geometry.parameters ? p.mesh.geometry.parameters.radius : 0.12) * 0.6;
-      // Reuse shared sphere geometry via scale
-      const tMat = new THREE.MeshBasicMaterial({
-        color: trailColor, transparent: true, opacity: 0.5
-      });
-      const tMesh = new THREE.Mesh(sharedTrailGeom, tMat);
-      tMesh.scale.setScalar(trailR);
-      tMesh.position.copy(p.mesh.position);
-      scene.add(tMesh);
-      effects.push({ mesh: tMesh, mat: tMat, life: 0.25, maxLife: 0.25, geom: null });
-    }
-
-    const step = Math.min(p.speed * dt, dist);
-    p.mesh.position.add(dir.normalize().multiplyScalar(step));
-  }
 }
 
 // ==================== TOWER UPDATE ====================
