@@ -253,6 +253,8 @@ export function selectStructure(type) {
   if (!cfg) return;
 
   if (!isStructureUnlocked(type)) {
+    state.selectedType = null;
+    if (previewGhost) { scene.remove(previewGhost); previewGhost = null; }
     setStatus(`${cfg.title} is locked! Build required tech first.`, '#ff5252');
     return;
   }
