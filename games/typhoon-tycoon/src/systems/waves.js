@@ -23,6 +23,9 @@ export function updateWaves(dt) {
     document.getElementById('waveDisplay').textContent = state.wave;
   }
 
+  // Don't spawn enemies before first wave starts
+  if (state.wave === 0) return;
+
   // Spawn enemies during wave — keep spawning until all enemies are out
   if (state.enemiesSpawnedInWave < state.enemiesPerWave) {
     state.spawnTimer -= dt;
