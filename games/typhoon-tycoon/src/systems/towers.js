@@ -363,7 +363,10 @@ export function removeTowerBeam(tower) {
 
 function disposeTowerBeam(group) {
   group.traverse(child => {
-    if (child.material) child.material.dispose();
+    if (child.material) {
+      if (Array.isArray(child.material)) child.material.forEach(m => { m.dispose(); });
+      else child.material.dispose();
+    }
     if (child.geometry && child.geometry !== sharedBeamSphereGeom) child.geometry.dispose();
   });
 }
