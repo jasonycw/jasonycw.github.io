@@ -9,6 +9,8 @@ import { setStatus } from './ui.js';
 
 export const towers = [];
 export const buildings = [];
+// Shared unit sphere for beam glow spheres — scales per instance to avoid per-frame geometry allocation
+const sharedBeamSphereGeom = new THREE.SphereGeometry(1, 6, 6);
 // ==================== TOWER MESHES ====================
 export function createTowerMesh(type) {
   const group = new THREE.Group();
@@ -338,12 +340,12 @@ function updateTowerBeam(tower, target, color) {
     const t = (i + 1) / 6;
     const pos = start.clone().add(dir.clone().multiplyScalar(t));
     const r = 0.04 + t * 0.05;
-    const geom = new THREE.SphereGeometry(r, 6, 6);
     const mat = new THREE.MeshBasicMaterial({
       color, transparent: true, opacity: 0.6 + Math.sin(state.gameTime * 8 + i) * 0.2,
       blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false
     });
-    const mesh = new THREE.Mesh(geom, mat);
+    const mesh = new THREE.Mesh(sharedBeamSphereGeom, mat);
+    mesh.scale.setScalar(r);
     mesh.position.copy(pos);
     group.add(mesh);
   }
@@ -362,7 +364,7 @@ export function removeTowerBeam(tower) {
 function disposeTowerBeam(group) {
   group.traverse(child => {
     if (child.material) child.material.dispose();
-    if (child.geometry) child.geometry.dispose();
+    if (child.geometry && child.geometry !== sharedBeamSphereGeom) child.geometry.dispose();
   });
 }
 
