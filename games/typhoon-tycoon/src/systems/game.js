@@ -51,7 +51,11 @@ function gameLoop() {
   if (state.phase === 'playing') {
     if (useHitareaClassification && !state.defaultBuildingsPlaced) {
       placeDefaultBuildings();
-      setupScenery();
+      // Only run scenery setup once (prevents duplication on retry)
+      if (!state.sceneryPlaced) {
+        setupScenery();
+        state.sceneryPlaced = true;
+      }
       // Restore HSI after starter buildings deduct their cost
       state.hsi = CONFIG.hsiInit;
       // Only mark as placed if buildings actually succeeded (retry next frame otherwise)
@@ -101,6 +105,7 @@ export function startGame() {
   state.selectedType = null;
   state.powerOutage = false;
   state.defaultBuildingsPlaced = false;
+  state.sceneryPlaced = false;
 
   // Clear entities
   for (const e of enemies) {
