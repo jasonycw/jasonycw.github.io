@@ -320,13 +320,13 @@ export function updateEnemies(dt) {
     const hitR = e.mesh.userData.hitRadius || 1.8;
     destroySceneryNear(e.x, e.z, hitR);
 
-    // Sea regen / land decay — scales with gameTime to stay visible alongside soaring enemy HP
-    const hpScale = 1 + state.gameTime * 0.04; // ~5x at gameTime 100, ~9x at 200
+    // Sea regen / land-decay — typhoons decay rapidly over land, recharge over sea
+    const hpScale = 1 + state.gameTime * 0.04;
     if (distToCenter > CONFIG.islandRadius + 0.5) {
       const regenPerSec = (2 + Math.random() * 3) * hpScale;
       e.hp = Math.min(e.maxHp, e.hp + regenPerSec * dt);
     } else {
-      const decayPerSec = (3 + (e.hp / e.maxHp) * 4) * hpScale;
+      const decayPerSec = (12 + (e.hp / e.maxHp) * 15) * hpScale;
       e.hp -= decayPerSec * dt;
       if (e.hp <= 0) {
         console.log(`ENEMY_DISSIPATED`);
@@ -395,8 +395,8 @@ export function updateEnemies(dt) {
       am.opacity = base * (0.3 + hpRatio * 0.7);
     }
 
-    // Despawn if too far
-    if (Math.abs(e.x) > 20 || Math.abs(e.z) > 20) {
+    // Despawn if off map (beyond spawn radius) — prevents circling back
+    if (Math.abs(e.x) > 16 || Math.abs(e.z) > 16) {
       removeEnemy(i);
       continue;
     }
