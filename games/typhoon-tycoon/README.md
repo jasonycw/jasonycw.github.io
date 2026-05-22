@@ -12,6 +12,12 @@ A 2.5D browser-based tower defense game rebuilt in Three.js, inspired by the ori
 ![In-Game Action](assets/screenshots/action.png)
 *All 8 structure types deployed (Laser/Freeze/Repel Towers, Power/University/Research/Nuclear Plants, CheungKong HQ) defending against realistic 3D typhoons with dark calm eyes, bright eyewalls, asymmetric spiral rainbands, and multi-layer particle systems.*
 
+![Game Over](assets/screenshots/lose.png)
+*Game over screen shown when HSI drops to zero — the economy has collapsed.*
+
+![Victory](assets/screenshots/win.png)
+*Victory screen after surviving all 20 years — Hong Kong is saved from Typhoon!*
+
 ## Visual Features
 
 ### Realistic 3D Typhoons
@@ -67,7 +73,7 @@ In the year 21XX, the Li's field (李氏力場) becomes reality in the form of a
 
 ## How to Play
 
-**Goal:** Survive 20 waves of incoming typhoons. Each typhoon that reaches Hong Kong drains HSI (Hang Seng Index). If HSI drops to 0, you lose.
+**Goal:** Survive 20 years of incoming typhoons. Each typhoon that reaches Hong Kong drains HSI (Hang Seng Index). If HSI drops to 0, you lose. Survive all 20 years and you save Hong Kong from the typhoons!
 
 ### Controls
 
@@ -87,8 +93,25 @@ In the year 21XX, the Li's field (李氏力場) becomes reality in the form of a
 ### UI Elements
 
 - **Bottom toolbar:** Structure buttons with cost and power requirements
-- **Top-right HUD:** Current wave, HSI (currency/health), Power bar, Enemies remaining
+- **Top-right HUD:** Current year, HSI (currency/health), Year countdown, Power bar, Enemies remaining
 - **Map:** South China Sea / Hong Kong region with concentric danger zone rings
+
+### Year Progression
+
+Each year intensifies as the typhoons grow stronger:
+
+| Year | Enemies | Spawn Interval | Notes |
+|------|---------|----------------|-------|
+| 1 | 3 | 10.5s | First wave — gentle start |
+| 5 | 13 | 8.5s | Enemies per year ramps up linearly |
+| 10 | 23 | 6.0s | Mid-game, pace quickens |
+| 15 | 30 | 3.5s | Max enemies per year reached |
+| 20 | 30 | 1.5s | Final year — maximum intensity |
+
+- Enemy HP and speed also increase with each year
+- The cooldown between years shortens as the game progresses (starts at 10s, drops to 1.5s by year 20)
+- The top-right **Next Year** countdown shows remaining seconds until the next year begins
+- Survive all 20 years to win — you have defended Hong Kong from the typhoons!
 
 ## Structures
 
@@ -141,6 +164,6 @@ node server.js
 
 - **Original game:** [Typhoon Tycoon](https://github.com/jasonycw/TyphoonTycoon) by Alexander Cheung, Dickson Chui, Eric Li, and Jason Yu
 - **Map assets:** Original `map.png`, `typhoon.png`, and supporting assets from the classic 2D version
-- **Background music:** *Typhoon Tycoon (Final)* by Alexander Cheung — used with permission from the original Typhoon Tycoon team
+- **Background music:** *Typhoon Tycoon (Final)* by [Michael Clark](https://michaelclarkmusic.wordpress.com/)
 - **Three.js:** https://threejs.org/
 - LLM by @deepseek-ai
