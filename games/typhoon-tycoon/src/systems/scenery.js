@@ -11,9 +11,9 @@ export const destroyedSpots = [];
 // Trees currently growing (scale animation)
 export const growingTrees = [];
 // Regrowth cooldown: seconds after destruction before regrowth can start
-const REGROW_COOLDOWN = 12;
+const REGROW_COOLDOWN = 5;
 // Probability per second per spot that a new tree grows
-const REGROW_CHANCE_PER_SEC = 0.08;
+const REGROW_CHANCE_PER_SEC = 0.15;
 
 // ==================== SCENERY SHARED GEOMETRIES ====================
 export const treeTrunkGeom = new THREE.CylinderGeometry(0.03, 0.04, 0.2, 4);
