@@ -4,7 +4,7 @@ import { state } from '../core/state.js';
 import { enemies, updateEnemies } from './enemies.js';
 import { towers, buildings, updateTowers, removeTowerBeam, updatePower } from './towers.js';
 import { effects, updateEffects } from './effects.js';
-import { scenery, setupScenery, updateTreeRegrowth, treeTrunkGeom, treeCrownGeom, treeCrown2Geom, treeTrunkMat, treeCrownMat, treeCrown2Mat } from './scenery.js';
+import { scenery, setupScenery, updateTreeRegrowth, destroyedSpots, growingTrees, treeTrunkGeom, treeCrownGeom, treeCrown2Geom, treeTrunkMat, treeCrownMat, treeCrown2Mat } from './scenery.js';
 import { gridCells, useHitareaClassification } from '../world/map.js';
 import { updateWaves } from './waves.js';
 import { setStatus, updateUI, gameOver } from './ui.js';
@@ -144,6 +144,8 @@ export function startGame() {
     }
   }
   scenery.length = 0;
+  destroyedSpots.length = 0;
+  growingTrees.length = 0;
 
   for (const t of towers) {
     removeTowerBeam(t);

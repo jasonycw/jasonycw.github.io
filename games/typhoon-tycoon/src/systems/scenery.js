@@ -9,7 +9,7 @@ export const scenery = [];
 // Track destroyed tree positions for regrowth
 export const destroyedSpots = [];
 // Trees currently growing (scale animation)
-const growingTrees = [];
+export const growingTrees = [];
 // Regrowth cooldown: seconds after destruction before regrowth can start
 const REGROW_COOLDOWN = 12;
 // Probability per second per spot that a new tree grows
