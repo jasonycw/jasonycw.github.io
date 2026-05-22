@@ -173,17 +173,23 @@ function destroyBuilding(building) {
   }
 }
 
-/** Trigger shockwave visual effect — full screen CSS animation */
+/** Trigger shockwave visual effect + screen shake */
 function triggerShockwave() {
+  // Shockwave overlay
   const sw = document.getElementById('shockwave');
-  if (!sw) return;
-  sw.classList.remove('active');
-  // Force reflow to restart animation
-  void sw.offsetWidth;
-  sw.classList.add('active');
-  setTimeout(() => {
+  if (sw) {
     sw.classList.remove('active');
-  }, 1000);
+    void sw.offsetWidth;
+    sw.classList.add('active');
+    setTimeout(() => sw.classList.remove('active'), 1000);
+  }
+
+  // Screen shake on the Three.js canvas
+  const canvas = renderer.domElement;
+  canvas.classList.remove('quake-shake');
+  void canvas.offsetWidth;
+  canvas.classList.add('quake-shake');
+  setTimeout(() => canvas.classList.remove('quake-shake'), 900);
 }
 
 // ==================== STATE ====================
