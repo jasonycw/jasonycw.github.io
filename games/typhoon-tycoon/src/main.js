@@ -3,7 +3,7 @@ import { createMap } from './world/map.js';
 import { state, getStructConfig } from './core/state.js';
 import { CONFIG } from './core/config.js';
 import { enemies } from './systems/enemies.js';
-import { towers, buildings, projectiles } from './systems/towers.js';
+import { towers, buildings } from './systems/towers.js';
 import { effects } from './systems/effects.js';
 import { scenery } from './systems/scenery.js';
 import { gridCells } from './world/map.js';
@@ -27,6 +27,6 @@ document.getElementById('musicBtn').addEventListener('click', toggleBGM);
 
 // ==================== DEBUG ====================
 window.__debug = {
-  state, enemies, towers, buildings, projectiles, effects,
+  state, enemies, towers, buildings, effects,
   placeStructure, gridCells, getStructConfig, CONFIG, scenery
 };
