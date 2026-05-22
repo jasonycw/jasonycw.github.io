@@ -12,15 +12,14 @@ export function updateYears(dt) {
   state.yearTimer -= dt;
 
   if (state.yearTimer <= 0) {
-    // Start new year
-    state.year++;
-
-    // Win when year 20 is complete (timer expires advancing to 21)
-    if (state.year > WIN_YEAR) {
+    // Win after surviving year WIN_YEAR (timer expires → current year is done)
+    if (state.year >= WIN_YEAR) {
+      state.phase = 'win'; // block the game loop immediately
       import('./ui.js').then(m => m.winGame()).catch(() => {});
       return;
     }
 
+    state.year++;
     state.enemiesSpawnedInYear = 0;
     state.enemiesPerYear = Math.min(3 + state.year * 2, 30);
     state.spawnTimer = 0;
