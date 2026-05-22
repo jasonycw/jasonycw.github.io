@@ -226,8 +226,11 @@ function handleMapClick(event) {
     return;
   }
 
-  if (placeStructure(cell, state.selectedType)) {
-    setStatus(`${getStructConfig(state.selectedType).title} built!`, '#69f0ae');
+  const placedType = state.selectedType;
+  if (placeStructure(cell, placedType)) {
+    setStatus(`${getStructConfig(placedType).title} built!`, '#69f0ae');
+    // Clear selection — force player to choose a structure for each placement
+    selectStructure(null);
   }
 }
 
