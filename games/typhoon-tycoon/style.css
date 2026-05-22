@@ -163,9 +163,28 @@ body {
   color: #4fc3f7;
 }
 
-/* HSI box */
-#hud-left .hud-box:nth-child(2) .hud-box-value { color: #69f0ae; }
-#hud-left .hud-box:nth-child(3) .hud-box-value { color: #ffab40; }
+/* HSI box — double width, prominent green value */
+.hsi-box {
+  min-width: 132px;
+  padding: 0.35rem 0.8rem;
+}
+.hsi-box .hsi-value {
+  font-size: 1.3rem;
+}
+.hsi-box .hud-box-value {
+  color: #69f0ae;
+}
+
+/* Enemy box — bigger number to fill the box */
+.enemy-box {
+  min-width: 72px;
+}
+.enemy-box .enemy-value {
+  font-size: 1.25rem;
+}
+.enemy-box .hud-box-value {
+  color: #ffab40;
+}
 
 /* Power display — vertical battery on right */
 #powerDisplay {
