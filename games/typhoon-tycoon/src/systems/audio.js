@@ -90,6 +90,16 @@ bgm.loop = true;
 bgm.volume = 0.4;
 let bgmPlaying = false;
 
+export function startBGM() {
+  if (bgmPlaying) return;
+  bgm.play().catch(err => {
+    console.warn('BGM autoplay failed:', err);
+  });
+  bgmPlaying = true;
+  const btn = document.getElementById('musicBtn');
+  if (btn) btn.textContent = '\u{1F50A} BGM';
+}
+
 export function toggleBGM() {
   const btn = document.getElementById('musicBtn');
   if (bgmPlaying) {

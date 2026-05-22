@@ -9,6 +9,7 @@ import { gridCells, useHitareaClassification } from '../world/map.js';
 import { updateYears } from './waves.js';
 import { setStatus, updateUI, gameOver } from './ui.js';
 import { placeDefaultBuildings, clearPreviewGhost } from './placement.js';
+import { startBGM } from './audio.js';
 
 // ==================== HSI UPDATE ====================
 function updateHSI(dt) {
@@ -187,6 +188,7 @@ export function startGame() {
 
   clearPreviewGhost();
   document.getElementById('cancelBtn').classList.add('hidden');
+  startBGM();
 
   setStatus('Game started! Build towers and defend Hong Kong!', '#69f0ae');
   updateUI();
