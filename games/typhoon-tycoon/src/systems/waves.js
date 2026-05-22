@@ -4,35 +4,35 @@ import { enemies } from './enemies.js';
 import { spawnEnemy } from './enemies.js';
 import { setStatus } from './ui.js';
 
-const WIN_WAVE = 20;
+const WIN_YEAR = 20;
 
-// ==================== WAVE SYSTEM ====================
-export function updateWaves(dt) {
+// ==================== YEAR SYSTEM ====================
+export function updateYears(dt) {
   state.gameTime += dt;
-  state.waveTimer -= dt;
+  state.yearTimer -= dt;
 
-  if (state.waveTimer <= 0) {
-    // Start new wave
-    state.wave++;
-    state.enemiesSpawnedInWave = 0;
-    state.enemiesPerWave = Math.min(3 + state.wave * 2, 30);
+  if (state.yearTimer <= 0) {
+    // Start new year
+    state.year++;
+    state.enemiesSpawnedInYear = 0;
+    state.enemiesPerYear = Math.min(3 + state.year * 2, 30);
     state.spawnTimer = 0;
-    state.waveTimer = CONFIG.waveSpawnInterval + Math.max(0, 10 - state.wave * 0.5);
+    state.yearTimer = CONFIG.waveSpawnInterval + Math.max(0, 10 - state.year * 0.5);
 
-    setStatus(`Wave ${state.wave} incoming!`, '#ffab40');
-    document.getElementById('waveDisplay').textContent = state.wave;
+    setStatus(`Year ${state.year} incoming!`, '#ffab40');
+    document.getElementById('yearDisplay').textContent = state.year;
   }
 
-  // Don't spawn enemies before first wave starts
-  if (state.wave === 0) return;
+  // Don't spawn enemies before first year starts
+  if (state.year === 0) return;
 
-  // Spawn enemies during wave — keep spawning until all enemies are out
-  if (state.enemiesSpawnedInWave < state.enemiesPerWave) {
+  // Spawn enemies during year — keep spawning until all enemies are out
+  if (state.enemiesSpawnedInYear < state.enemiesPerYear) {
     state.spawnTimer -= dt;
     if (state.spawnTimer <= 0) {
       spawnEnemy();
-      state.enemiesSpawnedInWave++;
-      state.spawnTimer = Math.max(0.3, 0.8 - state.wave * 0.03) + Math.random() * 0.3;
+      state.enemiesSpawnedInYear++;
+      state.spawnTimer = Math.max(0.3, 0.8 - state.year * 0.03) + Math.random() * 0.3;
     }
   }
 
@@ -40,7 +40,7 @@ export function updateWaves(dt) {
   document.getElementById('enemyCount').textContent = enemies.length;
 
   // Check win condition
-  if (state.wave >= WIN_WAVE && enemies.length === 0 && state.enemiesSpawnedInWave >= state.enemiesPerWave) {
+  if (state.year >= WIN_YEAR && enemies.length === 0 && state.enemiesSpawnedInYear >= state.enemiesPerYear) {
     // Circular-safe: import winGame lazily
     import('./ui.js').then(m => m.winGame()).catch(() => {});
   }

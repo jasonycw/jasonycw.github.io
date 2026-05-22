@@ -7,13 +7,13 @@ export const state = {
   hsiMax: CONFIG.hsiInit,
   powerQuota: 0,
   powerUsed: 0,
-  waveTimer: CONFIG.waveInitDelay,
+  yearTimer: CONFIG.waveInitDelay,
   spawnTimer: 0,
-  enemiesPerWave: 3,
-  enemiesSpawnedInWave: 0,
+  enemiesPerYear: 3,
+  enemiesSpawnedInYear: 0,
   enemyCount: 0,
   gameTime: 0,
-  wave: 0,
+  year: 0,
   enemiesKilled: 0,
 
   // Tech tree

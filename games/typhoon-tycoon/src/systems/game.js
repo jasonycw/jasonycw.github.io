@@ -6,7 +6,7 @@ import { towers, buildings, updateTowers, removeTowerBeam, updatePower } from '.
 import { effects, updateEffects } from './effects.js';
 import { scenery, setupScenery, updateTreeRegrowth, destroyedSpots, growingTrees, treeTrunkGeom, treeCrownGeom, treeCrown2Geom, treeTrunkMat, treeCrownMat, treeCrown2Mat } from './scenery.js';
 import { gridCells, useHitareaClassification } from '../world/map.js';
-import { updateWaves } from './waves.js';
+import { updateYears } from './waves.js';
 import { setStatus, updateUI, gameOver } from './ui.js';
 import { placeDefaultBuildings, clearPreviewGhost } from './placement.js';
 
@@ -64,7 +64,7 @@ function gameLoop() {
       }
     }
 
-    updateWaves(dt);
+    updateYears(dt);
     updateEnemies(dt);
     updateTowers(dt);
     updateHSI(dt);
@@ -88,13 +88,13 @@ export function startGame() {
   state.hsiMax = CONFIG.hsiInit;
   state.powerQuota = 0;
   state.powerUsed = 0;
-  state.wave = 0;
+  state.year = 0;
   state.enemiesKilled = 0;
   state.gameTime = 0;
-  state.waveTimer = CONFIG.waveInitDelay;
+  state.yearTimer = CONFIG.waveInitDelay;
   state.spawnTimer = 0;
-  state.enemiesPerWave = 3;
-  state.enemiesSpawnedInWave = 0;
+  state.enemiesPerYear = 3;
+  state.enemiesSpawnedInYear = 0;
   state.enemyCount = 0;
   state.hasUniversity = false;
   state.hasResearchCenter = false;

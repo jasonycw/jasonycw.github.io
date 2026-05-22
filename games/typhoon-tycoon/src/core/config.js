@@ -1,5 +1,5 @@
 // ==================== CONFIGURATION ====================
-export const WIN_WAVE = 20; // Survive this many waves to win
+export const WIN_YEAR = 20; // Survive this many years to win
 
 export const CONFIG = {
   // Map

@@ -19,14 +19,14 @@ export function setStatus(msg, color) {
 
 export function updateUI() {
   document.getElementById('hsiDisplay').textContent = Math.round(state.hsi);
-  document.getElementById('waveDisplay').textContent = state.wave;
+  document.getElementById('yearDisplay').textContent = state.year;
 }
 
 export function gameOver() {
   state.phase = 'gameover';
   document.getElementById('gameover').classList.remove('hidden');
   document.getElementById('gameoverStat').textContent =
-    `Wave ${state.wave} | Enemies destroyed: ${state.enemiesKilled} | Time: ${Math.floor(state.gameTime)}s`;
+    `Year ${state.year} | Enemies destroyed: ${state.enemiesKilled} | Time: ${Math.floor(state.gameTime)}s`;
   // Circular-safe: playGameOverSound imported lazily
   import('./audio.js').then(m => m.playGameOverSound()).catch(() => {});
 }
@@ -35,7 +35,7 @@ export function winGame() {
   state.phase = 'win';
   document.getElementById('winoverlay').classList.remove('hidden');
   document.getElementById('winStat').textContent =
-    `Final wave: ${state.wave} | Enemies destroyed: ${state.enemiesKilled} | Final HSI: ${Math.round(state.hsi)}`;
+    `Final year: ${state.year} | Enemies destroyed: ${state.enemiesKilled} | Final HSI: ${Math.round(state.hsi)}`;
 }
 
 
