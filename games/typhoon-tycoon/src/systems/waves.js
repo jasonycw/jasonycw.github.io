@@ -23,6 +23,17 @@ export function updateYears(dt) {
     document.getElementById('yearDisplay').textContent = state.year;
   }
 
+  // Update year countdown display (remaining time until next year)
+  const remainEl = document.getElementById('yearCountdown');
+  const labelEl = document.getElementById('countdownLabel');
+  const remaining = Math.max(0, state.yearTimer);
+  if (state.year === 0) {
+    labelEl.textContent = 'Starting';
+  } else {
+    labelEl.textContent = 'Next Year';
+  }
+  remainEl.textContent = remaining.toFixed(1);
+
   // Don't spawn enemies before first year starts
   if (state.year === 0) return;
 
