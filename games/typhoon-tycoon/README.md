@@ -56,9 +56,9 @@ src/
 Each typhoon follows a **sinusoidal wobble path** instead of a straight line toward center. The wobble amplitude is randomized per enemy and decays as it approaches the island, creating natural-looking spiral approaches like real storm tracks.
 
 ### Attack VFX
-- **Laser Towers** fire instant beams from the turret barrel to the typhoon body, followed by a particle burst at the impact point
-- All projectile types leave **fading particle trails**
-- Hit effects use **multi-particle bursts** (flying outward with gravity) instead of single expanding spheres
+- **Laser Towers** fire instant beam lines from the turret barrel to the typhoon body, followed by a particle burst at the impact point
+- **Freeze Towers** apply a constant slow beam (cyan) and keep enemies chilled while in range
+- **Repel Towers** push enemies away with an orange beam and force impulse
 - Kill explosions release a 12-particle burst
 
 ## Background
@@ -67,7 +67,7 @@ In the year 21XX, the Li's field (李氏力場) becomes reality in the form of a
 
 ## How to Play
 
-**Goal:** Survive 20 waves of incoming typhoons. Each typhoon that reaches Hong Kong drains HSI (Hang Seng Index) and costs lives. If HSI drops to 0 or lives reach 0, you lose.
+**Goal:** Survive 20 waves of incoming typhoons. Each typhoon that reaches Hong Kong drains HSI (Hang Seng Index). If HSI drops to 0, you lose.
 
 ### Controls
 
@@ -86,8 +86,8 @@ In the year 21XX, the Li's field (李氏力場) becomes reality in the form of a
 
 ### UI Elements
 
-- **Left toolbar:** Structure buttons with cost and power requirements
-- **Top-right HUD:** Current wave, HSI (currency/health), Lives, Power bar, Enemies remaining
+- **Bottom toolbar:** Structure buttons with cost and power requirements
+- **Top-right HUD:** Current wave, HSI (currency/health), Power bar, Enemies remaining
 - **Map:** South China Sea / Hong Kong region with concentric danger zone rings
 
 ## Structures
@@ -108,7 +108,7 @@ In the year 21XX, the Li's field (李氏力場) becomes reality in the form of a
 | **University** | 2500 HSI | -20 | Unlocks Freeze Tower, boosts tower damage |
 | **Research Center** | 4000 HSI | -30 | Unlocks Repel Tower & Nuclear Plant, further damage boost (requires University) |
 | **Nuclear Power Plant** | 5000 HSI | +40 | High-output power (requires Research Center) |
-| **Li's Enterprise HQ** | 7000 HSI | -50 | Doubles HSI gains (requires Research Center) |
+| **Li's Enterprise HQ** | 7000 HSI | -50 | 1.5x HSI passive income (requires Research Center) |
 
 ### Power Management
 
