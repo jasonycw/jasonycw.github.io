@@ -189,70 +189,54 @@ body {
   color: #ffab40;
 }
 
-/* Power display — vertical battery on right */
+/* Power display — horizontal bar on right */
 #powerDisplay {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.25rem;
 }
 
-#batteryOuter {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* Battery cap — small rounded protrusion on top */
-#batteryCap {
-  width: 10px;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 2px 2px 0 0;
-  margin-bottom: 1px;
-}
-
-/* Battery body — rounded rectangle with inset shadow */
+/* Battery body — wide horizontal bar */
 #batteryBody {
-  width: 26px;
-  height: 44px;
+  width: 80px;
+  height: 14px;
   background: rgba(0, 0, 0, 0.4);
   border: 2px solid rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
+  border-radius: 7px;
   overflow: hidden;
   position: relative;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-/* Fill level — charges from bottom with bright gradient */
+/* Fill level — fills left to right */
 #batteryFill {
   position: absolute;
-  bottom: 0;
+  top: 2px;
+  bottom: 2px;
   left: 2px;
-  right: 2px;
-  border-radius: 0 0 2px 2px;
-  background: linear-gradient(0deg, #43a047, #66bb6a, #a5d6a7);
-  transition: height 0.3s;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #43a047, #66bb6a, #a5d6a7);
+  transition: width 0.3s;
   box-shadow: inset 0 0 6px rgba(165, 214, 167, 0.3);
 }
 
 /* Low power warning — orange */
 #batteryFill.low {
-  background: linear-gradient(0deg, #ef6c00, #ffa726);
+  background: linear-gradient(90deg, #ef6c00, #ffa726);
   box-shadow: inset 0 0 6px rgba(255, 167, 38, 0.3);
 }
 
 /* Overload / negative power — red */
 #batteryFill.overload {
-  background: linear-gradient(0deg, #c62828, #e53935);
+  background: linear-gradient(90deg, #c62828, #e53935);
   box-shadow: inset 0 0 6px rgba(229, 57, 53, 0.3);
 }
 
-/* Power text below the battery */
+/* Power text below bar */
 #powerText {
   font-size: 0.6rem;
   opacity: 0.6;
-  margin-top: 0.15rem;
 }
 
 /* Toolbar */
@@ -268,6 +252,18 @@ body {
   padding: 0.75rem 0.5rem 0.5rem;
   background: linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, transparent 100%);
   pointer-events: none;
+}
+
+/* Row wrapping grid + cancel button side by side */
+#toolbar-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 500px;
+  pointer-events: auto;
 }
 
 #toolbar-grid {
@@ -331,30 +327,28 @@ body {
   opacity: 0.5;
 }
 
-/* Cancel button — positioned on right side of toolbar */
+/* Cancel button — sits next to toolbar grid */
 .cancel-btn {
-  position: absolute;
-  right: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 110px;
-  min-height: 36px;
-  padding: 0.3rem 0.8rem;
+  width: 100px;
+  min-height: 52px;
+  padding: 0.3rem 0.6rem;
   border: 1px solid rgba(255, 80, 80, 0.4);
   background: rgba(60, 20, 20, 0.8);
   color: #ff8a80;
-  flex-direction: row;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  gap: 0.35rem;
+  gap: 0.15rem;
   pointer-events: auto;
+  font-size: 0.65rem;
 }
 .cancel-btn:hover {
   border-color: #ff5252;
   background: rgba(80, 20, 20, 0.9);
   color: #fff;
 }
-.cancel-btn .btn-icon { font-size: 1rem; }
-.cancel-btn .btn-hotkey { position: static; font-size: 0.6rem; opacity: 0.5; }
+.cancel-btn .btn-icon { font-size: 1.1rem; }
+.cancel-btn .btn-hotkey { position: static; font-size: 0.55rem; opacity: 0.5; }
 
 .status-msg {
   position: fixed;
@@ -555,6 +549,19 @@ body {
       inset 0 0 1000px 300px rgba(255, 87, 34, 0);
     background: rgba(255, 23, 68, 0);
   }
+}
+
+/* Power outage dim overlay — darkens screen when power overloaded */
+#powerOverlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 8;
+  background: rgba(0, 0, 0, 0);
+  transition: background 0.4s ease;
+}
+#powerOverlay.active {
+  background: rgba(0, 0, 0, 0.55);
 }
 
 @keyframes criticalTintPulse {

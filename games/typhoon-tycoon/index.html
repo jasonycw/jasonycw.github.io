@@ -55,6 +55,9 @@
   <!-- Earthquake shockwave overlay -->
   <div id="shockwave" class="hidden"></div>
 
+  <!-- Power outage dim overlay -->
+  <div id="powerOverlay" class="hidden"></div>
+
   <!-- HUD -->
   <div id="hud" class="hidden">
     <div id="hud-top">
@@ -77,18 +80,16 @@
       <div id="hud-right">
         <div id="powerDisplay">
           <div class="hud-box-label">Power</div>
-          <div id="batteryOuter">
-            <div id="batteryCap"></div>
-            <div id="batteryBody">
-              <div id="batteryFill" style="height: 0%"></div>
-            </div>
+          <div id="batteryBody">
+            <div id="batteryFill" style="width: 0%"></div>
           </div>
           <div id="powerText">0 / 0</div>
         </div>
       </div>
     </div>
     <div id="toolbar" class="no-selection">
-      <div id="toolbar-grid">
+      <div id="toolbar-row">
+        <div id="toolbar-grid">
         <button type="button" class="build-btn" data-type="PowerPlant" data-cost="1000" data-power="+10" data-req="none" data-desc="Generates power quota to keep towers operational.">
           <span class="btn-icon">🔋</span>
           <span class="btn-label">Plant</span>
@@ -135,6 +136,7 @@
         <span class="btn-label">Cancel</span>
         <span class="btn-hotkey">Esc</span>
       </button>
+      </div>
     </div>
     <div id="tooltip" class="hidden">
       <div id="tooltip-title"></div>

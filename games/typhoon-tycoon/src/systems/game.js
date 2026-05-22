@@ -192,6 +192,7 @@ export function startGame() {
   document.getElementById('cancelBtn').classList.add('hidden');
   document.getElementById('quakeCountdown').classList.add('hidden');
   document.getElementById('shockwave').classList.remove('active');
+  document.getElementById('powerOverlay').classList.remove('active');
   resetEarthquakes();
   startBGM();
 

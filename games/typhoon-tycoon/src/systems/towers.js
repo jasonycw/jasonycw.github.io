@@ -6,6 +6,7 @@ import { enemies, damageEnemy } from './enemies.js';
 import { effects, spawnBurst, spawnEffect, spawnLaserBeam, spawnLaserMuzzle } from './effects.js';
 import { playLaserSound } from './audio.js';
 import { setStatus } from './ui.js';
+import { playPowerDownSound, playPowerUpSound } from './audio.js';
 
 export const towers = [];
 export const buildings = [];
@@ -383,17 +384,21 @@ export function updatePower() {
       removeTowerBeam(t);
     }
     setStatus('POWER OUTAGE — Build more Power Plants!', '#ff5252');
+    document.getElementById('powerOverlay').classList.add('active');
+    playPowerDownSound();
   } else if (!isOverload && state.powerOutage) {
     state.powerOutage = false;
     for (const t of towers) t.online = true;
     setStatus('Power restored!', '#69f0ae');
+    document.getElementById('powerOverlay').classList.remove('active');
+    playPowerUpSound();
   }
 
   const fill = document.getElementById('batteryFill');
   const text = document.getElementById('powerText');
   const maxPower = Math.max(state.powerQuota, Math.abs(state.powerUsed), 1);
   const ratio = Math.max(0, Math.min(1, available / maxPower));
-  fill.style.height = (ratio * 100) + '%';
+  fill.style.width = (ratio * 100) + '%';
   fill.classList.toggle('overload', isOverload);
   fill.classList.toggle('low', !isOverload && ratio < 0.3);
   text.textContent = `${Math.round(available)} / ${state.powerQuota}`;
