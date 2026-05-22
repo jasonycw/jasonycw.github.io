@@ -143,27 +143,20 @@ export function placeDefaultBuildings() {
   const homeCells = gridCells.filter(c => c.isLand && !c.occupied);
   homeCells.sort((a, b) => (a.wx*a.wx + a.wz*a.wz) - (b.wx*b.wx + b.wz*b.wz));
 
-  if (homeCells.length < 2) {
+  if (homeCells.length < 1) {
     const forced = gridCells.filter(c => !c.occupied).sort(
       (a, b) => (a.wx*a.wx + a.wz*a.wz) - (b.wx*b.wx + b.wz*b.wz)
     );
-    for (const cell of forced.slice(0, 3)) {
+    for (const cell of forced.slice(0, 1)) {
       cell.isLand = true;
-      const type = cell === forced[0] ? 'PowerPlant' : (cell === forced[1] ? 'University' : 'PowerPlant');
-      placeStructure(cell, type);
+      placeStructure(cell, 'PowerPlant');
     }
     return;
   }
 
-  const placements = [
-    { type: 'PowerPlant', offset: 0 },
-    { type: 'University', offset: 1 },
-    { type: 'PowerPlant', offset: 2 },
-  ];
-  for (const p of placements) {
-    if (p.offset < homeCells.length && !homeCells[p.offset].occupied) {
-      placeStructure(homeCells[p.offset], p.type);
-    }
+  // Start with just 1 Power Plant — player builds the rest
+  if (!homeCells[0].occupied) {
+    placeStructure(homeCells[0], 'PowerPlant');
   }
   console.log('DEFAULT BUILDINGS PLACED');
 }

@@ -58,8 +58,8 @@ function gameLoop() {
       }
       // Restore HSI after starter buildings deduct their cost
       state.hsi = CONFIG.hsiInit;
-      // Only mark as placed if buildings actually succeeded (retry next frame otherwise)
-      if (buildings.length >= 2 && state.universityCount > 0) {
+      // Only mark as placed if the starter PowerPlant succeeded (retry next frame otherwise)
+      if (buildings.length >= 1) {
         state.defaultBuildingsPlaced = true;
       }
     }
