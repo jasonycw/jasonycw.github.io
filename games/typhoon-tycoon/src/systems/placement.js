@@ -305,6 +305,27 @@ document.querySelectorAll('.build-btn[data-type]').forEach(btn => {
     const type = btn.dataset.type;
     selectStructure(type);
   });
+
+  // Tooltip on hover
+  btn.addEventListener('mouseenter', (e) => {
+    const tip = document.getElementById('tooltip');
+    const type = btn.dataset.type;
+    const cfg = getStructConfig(type);
+    if (!cfg) return;
+    document.getElementById('tooltip-title').textContent = cfg.title;
+    document.getElementById('tooltip-desc').textContent = btn.dataset.desc || '';
+    const powerStr = cfg.power > 0
+      ? `<span class="power-pos">+${cfg.power} Power</span>`
+      : `<span class="power-neg">${cfg.power} Power</span>`;
+    const costStr = `<span class="cost">${cfg.cost} HSI</span>`;
+    const reqStr = cfg.req ? ` <span class="req">Requires: ${cfg.req}</span>` : '';
+    document.getElementById('tooltip-stats').innerHTML = `${costStr} · ${powerStr}${reqStr}`;
+    tip.classList.remove('hidden');
+  });
+
+  btn.addEventListener('mouseleave', () => {
+    document.getElementById('tooltip').classList.add('hidden');
+  });
 });
 
 document.getElementById('cancelBtn').addEventListener('click', () => {

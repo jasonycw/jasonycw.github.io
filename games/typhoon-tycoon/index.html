@@ -70,42 +70,42 @@
     </div>
     <div id="toolbar" class="no-selection">
       <div id="toolbar-grid">
-        <button type="button" class="build-btn" data-type="LaserTower" data-cost="500" data-power="-3" data-req="none" title="Laser Tower — Cost: 500 HSI, Power: -3">
+        <button type="button" class="build-btn" data-type="LaserTower" data-cost="500" data-power="-3" data-req="none" data-desc="Shoots laser at typhoon, disrupting local temperature and reducing typhoon strength.">
           <span class="btn-icon">⚡</span>
           <span class="btn-label">Laser</span>
           <span class="btn-hotkey">1</span>
         </button>
-        <button type="button" class="build-btn" data-type="PowerPlant" data-cost="1000" data-power="+10" data-req="none" title="Power Plant — Cost: 1000 HSI, Power: +10">
+        <button type="button" class="build-btn" data-type="PowerPlant" data-cost="1000" data-power="+10" data-req="none" data-desc="Generates power quota to keep towers operational.">
           <span class="btn-icon">🔋</span>
           <span class="btn-label">Plant</span>
           <span class="btn-hotkey">2</span>
         </button>
-        <button type="button" class="build-btn disabled" data-type="FreezeTower" data-cost="700" data-power="-6" data-req="University" title="Freeze Tower — Cost: 700 HSI, Power: -6 (Requires: University)">
+        <button type="button" class="build-btn disabled" data-type="FreezeTower" data-cost="700" data-power="-6" data-req="University" data-desc="Shoots cold air at typhoon, reducing its movement speed. Requires University.">
           <span class="btn-icon">❄️</span>
           <span class="btn-label">Freeze</span>
           <span class="btn-hotkey">3</span>
         </button>
-        <button type="button" class="build-btn disabled" data-type="RepelTower" data-cost="2500" data-power="-10" data-req="ResearchCenter" title="Repel Tower — Cost: 2500 HSI, Power: -10 (Requires: Research Center)">
+        <button type="button" class="build-btn disabled" data-type="RepelTower" data-cost="2500" data-power="-10" data-req="ResearchCenter" data-desc="Exerts a repel force on nearby typhoons, pushing them away. Requires Research Center.">
           <span class="btn-icon">🌀</span>
           <span class="btn-label">Repel</span>
           <span class="btn-hotkey">4</span>
         </button>
-        <button type="button" class="build-btn disabled" data-type="NuclearPlant" data-cost="5000" data-power="+40" data-req="ResearchCenter" title="Nuclear Plant — Cost: 5000 HSI, Power: +40 (Requires: Research Center)">
+        <button type="button" class="build-btn disabled" data-type="NuclearPlant" data-cost="5000" data-power="+40" data-req="ResearchCenter" data-desc="High-output power plant. Generates much more power than a standard plant. Requires Research Center.">
           <span class="btn-icon">☢️</span>
           <span class="btn-label">Nuclear</span>
           <span class="btn-hotkey">Q</span>
         </button>
-        <button type="button" class="build-btn disabled" data-type="University" data-cost="2500" data-power="-20" data-req="none" title="University — Cost: 2500 HSI, Power: -20. Unlocks Freeze Tower, upgrades Laser Tower">
+        <button type="button" class="build-btn disabled" data-type="University" data-cost="2500" data-power="-20" data-req="none" data-desc="Unlocks Freeze Tower. Upgrades Laser Tower range and damage.">
           <span class="btn-icon">🎓</span>
           <span class="btn-label">Uni</span>
           <span class="btn-hotkey">W</span>
         </button>
-        <button type="button" class="build-btn disabled" data-type="ResearchCenter" data-cost="4000" data-power="-30" data-req="University" title="Research Center — Cost: 4000 HSI, Power: -30. Unlocks Repel Tower and Nuclear Plant">
+        <button type="button" class="build-btn disabled" data-type="ResearchCenter" data-cost="4000" data-power="-30" data-req="University" data-desc="Unlocks Repel Tower &amp; Nuclear Plant. Further upgrades Laser and Freeze Towers. Requires University.">
           <span class="btn-icon">🔬</span>
           <span class="btn-label">Research</span>
           <span class="btn-hotkey">E</span>
         </button>
-        <button type="button" class="build-btn disabled" data-type="CheungKong" data-cost="7000" data-power="-50" data-req="ResearchCenter" title="CheungKong HQ — Cost: 7000 HSI, Power: -50. Upgrades Repel Tower, doubles HSI gain">
+        <button type="button" class="build-btn disabled" data-type="CheungKong" data-cost="7000" data-power="-50" data-req="ResearchCenter" data-desc="Upgrades Repel Tower range and force. Doubles HSI passive income rate. Requires Research Center.">
           <span class="btn-icon">🏢</span>
           <span class="btn-label">C.K.H.</span>
           <span class="btn-hotkey">R</span>
@@ -116,6 +116,11 @@
         <span class="btn-label">Cancel</span>
         <span class="btn-hotkey">Esc</span>
       </button>
+    </div>
+    <div id="tooltip" class="hidden">
+      <div id="tooltip-title"></div>
+      <div id="tooltip-desc"></div>
+      <div id="tooltip-stats"></div>
     </div>
     <div id="statusMsg" class="status-msg">Click a structure to build, then click on the map.</div>
     <button id="musicBtn" type="button" class="music-btn" title="Toggle background music">🎵 BGM</button>
