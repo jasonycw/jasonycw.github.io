@@ -351,7 +351,7 @@ body {
 
 .status-msg {
   position: fixed;
-  bottom: 5rem;
+  top: 4.5rem;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(0, 0, 0, 0.7);
@@ -365,12 +365,9 @@ body {
   pointer-events: none;
 }
 
-/* Tooltip */
+/* Tooltip — positioned near cursor by JS */
 #tooltip {
   position: fixed;
-  bottom: 7.5rem;
-  left: 50%;
-  transform: translateX(-50%);
   background: rgba(10, 14, 30, 0.95);
   border: 1px solid rgba(79, 195, 247, 0.4);
   border-radius: 10px;

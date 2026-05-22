@@ -299,6 +299,30 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+/** Position tooltip near cursor, keeping it on-screen */
+function positionTooltip(cx, cy) {
+  const tip = document.getElementById('tooltip');
+  const isHidden = tip.classList.contains('hidden');
+  const offsetX = 16;
+  let left, top;
+
+  if (isHidden) {
+    // First time — position above cursor (toolbar is at bottom, so tooltip goes up)
+    left = cx + offsetX;
+    top = cy - 120; // Estimated tooltip height ~120px
+  } else {
+    // Already visible — use actual dimensions for clamping
+    const rect = tip.getBoundingClientRect();
+    left = Math.min(cx + offsetX, window.innerWidth - rect.width - 8);
+    left = Math.max(8, left);
+    top = cy - rect.height - 8;
+    if (top < 8) top = cy + 24; // Below cursor if not enough room above
+  }
+
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+}
+
 // Toolbar button handlers
 document.querySelectorAll('.build-btn[data-type]').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -306,7 +330,7 @@ document.querySelectorAll('.build-btn[data-type]').forEach(btn => {
     selectStructure(type);
   });
 
-  // Tooltip on hover
+  // Tooltip — show on hover, position near cursor
   btn.addEventListener('mouseenter', (e) => {
     const tip = document.getElementById('tooltip');
     const type = btn.dataset.type;
@@ -321,6 +345,11 @@ document.querySelectorAll('.build-btn[data-type]').forEach(btn => {
     const reqStr = cfg.req ? ` <span class="req">Requires: ${cfg.req}</span>` : '';
     document.getElementById('tooltip-stats').innerHTML = `${costStr} · ${powerStr}${reqStr}`;
     tip.classList.remove('hidden');
+    positionTooltip(e.clientX, e.clientY);
+  });
+
+  btn.addEventListener('mousemove', (e) => {
+    positionTooltip(e.clientX, e.clientY);
   });
 
   btn.addEventListener('mouseleave', () => {
