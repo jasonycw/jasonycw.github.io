@@ -118,6 +118,9 @@ body {
   color: #fff;
 }
 
+.countdown-stat { color: #ffab40; }
+.countdown-stat .label { opacity: 0.6; }
+
 #powerDisplay {
   display: flex;
   align-items: center;
