@@ -389,11 +389,11 @@ export function updatePower() {
     setStatus('Power restored!', '#69f0ae');
   }
 
-  const bar = document.getElementById('powerBar');
+  const fill = document.getElementById('batteryFill');
   const text = document.getElementById('powerText');
   const maxPower = Math.max(state.powerQuota, Math.abs(state.powerUsed), 1);
   const ratio = Math.max(0, Math.min(1, available / maxPower));
-  bar.style.width = (ratio * 100) + '%';
-  bar.classList.toggle('overload', isOverload);
+  fill.style.height = (ratio * 100) + '%';
+  fill.classList.toggle('overload', isOverload);
   text.textContent = `${Math.round(available)} / ${state.powerQuota}`;
 }

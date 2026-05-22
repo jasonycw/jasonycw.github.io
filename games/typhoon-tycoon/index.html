@@ -53,18 +53,31 @@
   <div id="hud" class="hidden">
     <div id="hud-top">
       <div id="hud-left">
-        <span class="stat"><span class="label">Year</span> <span id="yearDisplay">1</span></span>
-        <span class="stat"><span class="label">HSI</span> <span id="hsiDisplay">5000</span></span>
-        <span class="stat"><span class="label">Enemies</span> <span id="enemyCount">0</span></span>
+        <div class="hud-box year-box">
+          <div class="hud-box-label">Year</div>
+          <div class="hud-box-value" id="yearDisplay">1</div>
+          <div class="hud-box-sub" id="countdownLabel">Next Year</div>
+          <div class="hud-box-sub-value" id="yearCountdown">--.-<span class="sub-unit">s</span></div>
+        </div>
+        <div class="hud-box">
+          <div class="hud-box-label">HSI</div>
+          <div class="hud-box-value" id="hsiDisplay">5000</div>
+        </div>
+        <div class="hud-box">
+          <div class="hud-box-label">Enemies</div>
+          <div class="hud-box-value" id="enemyCount">0</div>
+        </div>
       </div>
       <div id="hud-right">
-        <span class="stat countdown-stat"><span class="label" id="countdownLabel">Next Year</span> <span id="yearCountdown">--.-</span><span class="label">s</span></span>
         <div id="powerDisplay">
-          <span class="label">Power</span>
-          <div id="powerBarBg">
-            <div id="powerBar" style="width: 0%"></div>
+          <div class="hud-box-label">Power</div>
+          <div id="batteryOuter">
+            <div id="batteryTip"></div>
+            <div id="batteryBody">
+              <div id="batteryFill" style="height: 0%"></div>
+            </div>
           </div>
-          <span id="powerText">0 / 0</span>
+          <div id="powerText">0 / 0</div>
         </div>
       </div>
     </div>

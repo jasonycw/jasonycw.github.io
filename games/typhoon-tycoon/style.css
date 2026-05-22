@@ -95,58 +95,126 @@ body {
   justify-content: space-between;
   align-items: flex-start;
   padding: 0.5rem 0.75rem;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
 }
 
 #hud-left {
   display: flex;
-  gap: 1.25rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
-.stat {
-  font-size: 0.9rem;
+/* HUD boxes — styled like toolbar buttons */
+.hud-box {
+  background: rgba(20, 30, 60, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  min-width: 64px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.stat .label {
-  opacity: 0.6;
-  margin-right: 0.3rem;
+.hud-box-label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.5;
+  line-height: 1;
 }
 
-.stat span:last-child {
+.hud-box-value {
+  font-size: 1.05rem;
   font-weight: 700;
   color: #fff;
+  line-height: 1.3;
 }
 
-.countdown-stat { color: #ffab40; }
-.countdown-stat .label { opacity: 0.6; }
+.hud-box-sub {
+  font-size: 0.55rem;
+  opacity: 0.5;
+  margin-top: 0.1rem;
+  line-height: 1;
+}
 
+.hud-box-sub-value {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #ffab40;
+  line-height: 1.2;
+}
+
+.sub-unit {
+  font-size: 0.55rem;
+  font-weight: 400;
+  opacity: 0.5;
+}
+
+/* Year box — bigger, with countdown integrated */
+.year-box {
+  min-width: 80px;
+  padding: 0.4rem 0.7rem;
+  border-color: rgba(79, 195, 247, 0.35);
+  background: rgba(20, 35, 65, 0.9);
+}
+.year-box .hud-box-value {
+  font-size: 1.2rem;
+  color: #4fc3f7;
+}
+
+/* HSI box */
+#hud-left .hud-box:nth-child(2) .hud-box-value { color: #69f0ae; }
+#hud-left .hud-box:nth-child(3) .hud-box-value { color: #ffab40; }
+
+/* Power display — vertical battery on right */
 #powerDisplay {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
+  gap: 0.2rem;
 }
 
-#powerDisplay .label { opacity: 0.6; }
+#batteryOuter {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
 
-#powerBarBg {
-  width: 100px;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.15);
+#batteryBody {
+  width: 20px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.25);
   border-radius: 4px;
   overflow: hidden;
+  position: relative;
 }
 
-#powerBar {
-  height: 100%;
-  background: linear-gradient(90deg, #4caf50, #8bc34a);
-  border-radius: 4px;
-  transition: width 0.3s;
+#batteryTip {
+  width: 8px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 2px 2px 0 0;
+  margin-bottom: 1px;
 }
 
-#powerBar.overload {
-  background: linear-gradient(90deg, #f44336, #ff9800);
+#batteryFill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(0deg, #4caf50, #8bc34a);
+  transition: height 0.3s;
+}
+
+#batteryFill.overload {
+  background: linear-gradient(0deg, #f44336, #ff9800);
+}
+
+#powerText {
+  font-size: 0.6rem;
+  opacity: 0.6;
 }
 
 /* Toolbar */
