@@ -163,24 +163,27 @@ body {
   color: #4fc3f7;
 }
 
-/* HSI box — double width, prominent green value */
+/* HSI box — double width, large prominent green value filling the box */
 .hsi-box {
   min-width: 132px;
   padding: 0.35rem 0.8rem;
 }
 .hsi-box .hsi-value {
-  font-size: 1.3rem;
+  font-size: 1.7rem;
+  line-height: 1.2;
 }
 .hsi-box .hud-box-value {
   color: #69f0ae;
 }
 
-/* Enemy box — bigger number to fill the box */
+/* Enemy box — large centered number */
 .enemy-box {
   min-width: 72px;
+  justify-content: center;
 }
 .enemy-box .enemy-value {
-  font-size: 1.25rem;
+  font-size: 1.4rem;
+  line-height: 1.2;
 }
 .enemy-box .hud-box-value {
   color: #ffab40;
@@ -328,18 +331,22 @@ body {
   opacity: 0.5;
 }
 
-/* Cancel button — big, centered, only shows when structure selected */
+/* Cancel button — positioned on right side of toolbar */
 .cancel-btn {
-  width: 160px;
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 110px;
   min-height: 36px;
-  padding: 0.3rem 1rem;
-  border-color: rgba(255, 80, 80, 0.4);
+  padding: 0.3rem 0.8rem;
+  border: 1px solid rgba(255, 80, 80, 0.4);
   background: rgba(60, 20, 20, 0.8);
   color: #ff8a80;
   flex-direction: row;
-  gap: 0.4rem;
+  justify-content: center;
+  gap: 0.35rem;
   pointer-events: auto;
-  margin-top: 0.2rem;
 }
 .cancel-btn:hover {
   border-color: #ff5252;
@@ -347,7 +354,7 @@ body {
   color: #fff;
 }
 .cancel-btn .btn-icon { font-size: 1rem; }
-.cancel-btn .btn-hotkey { position: static; font-size: 0.6rem; margin-left: auto; opacity: 0.5; }
+.cancel-btn .btn-hotkey { position: static; font-size: 0.6rem; opacity: 0.5; }
 
 .status-msg {
   position: fixed;
