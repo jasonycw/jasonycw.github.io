@@ -18,7 +18,7 @@ export function playLaserSound() {
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(1200, ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.15);
-    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -36,7 +36,7 @@ export function playExplosionSound() {
     osc.type = 'sine';
     osc.frequency.setValueAtTime(200, ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.4);
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.setValueAtTime(0.35, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -58,7 +58,7 @@ export function playHitSound() {
     const src = ctx.createBufferSource();
     src.buffer = hitBuffer;
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
     src.connect(gain);
     gain.connect(ctx.destination);
@@ -75,7 +75,7 @@ export function playGameOverSound() {
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(400, ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 1.5);
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.setValueAtTime(0.35, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.8);
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -93,7 +93,7 @@ export function playPowerDownSound() {
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(300, ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.5);
-    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -111,7 +111,7 @@ export function playPowerUpSound() {
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(150, ctx.currentTime);
     osc.frequency.linearRampToValueAtTime(600, ctx.currentTime + 0.4);
-    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
     osc.connect(gain);
     gain.connect(ctx.destination);
