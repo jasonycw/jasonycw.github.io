@@ -186,6 +186,7 @@ export function startGame() {
   document.getElementById('hud').classList.remove('hidden');
 
   clearPreviewGhost();
+  document.getElementById('cancelBtn').classList.add('hidden');
 
   setStatus('Game started! Build towers and defend Hong Kong!', '#69f0ae');
   updateUI();
