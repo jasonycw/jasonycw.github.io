@@ -281,8 +281,8 @@ document.addEventListener('keydown', (e) => {
   if (state.phase !== 'playing') return;
 
   const keyMap = {
-    '1': 'LaserTower',
-    '2': 'PowerPlant',
+    '1': 'PowerPlant',
+    '2': 'LaserTower',
     '3': 'FreezeTower',
     '4': 'RepelTower',
     'q': 'NuclearPlant', 'Q': 'NuclearPlant',

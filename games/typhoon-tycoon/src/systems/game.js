@@ -7,6 +7,7 @@ import { effects, updateEffects } from './effects.js';
 import { scenery, setupScenery, updateTreeRegrowth, destroyedSpots, growingTrees, treeTrunkGeom, treeCrownGeom, treeCrown2Geom, treeTrunkMat, treeCrownMat, treeCrown2Mat } from './scenery.js';
 import { gridCells, useHitareaClassification } from '../world/map.js';
 import { updateYears } from './waves.js';
+import { updateEarthquakes, resetEarthquakes } from './earthquake.js';
 import { setStatus, updateUI, gameOver } from './ui.js';
 import { placeDefaultBuildings, clearPreviewGhost } from './placement.js';
 import { startBGM } from './audio.js';
@@ -66,6 +67,7 @@ function gameLoop() {
     }
 
     updateYears(dt);
+    updateEarthquakes(dt);
     updateEnemies(dt);
     updateTowers(dt);
     updateHSI(dt);
@@ -188,6 +190,9 @@ export function startGame() {
 
   clearPreviewGhost();
   document.getElementById('cancelBtn').classList.add('hidden');
+  document.getElementById('quakeCountdown').classList.add('hidden');
+  document.getElementById('shockwave').classList.remove('active');
+  resetEarthquakes();
   startBGM();
 
   setStatus('Game started! Build towers and defend Hong Kong!', '#69f0ae');

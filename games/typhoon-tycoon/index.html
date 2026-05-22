@@ -49,6 +49,12 @@
     <div id="dangerTint"></div>
   </div>
 
+  <!-- Earthquake countdown label (positioned via JS) -->
+  <div id="quakeCountdown" class="hidden">5</div>
+
+  <!-- Earthquake shockwave overlay -->
+  <div id="shockwave" class="hidden"></div>
+
   <!-- HUD -->
   <div id="hud" class="hidden">
     <div id="hud-top">
@@ -83,14 +89,14 @@
     </div>
     <div id="toolbar" class="no-selection">
       <div id="toolbar-grid">
-        <button type="button" class="build-btn" data-type="LaserTower" data-cost="500" data-power="-3" data-req="none" data-desc="Shoots laser at typhoon, disrupting local temperature and reducing typhoon strength.">
-          <span class="btn-icon">⚡</span>
-          <span class="btn-label">Laser</span>
-          <span class="btn-hotkey">1</span>
-        </button>
         <button type="button" class="build-btn" data-type="PowerPlant" data-cost="1000" data-power="+10" data-req="none" data-desc="Generates power quota to keep towers operational.">
           <span class="btn-icon">🔋</span>
           <span class="btn-label">Plant</span>
+          <span class="btn-hotkey">1</span>
+        </button>
+        <button type="button" class="build-btn" data-type="LaserTower" data-cost="500" data-power="-3" data-req="none" data-desc="Shoots laser at typhoon, disrupting local temperature and reducing typhoon strength.">
+          <span class="btn-icon">⚡</span>
+          <span class="btn-label">Laser</span>
           <span class="btn-hotkey">2</span>
         </button>
         <button type="button" class="build-btn disabled" data-type="FreezeTower" data-cost="700" data-power="-6" data-req="University" data-desc="Shoots cold air at typhoon, reducing its movement speed. Requires University.">
