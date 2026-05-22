@@ -196,44 +196,60 @@ body {
 
 #batteryOuter {
   display: flex;
-  align-items: flex-end;
-  gap: 2px;
+  flex-direction: column;
+  align-items: center;
 }
 
-#batteryBody {
-  width: 20px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  border-radius: 4px;
-  overflow: hidden;
-  position: relative;
-}
-
-#batteryTip {
-  width: 8px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.25);
+/* Battery cap — small rounded protrusion on top */
+#batteryCap {
+  width: 10px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.3);
   border-radius: 2px 2px 0 0;
   margin-bottom: 1px;
 }
 
+/* Battery body — rounded rectangle with inset shadow */
+#batteryBody {
+  width: 26px;
+  height: 44px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Fill level — charges from bottom with bright gradient */
 #batteryFill {
   position: absolute;
   bottom: 0;
-  left: 0;
-  width: 100%;
-  background: linear-gradient(0deg, #4caf50, #8bc34a);
+  left: 2px;
+  right: 2px;
+  border-radius: 0 0 2px 2px;
+  background: linear-gradient(0deg, #43a047, #66bb6a, #a5d6a7);
   transition: height 0.3s;
+  box-shadow: inset 0 0 6px rgba(165, 214, 167, 0.3);
 }
 
+/* Low power warning — orange */
+#batteryFill.low {
+  background: linear-gradient(0deg, #ef6c00, #ffa726);
+  box-shadow: inset 0 0 6px rgba(255, 167, 38, 0.3);
+}
+
+/* Overload / negative power — red */
 #batteryFill.overload {
-  background: linear-gradient(0deg, #f44336, #ff9800);
+  background: linear-gradient(0deg, #c62828, #e53935);
+  box-shadow: inset 0 0 6px rgba(229, 57, 53, 0.3);
 }
 
+/* Power text below the battery */
 #powerText {
   font-size: 0.6rem;
   opacity: 0.6;
+  margin-top: 0.15rem;
 }
 
 /* Toolbar */

@@ -395,5 +395,6 @@ export function updatePower() {
   const ratio = Math.max(0, Math.min(1, available / maxPower));
   fill.style.height = (ratio * 100) + '%';
   fill.classList.toggle('overload', isOverload);
+  fill.classList.toggle('low', !isOverload && ratio < 0.3);
   text.textContent = `${Math.round(available)} / ${state.powerQuota}`;
 }
