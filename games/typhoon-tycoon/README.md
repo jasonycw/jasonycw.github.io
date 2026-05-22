@@ -16,7 +16,7 @@ A 2.5D browser-based tower defense game rebuilt in Three.js, inspired by the ori
 *Game over screen shown when HSI drops to zero — the economy has collapsed.*
 
 ![Victory](assets/screenshots/win.png)
-*Victory screen after surviving all 20 years — Hong Kong is saved from Typhoon!*
+*Victory screen after surviving all 20 years — Hong Kong is safe... for now.*
 
 ## Visual Features
 
