@@ -14,6 +14,13 @@ export function updateYears(dt) {
   if (state.yearTimer <= 0) {
     // Start new year
     state.year++;
+
+    // Win when year 20 is complete (timer expires advancing to 21)
+    if (state.year > WIN_YEAR) {
+      import('./ui.js').then(m => m.winGame()).catch(() => {});
+      return;
+    }
+
     state.enemiesSpawnedInYear = 0;
     state.enemiesPerYear = Math.min(3 + state.year * 2, 30);
     state.spawnTimer = 0;
@@ -29,6 +36,8 @@ export function updateYears(dt) {
   const remaining = Math.max(0, state.yearTimer);
   if (state.year === 0) {
     labelEl.textContent = 'Starting';
+  } else if (state.year === WIN_YEAR) {
+    labelEl.textContent = 'Victory in';
   } else {
     labelEl.textContent = 'Next Year';
   }
@@ -52,10 +61,4 @@ export function updateYears(dt) {
 
   // Update enemy count display
   document.getElementById('enemyCount').textContent = enemies.length;
-
-  // Check win condition
-  if (state.year >= WIN_YEAR && enemies.length === 0 && state.enemiesSpawnedInYear >= state.enemiesPerYear) {
-    // Circular-safe: import winGame lazily
-    import('./ui.js').then(m => m.winGame()).catch(() => {});
-  }
 }
