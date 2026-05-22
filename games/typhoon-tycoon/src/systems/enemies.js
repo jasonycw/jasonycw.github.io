@@ -4,6 +4,7 @@ import { CONFIG } from '../core/config.js';
 import { state } from '../core/state.js';
 import { effects, spawnBurst, spawnEffect } from './effects.js';
 import { destroySceneryNear } from './scenery.js';
+import { isSeaAt } from '../world/map.js';
 import { gameOver } from './ui.js';
 import { playHitSound } from './audio.js';
 import { setStatus } from './ui.js';
@@ -321,8 +322,9 @@ export function updateEnemies(dt) {
     destroySceneryNear(e.x, e.z, hitR);
 
     // Sea regen / land-decay — typhoons decay rapidly over land, recharge over sea
+    // Uses actual land/sea classification from hitarea mask (not distance-based)
     const hpScale = 1 + state.gameTime * 0.04;
-    if (distToCenter > CONFIG.islandRadius + 0.5) {
+    if (isSeaAt(e.x, e.z)) {
       const regenPerSec = (2 + Math.random() * 3) * hpScale;
       e.hp = Math.min(e.maxHp, e.hp + regenPerSec * dt);
     } else {
