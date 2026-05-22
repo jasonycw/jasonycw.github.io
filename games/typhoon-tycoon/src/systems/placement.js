@@ -237,10 +237,13 @@ export function selectStructure(type) {
 
   if (!type) {
     state.selectedType = null;
+    document.getElementById('cancelBtn').classList.add('hidden');
     if (previewGhost) { scene.remove(previewGhost); previewGhost = null; }
     setStatus('Selection cleared.', '#8ff4ff');
     return;
   }
+
+  document.getElementById('cancelBtn').classList.remove('hidden');
 
   const cfg = getStructConfig(type);
   if (!cfg) return;
@@ -278,8 +281,10 @@ document.addEventListener('keydown', (e) => {
   if (state.phase !== 'playing') return;
 
   const keyMap = {
-    '1': 'LaserTower', '2': 'FreezeTower', '3': 'RepelTower',
-    '4': 'PowerPlant',
+    '1': 'LaserTower',
+    '2': 'PowerPlant',
+    '3': 'FreezeTower',
+    '4': 'RepelTower',
     'q': 'NuclearPlant', 'Q': 'NuclearPlant',
     'w': 'University', 'W': 'University',
     'e': 'ResearchCenter', 'E': 'ResearchCenter',

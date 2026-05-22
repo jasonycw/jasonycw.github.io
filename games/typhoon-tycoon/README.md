@@ -80,20 +80,21 @@ In the year 21XX, the Li's field (李氏力場) becomes reality in the form of a
 | Key | Action |
 |-----|--------|
 | `1` | Select Laser Tower |
-| `2` | Select Freeze Tower |
-| `3` | Select Repel Tower |
-| `4` | Select Power Plant |
-| `Q` | Select University |
-| `W` | Select Research Center |
-| `E` | Select Nuclear Power Plant |
+| `2` | Select Power Plant |
+| `3` | Select Freeze Tower |
+| `4` | Select Repel Tower |
+| `Q` | Select Nuclear Power Plant |
+| `W` | Select University |
+| `E` | Select Research Center |
 | `R` | Select Li's Enterprise HQ |
 | `Esc` | Cancel selection |
 | Click on map | Place selected structure |
 
 ### UI Elements
 
-- **Bottom toolbar:** Structure buttons with cost and power requirements
-- **Top-right HUD:** Current year, HSI (currency/health), Year countdown, Power bar, Enemies remaining
+- **Bottom toolbar (4×2 grid):** Structure buttons in two rows — towers on top row, buildings on bottom. Cancel button appears only when a structure is selected.
+- **Top-left HUD:** Year with countdown below, HSI, Enemies remaining
+- **Top-right HUD:** Power meter with battery-style UI
 - **Map:** South China Sea / Hong Kong region with concentric danger zone rings
 
 ### Year Progression
