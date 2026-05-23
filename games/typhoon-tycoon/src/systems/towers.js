@@ -128,18 +128,38 @@ export function createBuildingMesh(type) {
     group.userData.smokePositions = pipePositions.map(p => new THREE.Vector3(p[0], p[1] + 0.3, p[2]));
     group.userData.hasSmoke = true;
   } else if (type === 'NuclearPlant') {
+    // Circular cylinder base
     const base = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.5, 0.6, 0.15, 12),
-      new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.7 })
+      new THREE.CylinderGeometry(0.5, 0.6, 0.4, 16),
+      new THREE.MeshStandardMaterial({ color: 0x546e7a, roughness: 0.7, metalness: 0.3 })
     );
-    base.position.y = 0.075;
+    base.position.y = 0.2;
     group.add(base);
+    // Dome roof (upper hemisphere)
     const dome = new THREE.Mesh(
-      new THREE.SphereGeometry(0.55, 16, 12),
-      new THREE.MeshStandardMaterial({ color: 0x43a047, emissive: 0x00e676, emissiveIntensity: 0.15, roughness: 0.4 })
+      new THREE.SphereGeometry(0.5, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+      new THREE.MeshStandardMaterial({ color: 0x78909c, roughness: 0.5, metalness: 0.4 })
     );
-    dome.position.y = 0.7;
+    dome.position.y = 0.4;
     group.add(dome);
+    // Small chimney on top of dome
+    const chimney = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06, 0.08, 0.15, 8),
+      new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.8 })
+    );
+    chimney.position.y = 0.6;
+    group.add(chimney);
+    // Glow ring around base
+    const glowRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.45, 0.03, 8, 16),
+      new THREE.MeshBasicMaterial({ color: 0x00e676, transparent: true, opacity: 0.5 })
+    );
+    glowRing.position.y = 0.05;
+    glowRing.rotation.x = Math.PI / 2;
+    group.add(glowRing);
+    // Smoke emission from chimney
+    group.userData.smokePositions = [new THREE.Vector3(0, 0.65, 0)];
+    group.userData.hasSmoke = true;
   } else if (type === 'University') {
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(0.9, 0.4, 0.7),
