@@ -44,27 +44,25 @@
 
     /* Text inside cards scales to fit dimensions */
     .game-card h2 {
-     font-size: 16px;
-     font-weight: 700;
-     margin: 0;
-     padding: 0;
-     line-height: 1;
-     word-wrap: break-word;
-     overflow-wrap: break-word;
-     width: 100%;
-     flex-shrink: 0;
+      font-weight: 700;
+      margin: 0;
+      padding: 0;
+      line-height: 1;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      width: 100%;
+      flex-shrink: 0;
     }
 
     .game-card p {
-     font-size: 12px;
-     opacity: 0.85;
-     margin: 0;
-     padding: 0;
-     line-height: 1.1;
-     word-wrap: break-word;
-     overflow-wrap: break-word;
-     width: 100%;
-     flex-shrink: 1;
+      opacity: 0.85;
+      margin: 0;
+      padding: 0;
+      line-height: 1.1;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      width: 100%;
+      flex-shrink: 1;
     }
 
     /* Ensure no overflow - text is clipped if needed (shouldn't happen with proper sizing) */
@@ -210,7 +208,8 @@
 
     /**
      * Fit text within card boundaries by adjusting font size
-     * 1. Title grows to fill width (100% width), 2. Subtitle fills remaining height
+     * 1. Title GROWS to fill card width completely (per card)
+     * 2. Subtitle SHRINKS to fit remaining height (no minimum)
      */
     function fitTextToCard(cardElement) {
       const title = cardElement.querySelector('h2');
@@ -221,45 +220,58 @@
       const cardHeight = cardElement.offsetHeight;
       const cardWidth = cardElement.offsetWidth;
       
-      // Step 1: Grow title size until it fills the width
-      let titleSize = 8; // Start small
-      let prevTitleSize = 8;
+      // Step 1: Find maximum title font size for THIS card
+      // Start large and binary search downward to find max that fits
+      let minFit = 1;  // Smallest size that will definitely fit
+      let maxFit = 500; // Start with large size
       
-      // Grow title size until it exceeds width, then use the largest that fits
-      for (let i = 0; i < 50; i++) {
-        title.style.fontSize = titleSize + 'px';
-        // Force reflow to get accurate measurements
-        const titleWidth = title.offsetWidth;
-        const titleScrollWidth = title.scrollWidth;
+      // Binary search: converge to maximum size that fits width
+      for (let iter = 0; iter < 50; iter++) {
+        const testSize = (minFit + maxFit) / 2;
+        title.style.fontSize = testSize + 'px';
         
-        // If text exceeds card width, go back to previous size
-        if (titleWidth > cardWidth || titleScrollWidth > cardWidth) {
-          title.style.fontSize = prevTitleSize + 'px';
-          titleSize = prevTitleSize;
-          break;
+        // Get current text width at this font size
+        const rect = title.getBoundingClientRect();
+        const textWidth = rect.width;
+        
+        // Does text fit in the card width?
+        if (textWidth <= cardWidth) {
+          // Text fits - this is good, try even larger
+          minFit = testSize;
+        } else {
+          // Text is too wide - need smaller font
+          maxFit = testSize;
         }
-        
-        prevTitleSize = titleSize;
-        titleSize += 0.5; // Increment by 0.5px for precision
       }
       
-      // Step 2: Get title's height and calculate remaining space
+      // Use the largest size that fits
+      title.style.fontSize = minFit + 'px';
+      
+      // Step 2: Calculate remaining space for subtitle
       const titleHeight = title.offsetHeight;
       const remainingHeight = cardHeight - titleHeight;
       
-      // Step 3: Fit subtitle to remaining space - start large and shrink
-      let subtitleSize = Math.max(8, remainingHeight * 0.8);
+      // Step 3: Find subtitle size that fills remaining height
+      let subtitleMinFit = 1;
+      let subtitleMaxFit = remainingHeight * 3;
       
-      // Shrink subtitle until it fits remaining height
-      for (let i = 0; i < 50; i++) {
-        subtitle.style.fontSize = subtitleSize + 'px';
+      // Binary search for subtitle size
+      for (let iter = 0; iter < 50; iter++) {
+        const testSize = (subtitleMinFit + subtitleMaxFit) / 2;
+        subtitle.style.fontSize = testSize + 'px';
         
+        // Does subtitle fit in remaining height?
         if (subtitle.offsetHeight <= remainingHeight) {
-          break;
+          // Fits - try larger
+          subtitleMinFit = testSize;
+        } else {
+          // Too tall - try smaller
+          subtitleMaxFit = testSize;
         }
-        
-        subtitleSize *= 0.95;
       }
+      
+      // Use the largest subtitle size that fits remaining height
+      subtitle.style.fontSize = subtitleMinFit + 'px';
     }
 
     // ============================================================================
