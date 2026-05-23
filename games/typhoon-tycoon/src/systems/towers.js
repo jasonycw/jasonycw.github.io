@@ -596,26 +596,30 @@ export function updatePower() {
 /** Smoke particles floating upward from building chimneys */
 const smokeParticles = [];
 
-function spawnSmokeParticle(wx, wz, localPos) {
-  const size = 0.04 + Math.random() * 0.05;
+function spawnSmokeParticle(wx, wz, buildingY, localPos) {
+  const size = 0.06 + Math.random() * 0.07;
   const geom = new THREE.SphereGeometry(size, 6, 6);
-  const brightness = 0.8 + Math.random() * 0.2;
+  const brightness = 0.85 + Math.random() * 0.15;
   const mat = new THREE.MeshBasicMaterial({
     color: new THREE.Color(brightness, brightness, brightness),
     transparent: true,
-    opacity: 0.35 + Math.random() * 0.25,
+    opacity: 0.45 + Math.random() * 0.25,
     depthWrite: false
   });
   const mesh = new THREE.Mesh(geom, mat);
-  mesh.position.set(wx + localPos.x + (Math.random() - 0.5) * 0.05, localPos.y, wz + localPos.z + (Math.random() - 0.5) * 0.05);
+  mesh.position.set(
+    wx + localPos.x + (Math.random() - 0.5) * 0.08,
+    buildingY + localPos.y,
+    wz + localPos.z + (Math.random() - 0.5) * 0.08
+  );
   scene.add(mesh);
   smokeParticles.push({
     mesh, mat, geom,
-    vx: (Math.random() - 0.5) * 0.2,
-    vy: 0.25 + Math.random() * 0.35,
-    vz: (Math.random() - 0.5) * 0.2,
-    life: 1.2 + Math.random() * 0.8,
-    maxLife: 2.0
+    vx: (Math.random() - 0.5) * 0.25,
+    vy: 0.3 + Math.random() * 0.4,
+    vz: (Math.random() - 0.5) * 0.25,
+    life: 1.5 + Math.random() * 1.0,
+    maxLife: 2.5
   });
 }
 
@@ -627,16 +631,18 @@ export function updateBuildings(dt) {
     }
   }
 
-  // Spawn smoke from buildings
+  // Spawn smoke from buildings (skip during construction animation)
   for (const b of buildings) {
+    if (b.constructing) continue;
     if (!b.mesh.userData.hasSmoke || !b.mesh.userData.smokePositions) continue;
     if (!b._smokeTimer) b._smokeTimer = 0;
     b._smokeTimer += dt;
     if (b._smokeTimer > 0.12) {
       b._smokeTimer = 0;
+      const buildingY = b.mesh.position.y;
       for (const sp of b.mesh.userData.smokePositions) {
         if (Math.random() < 0.5) {
-          spawnSmokeParticle(b.wx, b.wz, sp);
+          spawnSmokeParticle(b.wx, b.wz, buildingY, sp);
         }
       }
     }
