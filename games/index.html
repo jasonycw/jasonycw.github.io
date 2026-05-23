@@ -183,17 +183,205 @@
     }
 
     // ============================================================================
-    // Initialization (Phase 1)
+    // Physics & Animation State Management
+    // ============================================================================
+    const cardStates = []; // Array of { element, x, y, vx, vy, color, isFlashing, rainbowIndex, width, height }
+    let animationFrameId;
+    let lastWidth = window.innerWidth;
+    let lastHeight = window.innerHeight;
+
+    /**
+     * Initialize a card with position, velocity, and color
+     */
+    function initializeCardState(cardElement, index) {
+      const width = cardElement.offsetWidth;
+      const height = cardElement.offsetHeight;
+      
+      const state = {
+        element: cardElement,
+        x: Math.random() * (window.innerWidth - width),
+        y: Math.random() * (window.innerHeight - height),
+        vx: (Math.random() - 0.5) * 6 + (Math.random() > 0.5 ? 2 : -2),
+        vy: (Math.random() - 0.5) * 6 + (Math.random() > 0.5 ? 2 : -2),
+        color: getRandomNeonColor(),
+        isFlashing: false,
+        rainbowIndex: 0,
+        rainbowCounter: 0,
+        width: width,
+        height: height
+      };
+
+      cardStates.push(state);
+      applyCardStyle(state);
+    }
+
+    /**
+     * Apply position and color styles to a card
+     */
+    function applyCardStyle(state) {
+      state.element.style.left = state.x + 'px';
+      state.element.style.top = state.y + 'px';
+      state.element.style.color = state.isFlashing 
+        ? RAINBOW_COLORS[state.rainbowIndex]
+        : state.color;
+    }
+
+    /**
+     * Update card dimensions (for responsive resizing)
+     */
+    function updateCardDimensions(state) {
+      state.width = state.element.offsetWidth;
+      state.height = state.element.offsetHeight;
+    }
+
+    /**
+     * Check and handle collisions with window boundaries
+     */
+    function handleBoundaryCollision(state) {
+      const margin = 0;
+      let hitWall = false;
+      let hitCorner = false;
+
+      // Horizontal boundary check
+      if (state.x <= margin || state.x + state.width >= window.innerWidth - margin) {
+        // Check if near corner
+        const nearTopCorner = state.y <= state.height / 2;
+        const nearBottomCorner = state.y + state.height >= window.innerHeight - state.height / 2;
+        
+        if ((nearTopCorner || nearBottomCorner) && Math.abs(state.vy) > 0.5) {
+          hitCorner = true;
+        }
+
+        if (state.x <= margin) {
+          state.x = margin;
+          state.vx = Math.abs(state.vx);
+        } else {
+          state.x = window.innerWidth - state.width - margin;
+          state.vx = -Math.abs(state.vx);
+        }
+        hitWall = true;
+      }
+
+      // Vertical boundary check
+      if (state.y <= margin || state.y + state.height >= window.innerHeight - margin) {
+        // Check if near corner
+        const nearLeftCorner = state.x <= state.width / 2;
+        const nearRightCorner = state.x + state.width >= window.innerWidth - state.width / 2;
+        
+        if ((nearLeftCorner || nearRightCorner) && Math.abs(state.vx) > 0.5) {
+          hitCorner = true;
+        }
+
+        if (state.y <= margin) {
+          state.y = margin;
+          state.vy = Math.abs(state.vy);
+        } else {
+          state.y = window.innerHeight - state.height - margin;
+          state.vy = -Math.abs(state.vy);
+        }
+        hitWall = true;
+      }
+
+      // Handle collision effects
+      if (hitWall) {
+        if (hitCorner) {
+          state.isFlashing = true;
+          state.rainbowIndex = 0;
+          state.rainbowCounter = 0;
+        } else {
+          state.color = getRandomNeonColor();
+          state.isFlashing = false;
+        }
+      }
+    }
+
+    /**
+     * Update rainbow flash animation
+     */
+    function updateRainbowFlash(state) {
+      if (state.isFlashing) {
+        state.rainbowCounter++;
+        if (state.rainbowCounter >= 10) {
+          state.rainbowCounter = 0;
+          state.rainbowIndex = (state.rainbowIndex + 1) % RAINBOW_COLORS.length;
+        }
+      }
+    }
+
+    /**
+     * Animation loop - called every frame
+     */
+    function animateCards() {
+      cardStates.forEach(state => {
+        // Update position based on velocity
+        state.x += state.vx;
+        state.y += state.vy;
+
+        // Handle boundary collisions
+        handleBoundaryCollision(state);
+
+        // Update rainbow flash if active
+        updateRainbowFlash(state);
+
+        // Apply styles
+        applyCardStyle(state);
+      });
+
+      animationFrameId = requestAnimationFrame(animateCards);
+    }
+
+    // ============================================================================
+    // Window Resize & Responsiveness
+    // ============================================================================
+    function handleWindowResize() {
+      const newWidth = window.innerWidth;
+      const newHeight = window.innerHeight;
+
+      // Only update if dimensions actually changed
+      if (newWidth !== lastWidth || newHeight !== lastHeight) {
+        cardStates.forEach(state => {
+          updateCardDimensions(state);
+          
+          // Clamp positions to new viewport
+          if (state.x + state.width > newWidth) {
+            state.x = newWidth - state.width;
+          }
+          if (state.y + state.height > newHeight) {
+            state.y = newHeight - state.height;
+          }
+        });
+
+        lastWidth = newWidth;
+        lastHeight = newHeight;
+      }
+    }
+
+    // ============================================================================
+    // Initialization (Phase 1-2)
     // ============================================================================
 
     /**
-     * Create and insert game card elements
+     * Create and insert game card elements, then initialize physics
      */
     function initializeGameCards() {
-      GAMES.forEach(game => {
+      GAMES.forEach((game, index) => {
         const cardElement = createGameCardElement(game);
         document.body.appendChild(cardElement);
       });
+
+      // Wait for cards to be fully rendered before initializing physics
+      setTimeout(() => {
+        const cardElements = document.querySelectorAll('.game-card');
+        cardElements.forEach((cardElement, index) => {
+          initializeCardState(cardElement, index);
+        });
+
+        // Start animation loop
+        animateCards();
+
+        // Handle window resize
+        window.addEventListener('resize', handleWindowResize);
+      }, 50);
     }
 
     // Run initialization when DOM is ready
