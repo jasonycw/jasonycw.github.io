@@ -82,6 +82,23 @@
 
   <script>
     // ============================================================================
+    // DVD Screensaver Games Page
+    // ============================================================================
+    // A single-file HTML page featuring a DVD screensaver-style animation where
+    // game cards bounce around the viewport with dynamic color changes.
+    //
+    // Features:
+    // - Bouncing cards with constant-velocity diagonal movement
+    // - Random neon colors assigned to each card on initialization
+    // - Color change on wall collisions (single-axis bounce)
+    // - Rainbow flash effect on corner collisions (both-axes bounce)
+    // - Responsive card sizing and viewport boundary adaptation
+    // - Preserved click functionality to navigate to each game
+    // - No external dependencies - pure vanilla JavaScript
+    // - Smooth 60fps animation using requestAnimationFrame
+    // ============================================================================
+
+    // ============================================================================
     // Game Data - Extracted from original HTML
     // ============================================================================
     const GAMES = [
