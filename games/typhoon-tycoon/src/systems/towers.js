@@ -403,3 +403,86 @@ export function updatePower() {
   fill.classList.toggle('low', !isOverload && ratio < 0.3);
   text.textContent = `${Math.round(available)} / ${state.powerQuota}`;
 }
+
+// ==================== BUILDING VISUAL EFFECTS ====================
+/** Smoke particles floating upward from building chimneys */
+const smokeParticles = [];
+
+function spawnSmokeParticle(wx, wz, localPos) {
+  const size = 0.04 + Math.random() * 0.05;
+  const geom = new THREE.SphereGeometry(size, 6, 6);
+  const brightness = 0.8 + Math.random() * 0.2;
+  const mat = new THREE.MeshBasicMaterial({
+    color: new THREE.Color(brightness, brightness, brightness),
+    transparent: true,
+    opacity: 0.35 + Math.random() * 0.25,
+    depthWrite: false
+  });
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.position.set(wx + localPos.x + (Math.random() - 0.5) * 0.05, localPos.y, wz + localPos.z + (Math.random() - 0.5) * 0.05);
+  scene.add(mesh);
+  smokeParticles.push({
+    mesh, mat, geom,
+    vx: (Math.random() - 0.5) * 0.2,
+    vy: 0.25 + Math.random() * 0.35,
+    vz: (Math.random() - 0.5) * 0.2,
+    life: 1.2 + Math.random() * 0.8,
+    maxLife: 2.0
+  });
+}
+
+export function updateBuildings(dt) {
+  // ResearchCenter dish rotation
+  for (const b of buildings) {
+    if (b.mesh.userData.dish) {
+      b.mesh.userData.dish.rotation.y += dt * 0.6;
+    }
+  }
+
+  // Spawn smoke from buildings
+  for (const b of buildings) {
+    if (!b.mesh.userData.hasSmoke || !b.mesh.userData.smokePositions) continue;
+    if (!b._smokeTimer) b._smokeTimer = 0;
+    b._smokeTimer += dt;
+    if (b._smokeTimer > 0.12) {
+      b._smokeTimer = 0;
+      for (const sp of b.mesh.userData.smokePositions) {
+        if (Math.random() < 0.5) {
+          spawnSmokeParticle(b.wx, b.wz, sp);
+        }
+      }
+    }
+  }
+
+  // Update smoke particles
+  for (let i = smokeParticles.length - 1; i >= 0; i--) {
+    const p = smokeParticles[i];
+    p.life -= dt;
+    if (p.life <= 0) {
+      scene.remove(p.mesh);
+      p.mat.dispose();
+      p.geom.dispose();
+      smokeParticles.splice(i, 1);
+      continue;
+    }
+    const ratio = p.life / p.maxLife;
+    p.mesh.position.x += p.vx * dt;
+    p.mesh.position.y += p.vy * dt;
+    p.mesh.position.z += p.vz * dt;
+    p.vx *= 0.97;
+    p.vy *= 0.98;
+    p.vz *= 0.97;
+    p.mat.opacity = ratio * 0.5;
+    const grow = 0.5 + (1 - ratio) * 1.2;
+    p.mesh.scale.setScalar(grow);
+  }
+}
+
+export function clearSmokeParticles() {
+  for (const p of smokeParticles) {
+    scene.remove(p.mesh);
+    p.mat.dispose();
+    p.geom.dispose();
+  }
+  smokeParticles.length = 0;
+}
