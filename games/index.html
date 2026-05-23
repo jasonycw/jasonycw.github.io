@@ -236,59 +236,44 @@
 
     /**
      * Check and handle collisions with window boundaries
+     * Detects wall hits, corner hits, and applies appropriate collision responses
      */
     function handleBoundaryCollision(state) {
       const margin = 0;
-      let hitWall = false;
-      let hitCorner = false;
+      let hitXBoundary = false;
+      let hitYBoundary = false;
 
-      // Horizontal boundary check
-      if (state.x <= margin || state.x + state.width >= window.innerWidth - margin) {
-        // Check if near corner
-        const nearTopCorner = state.y <= state.height / 2;
-        const nearBottomCorner = state.y + state.height >= window.innerHeight - state.height / 2;
-        
-        if ((nearTopCorner || nearBottomCorner) && Math.abs(state.vy) > 0.5) {
-          hitCorner = true;
-        }
-
-        if (state.x <= margin) {
-          state.x = margin;
-          state.vx = Math.abs(state.vx);
-        } else {
-          state.x = window.innerWidth - state.width - margin;
-          state.vx = -Math.abs(state.vx);
-        }
-        hitWall = true;
+      // Horizontal boundary check (left or right edge)
+      if (state.x <= margin) {
+        state.x = margin;
+        state.vx = Math.abs(state.vx);
+        hitXBoundary = true;
+      } else if (state.x + state.width >= window.innerWidth - margin) {
+        state.x = window.innerWidth - state.width - margin;
+        state.vx = -Math.abs(state.vx);
+        hitXBoundary = true;
       }
 
-      // Vertical boundary check
-      if (state.y <= margin || state.y + state.height >= window.innerHeight - margin) {
-        // Check if near corner
-        const nearLeftCorner = state.x <= state.width / 2;
-        const nearRightCorner = state.x + state.width >= window.innerWidth - state.width / 2;
-        
-        if ((nearLeftCorner || nearRightCorner) && Math.abs(state.vx) > 0.5) {
-          hitCorner = true;
-        }
-
-        if (state.y <= margin) {
-          state.y = margin;
-          state.vy = Math.abs(state.vy);
-        } else {
-          state.y = window.innerHeight - state.height - margin;
-          state.vy = -Math.abs(state.vy);
-        }
-        hitWall = true;
+      // Vertical boundary check (top or bottom edge)
+      if (state.y <= margin) {
+        state.y = margin;
+        state.vy = Math.abs(state.vy);
+        hitYBoundary = true;
+      } else if (state.y + state.height >= window.innerHeight - margin) {
+        state.y = window.innerHeight - state.height - margin;
+        state.vy = -Math.abs(state.vy);
+        hitYBoundary = true;
       }
 
-      // Handle collision effects
-      if (hitWall) {
-        if (hitCorner) {
+      // Determine collision type and apply effects
+      if (hitXBoundary || hitYBoundary) {
+        if (hitXBoundary && hitYBoundary) {
+          // Corner hit - both X and Y boundaries hit in same frame
           state.isFlashing = true;
           state.rainbowIndex = 0;
           state.rainbowCounter = 0;
         } else {
+          // Wall hit (not corner) - change to random neon color
           state.color = getRandomNeonColor();
           state.isFlashing = false;
         }
