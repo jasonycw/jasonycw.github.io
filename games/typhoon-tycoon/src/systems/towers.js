@@ -304,23 +304,63 @@ export function createBuildingMesh(type) {
     // Store dish group reference for rotation animation in updateBuildings()
     group.userData.dish = dishGroup;
   } else if (type === 'CheungKong') {
-    for (let i = 0; i < 3; i++) {
-      const section = new THREE.Mesh(
-        new THREE.BoxGeometry(0.5 - i * 0.08, 0.3, 0.5 - i * 0.08),
-        new THREE.MeshStandardMaterial({
-          color: i === 0 ? 0x37474f : (i === 1 ? 0x455a64 : 0x546e7a),
-          roughness: 0.5, metalness: 0.5
-        })
-      );
-      section.position.y = 0.15 + i * 0.3;
-      group.add(section);
+    // Tall skyscraper — 4 stacked sections with windows on all sides
+    const sections = [
+      { h: 0.25, w: 0.5, y: 0.125, color: 0xb0bec5 },
+      { h: 0.2, w: 0.45, y: 0.35, color: 0x90a4ae },
+      { h: 0.2, w: 0.4, y: 0.55, color: 0x78909c },
+      { h: 0.18, w: 0.35, y: 0.74, color: 0x607d8b }
+    ];
+    const windowMat = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, emissive: 0xbbdefb, emissiveIntensity: 0.15, side: THREE.DoubleSide });
+    const windowGeom = new THREE.PlaneGeometry(0.04, 0.06);
+    for (const sec of sections) {
+      const secMat = new THREE.MeshStandardMaterial({ color: sec.color, roughness: 0.3, metalness: 0.7 });
+      const box = new THREE.Mesh(new THREE.BoxGeometry(sec.w, sec.h, sec.w), secMat);
+      box.position.y = sec.y;
+      group.add(box);
+      // Window grid on all four sides
+      const rows = 2;
+      const cols = 3;
+      const spacingX = sec.w * 0.6 / cols;
+      const spacingZ = sec.w * 0.6 / cols;
+      const startX = -spacingX * (cols - 1) / 2;
+      const startZ = -spacingZ * (cols - 1) / 2;
+      const yBase = sec.y - sec.h / 2 + 0.04;
+      // Front (+Z) and back (-Z)
+      for (let side = -1; side <= 1; side += 2) {
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const w = new THREE.Mesh(windowGeom, windowMat);
+            w.position.set(startX + col * spacingX, yBase + row * 0.07, side * (sec.w / 2 + 0.001));
+            w.rotation.y = side > 0 ? 0 : Math.PI;
+            group.add(w);
+          }
+        }
+      }
+      // Left (-X) and right (+X)
+      for (let side = -1; side <= 1; side += 2) {
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const w = new THREE.Mesh(windowGeom, windowMat);
+            w.position.set(side * (sec.w / 2 + 0.001), yBase + row * 0.07, startZ + col * spacingZ);
+            w.rotation.y = side > 0 ? Math.PI / 2 : -Math.PI / 2;
+            group.add(w);
+          }
+        }
+      }
     }
-    const top = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.12, 0.15, 0.1, 8),
-      new THREE.MeshStandardMaterial({ color: 0xffd54f, emissive: 0xffd54f, emissiveIntensity: 0.5 })
+    // Flat roof slab
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0xcfd8dc, roughness: 0.3, metalness: 0.8 });
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(0.37, 0.04, 0.37), roofMat);
+    roof.position.y = 0.87;
+    group.add(roof);
+    // Small antenna on roof
+    const antenna = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.008, 0.015, 0.08, 6),
+      new THREE.MeshStandardMaterial({ color: 0xcfd8dc, roughness: 0.3, metalness: 0.9 })
     );
-    top.position.y = 0.85;
-    group.add(top);
+    antenna.position.y = 0.93;
+    group.add(antenna);
   }
 
   group.castShadow = true;
