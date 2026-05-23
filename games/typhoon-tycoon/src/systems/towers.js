@@ -88,10 +88,6 @@ export function createTowerMesh(type) {
     }
   }
 
-  group.renderOrder = 1;
-  group.traverse(child => {
-    if (child.isMesh) child.renderOrder = 1;
-  });
   group.castShadow = true;
   return group;
 }
@@ -383,11 +379,6 @@ export function createBuildingMesh(type) {
     group.add(antenna);
   }
 
-  // Render buildings after decorative scenery for correct overlap
-  group.renderOrder = 1;
-  group.traverse(child => {
-    if (child.isMesh) child.renderOrder = 1;
-  });
   group.castShadow = true;
   return group;
 }
