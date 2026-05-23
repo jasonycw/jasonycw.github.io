@@ -31,11 +31,11 @@
       text-decoration: none;
       color: inherit;
       cursor: pointer;
-      width: 18vw;
-      height: 10vh;
-      min-width: 120px;
-      min-height: 70px;
-      padding: 1rem;
+     width: 14vw;
+     aspect-ratio: 4 / 3;
+     min-width: 100px;
+     min-height: 75px;
+     padding: 0;
      transition: color 0.05s ease;
      will-change: transform, left, top, color;
      -webkit-font-smoothing: antialiased;
@@ -44,10 +44,11 @@
 
     /* Text inside cards scales to fit dimensions */
     .game-card h2 {
-     font-size: clamp(0.75rem, 3.5vw, 1.5rem);
+     font-size: 16px;
      font-weight: 700;
      margin: 0;
-     line-height: 1.1;
+     padding: 0;
+     line-height: 1;
      word-wrap: break-word;
      overflow-wrap: break-word;
      width: 100%;
@@ -55,9 +56,10 @@
     }
 
     .game-card p {
-     font-size: clamp(0.55rem, 2vw, 0.85rem);
+     font-size: 12px;
      opacity: 0.85;
-     margin-top: 0.25rem;
+     margin: 0;
+     padding: 0;
      line-height: 1.1;
      word-wrap: break-word;
      overflow-wrap: break-word;
@@ -72,8 +74,10 @@
      display: flex;
      flex-direction: column;
      align-items: center;
-     justify-content: center;
+     justify-content: flex-start;
      overflow: hidden;
+     padding: 0;
+     margin: 0;
     }
   </style>
 </head>
@@ -204,6 +208,60 @@
       return card;
     }
 
+    /**
+     * Fit text within card boundaries by adjusting font size
+     * 1. Title grows to fill width (100% width), 2. Subtitle fills remaining height
+     */
+    function fitTextToCard(cardElement) {
+      const title = cardElement.querySelector('h2');
+      const subtitle = cardElement.querySelector('p');
+      
+      if (!title || !subtitle) return;
+
+      const cardHeight = cardElement.offsetHeight;
+      const cardWidth = cardElement.offsetWidth;
+      
+      // Step 1: Grow title size until it fills the width
+      let titleSize = 8; // Start small
+      let prevTitleSize = 8;
+      
+      // Grow title size until it exceeds width, then use the largest that fits
+      for (let i = 0; i < 50; i++) {
+        title.style.fontSize = titleSize + 'px';
+        // Force reflow to get accurate measurements
+        const titleWidth = title.offsetWidth;
+        const titleScrollWidth = title.scrollWidth;
+        
+        // If text exceeds card width, go back to previous size
+        if (titleWidth > cardWidth || titleScrollWidth > cardWidth) {
+          title.style.fontSize = prevTitleSize + 'px';
+          titleSize = prevTitleSize;
+          break;
+        }
+        
+        prevTitleSize = titleSize;
+        titleSize += 0.5; // Increment by 0.5px for precision
+      }
+      
+      // Step 2: Get title's height and calculate remaining space
+      const titleHeight = title.offsetHeight;
+      const remainingHeight = cardHeight - titleHeight;
+      
+      // Step 3: Fit subtitle to remaining space - start large and shrink
+      let subtitleSize = Math.max(8, remainingHeight * 0.8);
+      
+      // Shrink subtitle until it fits remaining height
+      for (let i = 0; i < 50; i++) {
+        subtitle.style.fontSize = subtitleSize + 'px';
+        
+        if (subtitle.offsetHeight <= remainingHeight) {
+          break;
+        }
+        
+        subtitleSize *= 0.95;
+      }
+    }
+
     // ============================================================================
     // Physics & Animation State Management
     // ============================================================================
@@ -223,8 +281,8 @@
         element: cardElement,
         x: Math.random() * (window.innerWidth - width),
         y: Math.random() * (window.innerHeight - height),
-        vx: (Math.random() - 0.5) * 6 + (Math.random() > 0.5 ? 2 : -2),
-        vy: (Math.random() - 0.5) * 6 + (Math.random() > 0.5 ? 2 : -2),
+        vx: (Math.random() - 0.5) * 1.5 + (Math.random() > 0.5 ? 1 : -1),
+        vy: (Math.random() - 0.5) * 1.5 + (Math.random() > 0.5 ? 1 : -1),
         color: getRandomNeonColor(),
         isFlashing: false,
         rainbowIndex: 0,
@@ -356,11 +414,14 @@
           if (state.y + state.height > newHeight) {
             state.y = newHeight - state.height;
           }
-        });
+          
+         // Refit text to card with new dimensions
+         fitTextToCard(state.element);
+       });
 
-        lastWidth = newWidth;
-        lastHeight = newHeight;
-      }
+       lastWidth = newWidth;
+       lastHeight = newHeight;
+     }
     }
 
     // ============================================================================
@@ -380,6 +441,10 @@
       setTimeout(() => {
         const cardElements = document.querySelectorAll('.game-card');
         cardElements.forEach((cardElement, index) => {
+          // Fit text to card dimensions
+          fitTextToCard(cardElement);
+           
+          // Initialize physics state
           initializeCardState(cardElement, index);
         });
 
