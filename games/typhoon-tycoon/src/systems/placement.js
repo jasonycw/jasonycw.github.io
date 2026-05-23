@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { scene, camera } from '../core/three-setup.js';
 import { CONFIG } from '../core/config.js';
 import { state, getStructConfig, meetsRequirements, isStructureUnlocked } from '../core/state.js';
-import { gridCells, isOnMap, MAP_OFFSET_X, MAP_OFFSET_Z, MAP_PLANE_SIZE, halfCells } from '../world/map.js';
+import { gridCells, isOnMap, isSeaAt, MAP_OFFSET_X, MAP_OFFSET_Z, MAP_PLANE_SIZE, halfCells } from '../world/map.js';
 import { scenery, removeSceneryAt } from './scenery.js';
 import { towers, buildings, createTowerMesh, createBuildingMesh, updatePower } from './towers.js';
 import { effects, spawnEffect } from './effects.js';
@@ -28,6 +28,38 @@ function getMouseWorld(event) {
   const point = new THREE.Vector3();
   raycaster.ray.intersectPlane(planeIntersect, point);
   return point;
+}
+
+// ==================== COLLISION / OVERLAP CHECK ====================
+/** Check if a placement at (wx,wz) overlaps any existing structure's radius */
+export function checkPlacementOverlap(wx, wz, type) {
+  const cfg = getStructConfig(type);
+  if (!cfg || !cfg.radius) return false;
+  const allStructures = [...towers, ...buildings];
+  for (const s of allStructures) {
+    const otherCfg = getStructConfig(s.type);
+    if (!otherCfg || !otherCfg.radius) continue;
+    const dx = s.wx - wx;
+    const dz = s.wz - wz;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist < cfg.radius + otherCfg.radius) return true; // overlapping
+  }
+  return false;
+}
+
+/** Check if a world position is valid for placement (no overlap, right terrain, on map, affordable) */
+export function isPlacementValid(wx, wz, type) {
+  const cfg = getStructConfig(type);
+  if (!cfg) return false;
+  if (state.hsi < cfg.cost) return false;
+  if (!meetsRequirements(type)) return false;
+  if (!isOnMap(wx, wz)) return false;
+  const onLand = cfg.builtOn === 'land';
+  const isSea = isSeaAt(wx, wz);
+  if (onLand && isSea) return false;
+  if (!onLand && !isSea) return false;
+  if (checkPlacementOverlap(wx, wz, type)) return false;
+  return true;
 }
 
 // ==================== STRUCTURE PLACEMENT ====================
