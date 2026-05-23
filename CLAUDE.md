@@ -24,7 +24,7 @@ Commit standards:
   - Only when you cannot figure out what is LLM's provider, you can use the LLM name like `Co-authored-by: some-llm-model-name <66570915+anomalyco@users.noreply.github.com>`
 - The coauther with `@users.noreply.github.com` should be made sure it's from LLM provider, not any random GitHub user
 - The last line must be coauthoring the tool, like:
-  Co-authored-by: OpenCode <noreply@opencode.ai>
+  Co-authored-by: Claude Code <noreply@anthropic.com>
 - Trailers must be real newlines-separated lines at the end of the message (not escaped). The commit message must avoid control or escape characters used for formatting (no backtick-escaping, no literal "\\t", "\\xNN", etc.).
 - Example valid commit message (four lines):
   Fix menu layout on mobile
