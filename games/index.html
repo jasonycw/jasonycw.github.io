@@ -374,8 +374,21 @@
       }, 50);
     }
 
-    // Run initialization when DOM is ready
+    /**
+     * Cleanup function - cancel animation and remove event listeners
+     */
+    function cleanup() {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      window.removeEventListener('resize', handleWindowResize);
+    }
+
+    // Initialize when DOM is ready
     document.addEventListener('DOMContentLoaded', initializeGameCards);
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', cleanup);
   </script>
 </body>
 </html>
