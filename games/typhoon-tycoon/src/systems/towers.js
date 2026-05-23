@@ -161,19 +161,80 @@ export function createBuildingMesh(type) {
     group.userData.smokePositions = [new THREE.Vector3(0, 0.65, 0)];
     group.userData.hasSmoke = true;
   } else if (type === 'University') {
+    // Brownish main body
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.8 });
     const body = new THREE.Mesh(
-      new THREE.BoxGeometry(0.9, 0.4, 0.7),
-      new THREE.MeshStandardMaterial({ color: 0x7e57c2, roughness: 0.6, metalness: 0.2 })
+      new THREE.BoxGeometry(0.9, 0.45, 0.7),
+      bodyMat
     );
-    body.position.y = 0.2;
+    body.position.y = 0.225;
     group.add(body);
-    const roof = new THREE.Mesh(
-      new THREE.ConeGeometry(0.5, 0.2, 4),
-      new THREE.MeshStandardMaterial({ color: 0x9575cd, roughness: 0.5 })
+    // Small windows on all walls
+    const windowMat = new THREE.MeshStandardMaterial({ color: 0xffe0b2, emissive: 0xffe0b2, emissiveIntensity: 0.2, side: THREE.DoubleSide });
+    const windowGeom = new THREE.PlaneGeometry(0.06, 0.08);
+    // Front (+Z) and back (-Z)
+    for (let side = -1; side <= 1; side += 2) {
+      for (let row = 0; row < 2; row++) {
+        for (let col = 0; col < 3; col++) {
+          const w = new THREE.Mesh(windowGeom, windowMat);
+          w.position.set(-0.25 + col * 0.25, 0.13 + row * 0.15, side * 0.351);
+          w.rotation.y = side > 0 ? 0 : Math.PI;
+          group.add(w);
+        }
+      }
+    }
+    // Left (-X) and right (+X)
+    for (let side = -1; side <= 1; side += 2) {
+      for (let row = 0; row < 2; row++) {
+        for (let col = 0; col < 2; col++) {
+          const w = new THREE.Mesh(windowGeom, windowMat);
+          w.position.set(side * 0.451, 0.13 + row * 0.15, -0.1 + col * 0.3);
+          w.rotation.y = side > 0 ? Math.PI / 2 : -Math.PI / 2;
+          group.add(w);
+        }
+      }
+    }
+    // Church-style gable roof (triangular prism)
+    const roofShape = new THREE.Shape();
+    const rw = 0.48, rh = 0.2;
+    roofShape.moveTo(-rw, 0);
+    roofShape.lineTo(0, rh);
+    roofShape.lineTo(rw, 0);
+    roofShape.lineTo(-rw, 0);
+    const roofGeom = new THREE.ExtrudeGeometry(roofShape, { depth: 0.72, bevelEnabled: false });
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x6d4c41, roughness: 0.9 });
+    const roofMesh = new THREE.Mesh(roofGeom, roofMat);
+    roofMesh.position.set(0, 0.45, -0.36);
+    group.add(roofMesh);
+    // Clock tower at right end
+    const towerMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.8 });
+    const towerBase = new THREE.Mesh(
+      new THREE.BoxGeometry(0.18, 0.3, 0.18),
+      towerMat
     );
-    roof.position.y = 0.4;
-    roof.rotation.y = Math.PI / 4;
-    group.add(roof);
+    towerBase.position.set(0.3, 0.6, 0);
+    group.add(towerBase);
+    const towerTop = new THREE.Mesh(
+      new THREE.BoxGeometry(0.2, 0.08, 0.2),
+      new THREE.MeshStandardMaterial({ color: 0xa1887f, roughness: 0.7 })
+    );
+    towerTop.position.set(0.3, 0.84, 0);
+    group.add(towerTop);
+    // Clock face (white circle)
+    const clockFace = new THREE.Mesh(
+      new THREE.CircleGeometry(0.05, 8),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.3 })
+    );
+    clockFace.position.set(0.39, 0.72, 0);
+    clockFace.rotation.y = Math.PI / 2;
+    group.add(clockFace);
+    // Pointed spire on top of tower
+    const spire = new THREE.Mesh(
+      new THREE.ConeGeometry(0.08, 0.15, 6),
+      new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 })
+    );
+    spire.position.set(0.3, 0.95, 0);
+    group.add(spire);
   } else if (type === 'ResearchCenter') {
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(0.8, 0.5, 0.8),
