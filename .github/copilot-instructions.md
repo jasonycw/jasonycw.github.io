@@ -6,7 +6,17 @@ Purpose
 Commit standards:
 - All commits must be iterative, never do multiple thing in one commit. For example, if you need to change the layout and add animation, you should first commit the layout change, make sure it's correct, then commit the animation change.
 - All commits must be atomic and self-contained, meaning each commit should represent a single logical change that can be understood and tested independently. Avoid bundling multiple unrelated changes into a single commit.
-- All commits must be human-readable and use actual newlines to separate subject, body, and trailers. Do NOT include the two-character escape sequence "\n" anywhere in the commit message.
+- Every git commit message must be human-readable and use actual newlines to separate subject, body, and trailers. Do NOT include the two-character escape sequence "\\n" anywhere in the commit message.
+- Must append the required Co-authored-by trailer as a separate line exactly like this (trailer must be the last Co-authored-by line):
+  Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+- Must append a model trailer on its own line indicating the LLM used, for example:
+  LLM-Model: gpt-5-mini (GPT-5 mini)
+- Trailers must be real newlines-separated lines at the end of the message (not escaped). The commit message must avoid control or escape characters used for formatting (no backtick-escaping, no literal "\\t", "\\xNN", etc.).
+- Example valid commit message (three lines):
+  Fix menu layout on mobile
+  Improve spacing for small screens
+  LLM-Model: gpt-5-mini (GPT-5 mini)
+  Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
 
 Preview / build
 - Install dependencies and run the dev server: `cd jasonycw.github.io && npm install && npm run test` (this repo uses `webpack-dev-server` under the `test` script).
