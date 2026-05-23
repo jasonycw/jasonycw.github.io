@@ -12,6 +12,12 @@ Preview / build
 - Install dependencies and run the dev server: `cd jasonycw.github.io && npm install && npm run test` (this repo uses `webpack-dev-server` under the `test` script).
 - To validate the final static output, serve the site locally with a static server: `npx http-server . -p 8080` or `python -m http.server 8080` from the published root. Open `http://localhost:8080/`.
 
+GitHub PR standards:
+- Must clearly document the change in the PR description
+- Must include screenshots or screen recordings for any visual changes
+- Description must be human-readable. Do NOT include the two-character escape sequence "\n" anywhere
+- Must include the model trailer and coauthor trailers. The coauthor trailers must be properly formatted with the LLM provider's GitHub username and email when possible.
+
 GitHub Pages constraints (must follow)
 - No server-side code or server-only runtime dependencies.
 - Use only relative URLs for scripts, styles, and assets so the site works when published at `https://<user>.github.io/<repo>/` or repository root.
