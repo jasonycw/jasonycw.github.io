@@ -1,6 +1,6 @@
 import { clock, renderer, scene, camera } from '../core/three-setup.js';
 import { CONFIG } from '../core/config.js';
-import { state } from '../core/state.js';
+import { state, getStructConfig } from '../core/state.js';
 import { enemies, updateEnemies } from './enemies.js';
 import { towers, buildings, updateTowers, removeTowerBeam, updatePower } from './towers.js';
 import { effects, updateEffects } from './effects.js';
@@ -45,6 +45,29 @@ function updateHSI(dt) {
   }
 }
 
+// ==================== CONSTRUCTION ANIMATION ====================
+/** Animate structures scaling up from 0 to 1 over 0.3s */
+function updateConstruction() {
+  const allStructs = [...towers, ...buildings];
+  for (const s of allStructs) {
+    if (s.constructing) {
+      const elapsed = state.gameTime - s.constructStartTime;
+      const t = Math.min(1, elapsed / 0.3);
+      // Ease-out cubic — starts fast, slows near end
+      const scale = 0.01 + (1 - 0.01) * (1 - Math.pow(1 - t, 3));
+      s.mesh.scale.setScalar(scale);
+      if (t >= 1) {
+        s.mesh.scale.setScalar(1);
+        s.constructing = false;
+        // Bring tower online if power is available
+        if (getStructConfig(s.type)?.builtOn === 'sea') {
+          s.online = !state.powerOutage;
+        }
+      }
+    }
+  }
+}
+
 // ==================== GAME LOOP ====================
 function gameLoop() {
   requestAnimationFrame(gameLoop);
@@ -69,6 +92,7 @@ function gameLoop() {
     updateYears(dt);
     updateEarthquakes(dt);
     updateEnemies(dt);
+    updateConstruction();
     updateTowers(dt);
     updateHSI(dt);
     updateEffects(dt);

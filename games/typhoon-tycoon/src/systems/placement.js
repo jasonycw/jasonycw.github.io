@@ -101,6 +101,7 @@ export function placeStructure(wx, wz, type) {
     mesh = createBuildingMesh(type);
   }
   mesh.position.set(wx, yPos, wz);
+  mesh.scale.setScalar(0.01); // start tiny for construction animation
   scene.add(mesh);
 
   if (cfg.power > 0) state.powerQuota += cfg.power;
@@ -111,9 +112,11 @@ export function placeStructure(wx, wz, type) {
     mesh,
     wx,
     wz,
-    online: isTower ? !state.powerOutage : true,
+    online: false, // will be set to true after construction completes
     cooldown: 0,
     target: null,
+    constructing: true,
+    constructStartTime: state.gameTime,
     ...(isTower ? { range: cfg.range } : {})
   };
 
