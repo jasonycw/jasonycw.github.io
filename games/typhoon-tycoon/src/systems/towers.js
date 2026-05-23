@@ -97,24 +97,36 @@ export function createBuildingMesh(type) {
   const cfg = getStructConfig(type);
 
   if (type === 'PowerPlant') {
+    // Blue-ish main body
     const body = new THREE.Mesh(
-      new THREE.BoxGeometry(0.8, 0.5, 0.8),
-      new THREE.MeshStandardMaterial({ color: 0x66bb6a, roughness: 0.7, metalness: 0.2 })
+      new THREE.BoxGeometry(0.8, 0.4, 0.8),
+      new THREE.MeshStandardMaterial({ color: 0x4fc3f7, roughness: 0.6, metalness: 0.1 })
     );
-    body.position.y = 0.25;
+    body.position.y = 0.2;
     group.add(body);
-    const chimney = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.1, 0.4, 8),
-      new THREE.MeshStandardMaterial({ color: 0x546e7a, roughness: 0.8 })
+    // Roof slab (darker)
+    const roof = new THREE.Mesh(
+      new THREE.BoxGeometry(0.82, 0.05, 0.82),
+      new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.8 })
     );
-    chimney.position.set(0.2, 0.55, 0.2);
-    group.add(chimney);
-    const glow = new THREE.Mesh(
-      new THREE.SphereGeometry(0.08, 8, 8),
-      new THREE.MeshBasicMaterial({ color: 0x69f0ae })
-    );
-    glow.position.set(0.2, 0.6, 0.2);
-    group.add(glow);
+    roof.position.y = 0.425;
+    group.add(roof);
+    // 3 gray smoke pipes arranged in a triangle (not centered)
+    const pipeMat = new THREE.MeshStandardMaterial({ color: 0x78909c, roughness: 0.9 });
+    const pipeGeom = new THREE.CylinderGeometry(0.05, 0.08, 0.3, 8);
+    const pipePositions = [
+      [-0.2, 0.45, 0.15],
+      [0.2, 0.45, 0.15],
+      [0, 0.45, -0.2]
+    ];
+    for (const pos of pipePositions) {
+      const pipe = new THREE.Mesh(pipeGeom, pipeMat);
+      pipe.position.set(pos[0], pos[1] + 0.15, pos[2]);
+      group.add(pipe);
+    }
+    // Store pipe top positions for smoke emission
+    group.userData.smokePositions = pipePositions.map(p => new THREE.Vector3(p[0], p[1] + 0.3, p[2]));
+    group.userData.hasSmoke = true;
   } else if (type === 'NuclearPlant') {
     const base = new THREE.Mesh(
       new THREE.CylinderGeometry(0.5, 0.6, 0.15, 12),
