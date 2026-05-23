@@ -236,18 +236,73 @@ export function createBuildingMesh(type) {
     spire.position.set(0.3, 0.95, 0);
     group.add(spire);
   } else if (type === 'ResearchCenter') {
+    // Gray main body
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x90a4ae, roughness: 0.6, metalness: 0.3 });
     const body = new THREE.Mesh(
-      new THREE.BoxGeometry(0.8, 0.5, 0.8),
-      new THREE.MeshStandardMaterial({ color: 0xab47bc, roughness: 0.5, metalness: 0.3 })
+      new THREE.BoxGeometry(0.8, 0.45, 0.8),
+      bodyMat
     );
-    body.position.y = 0.25;
+    body.position.y = 0.225;
     group.add(body);
-    const antenna = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.02, 0.03, 0.3, 6),
-      new THREE.MeshStandardMaterial({ color: 0xce93d8, emissive: 0xce93d8, emissiveIntensity: 0.3 })
+    // Windows on all sides (glowing blue tint)
+    const windowMat = new THREE.MeshStandardMaterial({ color: 0xb0bec5, emissive: 0x4fc3f7, emissiveIntensity: 0.1, side: THREE.DoubleSide });
+    const windowGeom = new THREE.PlaneGeometry(0.08, 0.06);
+    // Front (+Z) and back (-Z)
+    for (let side = -1; side <= 1; side += 2) {
+      for (let row = 0; row < 2; row++) {
+        for (let col = 0; col < 3; col++) {
+          const w = new THREE.Mesh(windowGeom, windowMat);
+          w.position.set(-0.2 + col * 0.2, 0.13 + row * 0.17, side * 0.401);
+          w.rotation.y = side > 0 ? 0 : Math.PI;
+          group.add(w);
+        }
+      }
+    }
+    // Left (-X) and right (+X)
+    for (let side = -1; side <= 1; side += 2) {
+      for (let row = 0; row < 2; row++) {
+        for (let col = 0; col < 3; col++) {
+          const w = new THREE.Mesh(windowGeom, windowMat);
+          w.position.set(side * 0.401, 0.13 + row * 0.17, -0.2 + col * 0.2);
+          w.rotation.y = side > 0 ? Math.PI / 2 : -Math.PI / 2;
+          group.add(w);
+        }
+      }
+    }
+    // Roof slab
+    const roofSlab = new THREE.Mesh(
+      new THREE.BoxGeometry(0.82, 0.04, 0.82),
+      new THREE.MeshStandardMaterial({ color: 0x546e7a, roughness: 0.7 })
     );
-    antenna.position.y = 0.55;
-    group.add(antenna);
+    roofSlab.position.y = 0.47;
+    group.add(roofSlab);
+    // Radio dish pole
+    const dishPole = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.02, 0.03, 0.2, 6),
+      new THREE.MeshStandardMaterial({ color: 0x78909c, roughness: 0.5, metalness: 0.7 })
+    );
+    dishPole.position.y = 0.6;
+    group.add(dishPole);
+    // Radio dish (cone pointing upward — open end faces sky)
+    // Create the dish group so it can rotate independently for scanning
+    const dishGroup = new THREE.Group();
+    dishGroup.position.y = 0.7;
+    const dishMesh = new THREE.Mesh(
+      new THREE.ConeGeometry(0.12, 0.06, 12, 1, true),
+      new THREE.MeshStandardMaterial({ color: 0xb0bec5, roughness: 0.4, metalness: 0.8, side: THREE.DoubleSide })
+    );
+    dishMesh.rotation.x = Math.PI; // flip so open end faces up
+    dishGroup.add(dishMesh);
+    // Antenna spike in the center of the dish
+    const dishAntenna = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.008, 0.008, 0.08, 4),
+      new THREE.MeshStandardMaterial({ color: 0xcfd8dc, roughness: 0.3, metalness: 0.9 })
+    );
+    dishAntenna.position.y = 0.04;
+    dishGroup.add(dishAntenna);
+    group.add(dishGroup);
+    // Store dish group reference for rotation animation in updateBuildings()
+    group.userData.dish = dishGroup;
   } else if (type === 'CheungKong') {
     for (let i = 0; i < 3; i++) {
       const section = new THREE.Mesh(
