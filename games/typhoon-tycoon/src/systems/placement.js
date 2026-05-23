@@ -63,42 +63,35 @@ export function isPlacementValid(wx, wz, type) {
 }
 
 // ==================== STRUCTURE PLACEMENT ====================
-export function placeStructure(cell, type) {
+export function placeStructure(wx, wz, type) {
   const cfg = getStructConfig(type);
   if (!cfg) return false;
 
-  if (state.hsi < cfg.cost) {
-    setStatus(`Not enough HSI! Need ${cfg.cost}`, '#ff5252');
-    return false;
-  }
-
-  if (!meetsRequirements(type)) {
-    setStatus(`Requires: ${cfg.req}`, '#ff5252');
-    return false;
-  }
-
-  if (!isOnMap(cell.wx, cell.wz)) {
-    setStatus('Cannot build outside the map area!', '#ff5252');
+  // Validate placement
+  if (!isPlacementValid(wx, wz, type)) {
+    // isPlacementValid covers: cost, requirements, onMap, terrain, overlap
+    // Re-run the individual checks to produce specific error messages
+    if (state.hsi < cfg.cost) {
+      setStatus(`Not enough HSI! Need ${cfg.cost}`, '#ff5252');
+    } else if (!meetsRequirements(type)) {
+      setStatus(`Requires: ${cfg.req}`, '#ff5252');
+    } else if (!isOnMap(wx, wz)) {
+      setStatus('Cannot build outside the map area!', '#ff5252');
+    } else {
+      const onLand = cfg.builtOn === 'land';
+      const isSea = isSeaAt(wx, wz);
+      if (onLand && isSea) setStatus('Buildings must be built on land!', '#ff5252');
+      else if (!onLand && !isSea) setStatus('Towers must be built on the sea!', '#ff5252');
+      else setStatus('Too close to another structure!', '#ff5252');
+    }
     return false;
   }
 
   const isTower = cfg.builtOn === 'sea';
   const isBuilding = cfg.builtOn === 'land';
-  if (isTower && cell.isLand) {
-    setStatus('Towers must be built on the sea!', '#ff5252');
-    return false;
-  }
-  if (isBuilding && !cell.isLand) {
-    setStatus('Buildings must be built on land!', '#ff5252');
-    return false;
-  }
+  const yPos = isBuilding ? CONFIG.islandHeight : 0;
 
-  if (cell.occupied) {
-    setStatus('This area is already occupied!', '#ff5252');
-    return false;
-  }
-
-  removeSceneryAt(cell.wx, cell.wz);
+  removeSceneryAt(wx, wz);
   state.hsi -= cfg.cost;
 
   let mesh;
@@ -107,22 +100,17 @@ export function placeStructure(cell, type) {
   } else {
     mesh = createBuildingMesh(type);
   }
-  mesh.position.set(cell.wx, isBuilding ? CONFIG.islandHeight : 0, cell.wz);
+  mesh.position.set(wx, yPos, wz);
   scene.add(mesh);
 
   if (cfg.power > 0) state.powerQuota += cfg.power;
   else state.powerUsed += cfg.power;
 
-  cell.occupied = true;
-
   const structure = {
     type,
     mesh,
-    cell,
-    cx: cell.cx,
-    cz: cell.cz,
-    wx: cell.wx,
-    wz: cell.wz,
+    wx,
+    wz,
     online: isTower ? !state.powerOutage : true,
     cooldown: 0,
     target: null,
@@ -158,7 +146,7 @@ export function placeStructure(cell, type) {
     }
   }
 
-  spawnEffect(cell.wx, 0.3, cell.wz, cfg.color || 0xffffff, 0.5);
+  spawnEffect(wx, 0.3, wz, cfg.color || 0xffffff, 0.5);
   updatePower();
   updateUI();
 
@@ -172,23 +160,34 @@ function unlockStructure(type) {
 
 /** Place starter buildings at the home island once hitarea classifies cells */
 export function placeDefaultBuildings() {
-  const homeCells = gridCells.filter(c => c.isLand && !c.occupied);
+  // Try positions on the home island (sorted by distance from center)
+  const homeCells = gridCells.filter(c => c.isLand);
   homeCells.sort((a, b) => (a.wx*a.wx + a.wz*a.wz) - (b.wx*b.wx + b.wz*b.wz));
 
-  if (homeCells.length < 1) {
-    const forced = gridCells.filter(c => !c.occupied).sort(
-      (a, b) => (a.wx*a.wx + a.wz*a.wz) - (b.wx*b.wx + b.wz*b.wz)
-    );
-    for (const cell of forced.slice(0, 1)) {
-      cell.isLand = true;
-      placeStructure(cell, 'PowerPlant');
+  let placed = false;
+  for (const cell of homeCells) {
+    if (isPlacementValid(cell.wx, cell.wz, 'PowerPlant')) {
+      if (placeStructure(cell.wx, cell.wz, 'PowerPlant')) {
+        placed = true;
+        break;
+      }
     }
-    return;
   }
 
-  // Start with just 1 Power Plant — player builds the rest
-  if (!homeCells[0].occupied) {
-    placeStructure(homeCells[0], 'PowerPlant');
+  if (!placed) {
+    // Fallback: force-place at a known-good position near center
+    const fallbacks = [
+      { wx: 1, wz: 1 }, { wx: -1, wz: 1 },
+      { wx: 1, wz: -1 }, { wx: -1, wz: -1 },
+      { wx: 0, wz: 2 }, { wx: 2, wz: 0 },
+      { wx: 0, wz: -2 }, { wx: -2, wz: 0 }
+    ];
+    for (const fb of fallbacks) {
+      if (isPlacementValid(fb.wx, fb.wz, 'PowerPlant')) {
+        placeStructure(fb.wx, fb.wz, 'PowerPlant');
+        break;
+      }
+    }
   }
   console.log('DEFAULT BUILDINGS PLACED');
 }
@@ -252,14 +251,8 @@ function handleMapClick(event) {
   if (state.phase !== 'playing' || !state.selectedType) return;
 
   const world = getMouseWorld(event);
-  const cell = getGridCell(world.x, world.z);
-  if (!cell) {
-    setStatus('Invalid build location', '#ff5252');
-    return;
-  }
-
   const placedType = state.selectedType;
-  if (placeStructure(cell, placedType)) {
+  if (placeStructure(world.x, world.z, placedType)) {
     setStatus(`${getStructConfig(placedType).title} built!`, '#69f0ae');
     // Clear selection — force player to choose a structure for each placement
     selectStructure(null);
