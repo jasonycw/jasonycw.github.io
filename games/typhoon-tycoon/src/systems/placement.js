@@ -192,59 +192,110 @@ export function placeDefaultBuildings() {
   console.log('DEFAULT BUILDINGS PLACED');
 }
 
-// ==================== BUILDING PREVIEW ====================
+// ==================== BUILDING PREVIEW (free-form) ====================
 let previewGhost = null;
 let previewValid = false;
+let previewRadiusRing = null;
+let previewLastType = null;
 
-/** Remove preview ghost from scene (called from game.js on restart) */
+/** Build a fresh preview ghost group for the given structure type */
+function buildPreviewGhost(type) {
+  const cfg = getStructConfig(type);
+  if (!cfg) return null;
+  const group = new THREE.Group();
+  const isTower = cfg.builtOn === 'sea';
+  const r = cfg.radius || 0.8;
+
+  // Footprint shape — cylinder for towers, box for buildings
+  let footprint;
+  if (isTower) {
+    footprint = new THREE.Mesh(
+      new THREE.CylinderGeometry(r * 0.8, r * 0.8, 0.05, 16),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45, depthWrite: false })
+    );
+    footprint.position.y = 0.025;
+  } else {
+    footprint = new THREE.Mesh(
+      new THREE.BoxGeometry(r * 1.2, 0.05, r * 1.2),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45, depthWrite: false })
+    );
+    footprint.position.y = 0.025;
+  }
+  group.add(footprint);
+
+  // Collision radius ring — very transparent white
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(r - 0.04, r + 0.04, 32),
+    new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.15,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.04;
+  group.add(ring);
+  previewRadiusRing = ring;
+
+  group.visible = false;
+  scene.add(group);
+  return group;
+}
+
+/** Remove preview ghost and ring from scene (called from game.js on restart) */
 export function clearPreviewGhost() {
-  if (previewGhost) { scene.remove(previewGhost); previewGhost = null; }
+  if (previewGhost) {
+    scene.remove(previewGhost);
+    previewGhost = null;
+  }
+  previewRadiusRing = null;
+  previewLastType = null;
+  previewValid = false;
 }
 
 function updatePreview(event) {
   if (!state.selectedType || state.phase !== 'playing') {
-    if (previewGhost) {
-      scene.remove(previewGhost);
-      previewGhost = null;
-    }
+    if (previewGhost) { previewGhost.visible = false; }
     return;
   }
 
+  // Rebuild ghost if type changed
+  if (previewLastType !== state.selectedType) {
+    if (previewGhost) { scene.remove(previewGhost); previewGhost = null; }
+    previewGhost = buildPreviewGhost(state.selectedType);
+    previewLastType = state.selectedType;
+  }
+
+  if (!previewGhost) return;
+
   const world = getMouseWorld(event);
+  const cfg = getStructConfig(state.selectedType);
+  if (!cfg) { previewGhost.visible = false; return; }
 
-  if (!previewGhost) {
-    const geom = new THREE.PlaneGeometry(CONFIG.cellSize * 0.95, CONFIG.cellSize * 0.95);
-    const mat = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.3,
-      side: THREE.DoubleSide
-    });
-    previewGhost = new THREE.Mesh(geom, mat);
-    previewGhost.rotation.x = -Math.PI / 2;
-    scene.add(previewGhost);
+  // Position at world coords (free-form, no grid snap)
+  const yPos = cfg.builtOn === 'land' ? CONFIG.islandHeight : CONFIG.groundY;
+  previewGhost.position.set(world.x, yPos + 0.05, world.z);
+  previewGhost.visible = true;
+
+  const valid = isPlacementValid(world.x, world.z, state.selectedType);
+
+  // Tint footprint green/red
+  const tintColor = valid ? 0x69f0ae : 0xff1744;
+  previewGhost.children.forEach(child => {
+    if (child.isMesh && child.material) {
+      child.material.color.setHex(tintColor);
+      child.material.opacity = valid ? 0.4 : 0.2;
+    }
+  });
+
+  // Collision ring — more visible on valid placements
+  if (previewRadiusRing) {
+    previewRadiusRing.material.opacity = valid ? 0.18 : 0.08;
   }
 
-  const cell = getGridCell(world.x, world.z);
-  if (cell) {
-    previewGhost.position.set(cell.wx, CONFIG.groundY + 0.01, cell.wz);
-    const cfg = getStructConfig(state.selectedType);
-    const isLandStruct = cfg && cfg.builtOn === 'land';
-    const valid = !cell.occupied &&
-      isOnMap(cell.wx, cell.wz) &&
-      (isLandStruct ? cell.isLand : !cell.isLand) &&
-      state.hsi >= (cfg ? cfg.cost : Infinity) &&
-      meetsRequirements(state.selectedType);
-
-    previewGhost.material.color.setHex(valid ? 0x69f0ae : 0xff1744);
-    previewGhost.material.opacity = valid ? 0.35 : 0.2;
-    previewValid = valid;
-  } else if (previewGhost) {
-    previewGhost.position.set(world.x, CONFIG.groundY + 0.01, world.z);
-    previewGhost.material.color.setHex(0xff1744);
-    previewGhost.material.opacity = 0.2;
-    previewValid = false;
-  }
+  previewValid = valid;
 }
 
 function handleMapClick(event) {
@@ -266,7 +317,7 @@ export function selectStructure(type) {
   if (!type) {
     state.selectedType = null;
     document.getElementById('cancelBtn').classList.add('hidden');
-    if (previewGhost) { scene.remove(previewGhost); previewGhost = null; }
+    clearPreviewGhost();
     setStatus('Selection cleared.', '#8ff4ff');
     return;
   }
