@@ -37,8 +37,8 @@ export function setupScenery() {
     const parts = [];
     const allocs = [];
 
-    const totalH = 0.8 + Math.random() * 1.2;
-    const w = 0.08 + Math.random() * 0.08;
+    const totalH = 0.4 + Math.random() * 0.8;
+    const w = 0.15 + Math.random() * 0.1;
     const bodyColor = bodyColors[Math.floor(Math.random() * bodyColors.length)];
     const glassColor = glassColors[Math.floor(Math.random() * glassColors.length)];
     const crownColor = crownColors[Math.floor(Math.random() * crownColors.length)];
@@ -113,8 +113,8 @@ export function setupScenery() {
   function makeMidrise(wx, wz) {
     const parts = [];
     const allocs = [];
-    const totalH = 0.6 + Math.random() * 0.8;
-    const w = 0.14 + Math.random() * 0.1;
+    const totalH = 0.3 + Math.random() * 0.5;
+    const w = 0.2 + Math.random() * 0.1;
     const color = bodyColors[Math.floor(Math.random() * bodyColors.length)];
 
     const bodyMat = new THREE.MeshBasicMaterial({ color });

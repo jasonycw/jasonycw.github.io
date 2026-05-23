@@ -88,6 +88,10 @@ export function createTowerMesh(type) {
     }
   }
 
+  group.renderOrder = 1;
+  group.traverse(child => {
+    if (child.isMesh) child.renderOrder = 1;
+  });
   group.castShadow = true;
   return group;
 }
@@ -283,23 +287,39 @@ export function createBuildingMesh(type) {
     );
     dishPole.position.y = 0.6;
     group.add(dishPole);
-    // Radio dish (cone pointing upward — open end faces sky)
-    // Create the dish group so it can rotate independently for scanning
+    // Radio dish — wider frustum shape (wide top, narrow bottom) like a satellite dish
+    // Outer group rotates around Y for scanning; inner tilt group angles the dish
     const dishGroup = new THREE.Group();
     dishGroup.position.y = 0.7;
+    // Tilt group holds the dish at an angle so it looks like it's searching the sky
+    const tiltGroup = new THREE.Group();
+    tiltGroup.rotation.x = 0.6; // tilt angle (radians) — dish points diagonally upward
+    dishGroup.add(tiltGroup);
+    // Use CylinderGeometry with different radii for a frustum dish shape
     const dishMesh = new THREE.Mesh(
-      new THREE.ConeGeometry(0.12, 0.06, 12, 1, true),
+      new THREE.CylinderGeometry(0.25, 0.05, 0.08, 16, 1, true),
       new THREE.MeshStandardMaterial({ color: 0xb0bec5, roughness: 0.4, metalness: 0.8, side: THREE.DoubleSide })
     );
-    dishMesh.rotation.x = Math.PI; // flip so open end faces up
-    dishGroup.add(dishMesh);
+    dishMesh.rotation.x = Math.PI; // flip so wide end faces up like a bowl
+    tiltGroup.add(dishMesh);
     // Antenna spike in the center of the dish
     const dishAntenna = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.008, 0.008, 0.08, 4),
+      new THREE.CylinderGeometry(0.008, 0.008, 0.1, 4),
       new THREE.MeshStandardMaterial({ color: 0xcfd8dc, roughness: 0.3, metalness: 0.9 })
     );
-    dishAntenna.position.y = 0.04;
-    dishGroup.add(dishAntenna);
+    dishAntenna.position.y = 0.05;
+    tiltGroup.add(dishAntenna);
+    // Cross-bars across the dish opening for detail
+    const barMat = new THREE.MeshBasicMaterial({ color: 0x90a4ae });
+    for (let i = 0; i < 3; i++) {
+      const bar = new THREE.Mesh(
+        new THREE.BoxGeometry(0.5, 0.005, 0.005),
+        barMat
+      );
+      bar.rotation.y = (i / 3) * Math.PI;
+      bar.position.y = 0.0;
+      tiltGroup.add(bar);
+    }
     group.add(dishGroup);
     // Store dish group reference for rotation animation in updateBuildings()
     group.userData.dish = dishGroup;
@@ -363,6 +383,11 @@ export function createBuildingMesh(type) {
     group.add(antenna);
   }
 
+  // Render buildings after decorative scenery for correct overlap
+  group.renderOrder = 1;
+  group.traverse(child => {
+    if (child.isMesh) child.renderOrder = 1;
+  });
   group.castShadow = true;
   return group;
 }
