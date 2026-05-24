@@ -88,12 +88,12 @@ export function initCameraControls(onCameraChangeCallback) {
     const dx = e.clientX - prevX;
     const dy = e.clientY - prevY;
     const targetScreenY = getTargetScreenY();
-    const verticalSign = prevY < targetScreenY ? 1 : -1;
+    const dragSideSign = prevY < targetScreenY ? 1 : -1;
     prevX = e.clientX;
     prevY = e.clientY;
 
-    theta -= dx * SENSITIVITY;
-    phi   += dy * verticalSign * SENSITIVITY;
+    theta -= dx * dragSideSign * SENSITIVITY;
+    phi   += dy * dragSideSign * SENSITIVITY;
 
     updateCamera();
   });
