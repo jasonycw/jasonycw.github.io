@@ -269,11 +269,13 @@ export function setupScenery() {
   // Trees — randomly placed on land across the full map, not grid-bound
   const treeCount = 22 + Math.floor(Math.random() * 14);
   const mapHalf = MAP_PLANE_SIZE / 2 - 1;
-  for (let attempt = 0; attempt < treeCount * 4 && scenery.filter(s => s.type === 'tree' && s.alive).length < treeCount; attempt++) {
+  let placedTrees = 0;
+  for (let attempt = 0; attempt < treeCount * 4 && placedTrees < treeCount; attempt++) {
     const wx = MAP_OFFSET_X + (Math.random() - 0.5) * MAP_PLANE_SIZE * 0.9;
     const wz = MAP_OFFSET_Z + (Math.random() - 0.5) * MAP_PLANE_SIZE * 0.9;
     if (isValidTreeSpot(wx, wz)) {
       spawnTree(wx, wz, false);
+      placedTrees++;
     }
   }
 }
