@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { scene, camera, renderer } from '../core/three-setup.js';
 import { CONFIG } from '../core/config.js';
-import { isStructureUnlocked, state } from '../core/state.js';
-import { buildings } from './towers.js';
+import { getStructConfig, isStructureUnlocked, state } from '../core/state.js';
+import { buildings, towers } from './towers.js';
 import { effects, spawnBurst, spawnEffect } from './effects.js';
 import { gridCells } from '../world/map.js';
 
@@ -17,6 +17,14 @@ export function syncTechAfterBuildingChange() {
   state.hasUniversity = state.universityCount > 0;
   state.hasResearchCenter = state.researchCenterCount > 0;
   state.hasCheungKong = buildings.some(b => b.type === 'CheungKong');
+
+  const repelConfig = getStructConfig('RepelTower');
+  if (repelConfig) {
+    const repelRange = repelConfig.range + (state.hasCheungKong ? 1.5 : 0);
+    for (const tower of towers) {
+      if (tower.type === 'RepelTower') tower.range = repelRange;
+    }
+  }
 
   const gatedTypes = ['FreezeTower', 'ResearchCenter', 'RepelTower', 'NuclearPlant', 'CheungKong'];
   for (const type of gatedTypes) {
