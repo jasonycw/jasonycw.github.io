@@ -209,6 +209,7 @@
 
     /**
      * Fit text within card boundaries by adjusting font size
+     * Uses binary search with reduced iterations for performance
      * 1. Title GROWS to fill card width completely (per card)
      * 2. Subtitle SHRINKS to fit remaining height (no minimum)
      */
@@ -222,17 +223,16 @@
       const cardWidth = cardElement.clientWidth;
       
       // Step 1: Binary search for maximum title font size
+      // Reduced to 25 iterations (precision ~0.5px for 1-200 range)
       let minFit = 1;
       let maxFit = 200;
       let bestFit = 1;
       
-      for (let iter = 0; iter < 50; iter++) {
+      for (let iter = 0; iter < 25; iter++) {
         const testSize = (minFit + maxFit) / 2;
         title.style.fontSize = testSize + 'px';
         
-        // Force reflow
-        void title.offsetHeight;
-        
+        // Single measurement pass (browser will batch layout)
         const titleHeight = title.offsetHeight;
         const titleClientWidth = title.clientWidth;
         const titleScrollWidth = title.scrollWidth;
@@ -240,7 +240,7 @@
         // Text fits if:
         // 1. All text fits within container width (scrollWidth <= clientWidth)
         // 2. Height doesn't exceed 50% of card
-        const textFitsWidth = titleScrollWidth <= titleClientWidth + 1; // small tolerance
+        const textFitsWidth = titleScrollWidth <= titleClientWidth + 1;
         const textFitsHeight = titleHeight <= cardHeight * 0.5;
         
         if (textFitsWidth && textFitsHeight) {
@@ -253,25 +253,24 @@
         }
       }
       
-      // Apply best fitting title size
+      // Apply best fitting title size (single browser layout)
       title.style.fontSize = bestFit + 'px';
-      void title.offsetHeight;
       
       // Step 2: Calculate remaining space for subtitle
       const titleHeight = title.offsetHeight;
       const remainingHeight = cardHeight - titleHeight;
       
       // Step 3: Binary search for subtitle size
+      // Reduced to 25 iterations for performance
       let subtitleMinFit = 1;
       let subtitleMaxFit = remainingHeight * 3;
       let subtitleBestFit = 1;
       
-      for (let iter = 0; iter < 50; iter++) {
+      for (let iter = 0; iter < 25; iter++) {
         const testSize = (subtitleMinFit + subtitleMaxFit) / 2;
         subtitle.style.fontSize = testSize + 'px';
         
-        void subtitle.offsetHeight;
-        
+        // Single measurement pass
         const subtitleHeight = subtitle.offsetHeight;
         const subtitleClientWidth = subtitle.clientWidth;
         const subtitleScrollWidth = subtitle.scrollWidth;
@@ -290,6 +289,7 @@
         }
       }
       
+      // Apply final subtitle size
       subtitle.style.fontSize = subtitleBestFit + 'px';
     }
 
