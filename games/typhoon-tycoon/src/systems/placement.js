@@ -137,7 +137,7 @@ export function placeStructure(wx, wz, type) {
     target: null,
     constructing: true,
     constructStartTime: state.gameTime,
-    ...(isTower ? { range: cfg.range } : {})
+    ...(isTower ? { range: cfg.range + (type === 'RepelTower' && state.hasCheungKong ? 1.5 : 0) } : {})
   };
 
   if (isTower) {
