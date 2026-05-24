@@ -30,7 +30,7 @@ export function updateYears(dt) {
   }
 
   // Update year countdown display (remaining time until next year)
-  const remainEl = document.getElementById('yearCountdown');
+  const remainEl = document.getElementById('yearCountdownValue');
   const labelEl = document.getElementById('countdownLabel');
   const remaining = Math.max(0, state.yearTimer);
   if (state.year === 0) {
@@ -40,10 +40,7 @@ export function updateYears(dt) {
   } else {
     labelEl.textContent = 'Next Year';
   }
-  // Preserve the <span class="sub-unit"> inside yearCountdown
-  const unitSpan = remainEl.querySelector('.sub-unit');
   remainEl.textContent = remaining.toFixed(1);
-  if (unitSpan) remainEl.appendChild(unitSpan);
 
   // Don't spawn enemies before first year starts
   if (state.year === 0) return;
