@@ -3,7 +3,7 @@ import { scene } from '../core/three-setup.js';
 import { CONFIG } from '../core/config.js';
 import { state, getStructConfig } from '../core/state.js';
 import { enemies, damageEnemy } from './enemies.js';
-import { effects, spawnBurst, spawnEffect, spawnLaserBeam, spawnLaserMuzzle } from './effects.js';
+import { effects, spawnBurst, spawnEffect, spawnLaserBeam } from './effects.js';
 import { playLaserSound } from './audio.js';
 import { setStatus } from './ui.js';
 import { playPowerDownSound, playPowerUpSound } from './audio.js';
@@ -12,8 +12,6 @@ export const towers = [];
 export const buildings = [];
 window.__towers = towers;
 window.__buildings = buildings;
-// Shared unit sphere for beam glow spheres — scales per instance to avoid per-frame geometry allocation
-const sharedBeamSphereGeom = new THREE.SphereGeometry(1, 6, 6);
 // ==================== TOWER MESHES ====================
 export function createTowerMesh(type) {
   const group = new THREE.Group();
@@ -135,18 +133,62 @@ export function createBuildingMesh(type) {
     // Depth-sorting center offset (geometric center of all parts in local space)
     group.userData.centerOffset = new THREE.Vector3(0, 0.375, 0);
   } else if (type === 'NuclearPlant') {
-    // Circular tube — fully open at top, smaller hole, no rim covers
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x607d8b, roughness: 0.7, metalness: 0.3 });
-    // Tapered cylinder wall open at both ends (hole goes through)
-    const body = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.25, 0.6, 0.7, 16, 1, true),
-      bodyMat
+    // Thin-walled cooling tower: wide base, slightly smaller top, large open center.
+    const tubeHeight = 0.78;
+    const segments = 40;
+    const outerBottomRadius = 0.62;
+    const outerTopRadius = 0.48;
+    const wallThickness = 0.055;
+    const innerBottomRadius = outerBottomRadius - wallThickness;
+    const innerTopRadius = outerTopRadius - wallThickness;
+    const wallMat = new THREE.MeshStandardMaterial({
+      color: 0x607d8b,
+      roughness: 0.7,
+      metalness: 0.3,
+      side: THREE.DoubleSide
+    });
+    const innerWallMat = new THREE.MeshStandardMaterial({
+      color: 0x263238,
+      roughness: 0.85,
+      metalness: 0.15,
+      side: THREE.DoubleSide
+    });
+    const capMat = new THREE.MeshStandardMaterial({ color: 0x78909c, roughness: 0.75, metalness: 0.25, side: THREE.DoubleSide });
+
+    const coolingCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(outerBottomRadius, 0, 0),
+      new THREE.Vector3(0.54, tubeHeight * 0.35, 0),
+      new THREE.Vector3(0.50, tubeHeight * 0.7, 0),
+      new THREE.Vector3(outerTopRadius, tubeHeight, 0)
+    ]);
+    const outerPoints = coolingCurve.getPoints(12).map(p => new THREE.Vector2(p.x, p.y));
+    const innerPoints = outerPoints.map(p => new THREE.Vector2(p.x - wallThickness, p.y));
+
+    const outerWall = new THREE.Mesh(
+      new THREE.LatheGeometry(outerPoints, segments),
+      wallMat
     );
-    body.position.y = 0.35;
-    group.add(body);
+    group.add(outerWall);
+
+    const innerWall = new THREE.Mesh(
+      new THREE.LatheGeometry(innerPoints, segments),
+      innerWallMat
+    );
+    group.add(innerWall);
+
+    const topRing = new THREE.Mesh(new THREE.RingGeometry(innerTopRadius, outerTopRadius, segments), capMat);
+    topRing.rotation.x = -Math.PI / 2;
+    topRing.position.y = tubeHeight + 0.002;
+    group.add(topRing);
+
+    const bottomRing = new THREE.Mesh(new THREE.RingGeometry(innerBottomRadius, outerBottomRadius, segments), capMat.clone());
+    bottomRing.rotation.x = -Math.PI / 2;
+    bottomRing.position.y = 0.002;
+    group.add(bottomRing);
+
     // Concrete base ring
     const baseRing = new THREE.Mesh(
-      new THREE.TorusGeometry(0.55, 0.04, 8, 16),
+      new THREE.TorusGeometry(outerBottomRadius + 0.02, 0.035, 8, 24),
       new THREE.MeshStandardMaterial({ color: 0x546e7a, roughness: 0.8 })
     );
     baseRing.position.y = 0.05;
@@ -154,21 +196,24 @@ export function createBuildingMesh(type) {
     group.add(baseRing);
     // Glow ring around base
     const glowRing = new THREE.Mesh(
-      new THREE.TorusGeometry(0.48, 0.03, 8, 16),
+      new THREE.TorusGeometry(innerBottomRadius - 0.02, 0.022, 8, 24),
       new THREE.MeshBasicMaterial({ color: 0x00e676, transparent: true, opacity: 0.5 })
     );
-    glowRing.position.y = 0.02;
+    glowRing.position.y = 0.035;
     glowRing.rotation.x = Math.PI / 2;
     group.add(glowRing);
     // Smoke from the narrow opening at top
     group.userData.smokePositions = [
-      new THREE.Vector3(0, 0.72, 0),
-      new THREE.Vector3(0.08, 0.72, 0.06),
-      new THREE.Vector3(-0.06, 0.72, 0.08),
-      new THREE.Vector3(0.03, 0.72, -0.08)
+      new THREE.Vector3(0, tubeHeight + 0.03, 0),
+      new THREE.Vector3(0.14, tubeHeight + 0.03, 0.08),
+      new THREE.Vector3(-0.12, tubeHeight + 0.03, 0.13),
+      new THREE.Vector3(0.12, tubeHeight + 0.03, -0.13),
+      new THREE.Vector3(-0.16, tubeHeight + 0.03, -0.06),
+      new THREE.Vector3(0.04, tubeHeight + 0.03, 0.18)
     ];
     group.userData.hasSmoke = true;
-    group.userData.centerOffset = new THREE.Vector3(0, 0.35, 0);
+    group.userData.smokeChance = 0.8;
+    group.userData.centerOffset = new THREE.Vector3(0, tubeHeight / 2, 0);
   } else if (type === 'University') {
     // Brownish main body
     const bodyMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.8 });
@@ -297,29 +342,34 @@ export function createBuildingMesh(type) {
     const tiltGroup = new THREE.Group();
     tiltGroup.rotation.x = 0.6; // tilt angle (radians) — dish points diagonally upward
     dishGroup.add(tiltGroup);
-    // Use CylinderGeometry with different radii for a frustum dish shape
+    // Concave parabolic radio dish — open bowl shape like a satellite receiver.
+    const dishProfile = [
+      new THREE.Vector2(0.04, -0.05),
+      new THREE.Vector2(0.12, -0.035),
+      new THREE.Vector2(0.22, 0.015),
+      new THREE.Vector2(0.32, 0.085)
+    ];
     const dishMesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.25, 0.05, 0.08, 16, 1, true),
+      new THREE.LatheGeometry(dishProfile, 24),
       new THREE.MeshStandardMaterial({ color: 0xb0bec5, roughness: 0.4, metalness: 0.8, side: THREE.DoubleSide })
     );
-    dishMesh.rotation.x = Math.PI; // flip so wide end faces up like a bowl
     tiltGroup.add(dishMesh);
     // Antenna spike in the center of the dish
     const dishAntenna = new THREE.Mesh(
       new THREE.CylinderGeometry(0.008, 0.008, 0.1, 4),
       new THREE.MeshStandardMaterial({ color: 0xcfd8dc, roughness: 0.3, metalness: 0.9 })
     );
-    dishAntenna.position.y = 0.05;
+    dishAntenna.position.y = 0.08;
     tiltGroup.add(dishAntenna);
     // Cross-bars across the dish opening for detail
     const barMat = new THREE.MeshBasicMaterial({ color: 0x90a4ae });
     for (let i = 0; i < 3; i++) {
       const bar = new THREE.Mesh(
-        new THREE.BoxGeometry(0.5, 0.005, 0.005),
+        new THREE.BoxGeometry(0.54, 0.005, 0.005),
         barMat
       );
       bar.rotation.y = (i / 3) * Math.PI;
-      bar.position.y = 0.0;
+      bar.position.y = 0.07;
       tiltGroup.add(bar);
     }
     group.add(dishGroup);
@@ -411,7 +461,6 @@ function fireProjectile(tower) {
     spawnLaserBeam(tower.wx, 0.5, tower.wz, target.x, 1.0, target.z, 0xffeb3b);
   }
 
-  spawnLaserMuzzle(tower, target);
   playLaserSound();
 
   const cfg = getStructConfig('LaserTower');
@@ -473,7 +522,7 @@ export function updateTowers(dt) {
       if (nearest) {
         nearest.isSlowed = 2.0;
         nearest.slowFactor = 0.5;
-        updateTowerBeam(t, nearest, 0x4fc3f7);
+        updateFreezeBeam(t, nearest, dt);
       } else {
         removeTowerBeam(t);
       }
@@ -490,7 +539,7 @@ export function updateTowers(dt) {
           nearest.repelX += (dx / dist) * 8 * dt;
           nearest.repelZ += (dz / dist) * 8 * dt;
         }
-        updateTowerBeam(t, nearest, 0xff6d00);
+        updateRepelPulse(t, nearest, dt);
       } else {
         removeTowerBeam(t);
       }
@@ -500,71 +549,139 @@ export function updateTowers(dt) {
     // LaserTower
     if (nearest && t.cooldown <= 0) {
       t.cooldown = getStructConfig(t.type).attackInterval;
-      console.log(`TOWER_FIRE: ${t.type} at (${t.wx},${t.wz}) → enemy dist=${Math.sqrt((nearest.x-t.wx)**2+(nearest.z-t.wz)**2).toFixed(1)} hp=${nearest.hp.toFixed(0)}`);
       fireProjectile(t);
     }
   }
 }
 
-// ==================== TOWER BEAMS ====================
-function updateTowerBeam(tower, target, color) {
+// ==================== TOWER ATTACK VISUALS ====================
+function updateFreezeBeam(tower, target, dt) {
   const wx = tower.wx, wz = tower.wz;
   const tx = target.x, tz = target.z;
   const start = new THREE.Vector3(wx, 0.5, wz);
   const end = new THREE.Vector3(tx, 1.0, tz);
-  const dir = end.clone().sub(start);
-  const len = dir.length();
-  if (len < 0.1) return;
+  if (end.distanceTo(start) < 0.1) return;
 
   if (tower._beamGroup) {
-    // Update existing beam — reposition vertices instead of recreating
-    const line = tower._beamGroup.children[0];
-    if (line && line.isLine) {
+    for (const line of tower._beamGroup.children) {
+      if (!line.isLine) continue;
       const pos = line.geometry.attributes.position;
       pos.setXYZ(0, start.x, start.y, start.z);
       pos.setXYZ(1, end.x, end.y, end.z);
       pos.needsUpdate = true;
     }
-    // Reposition glow spheres along the updated beam
-    for (let i = 0; i < 5; i++) {
-      const child = tower._beamGroup.children[i + 1];
-      if (!child) break;
-      const t = (i + 1) / 6;
-      const pos = start.clone().add(dir.clone().multiplyScalar(t));
-      child.position.copy(pos);
-      // Pulse opacity for visual interest
-      child.material.opacity = 0.6 + Math.sin(state.gameTime * 8 + i) * 0.2;
+    for (const child of tower._beamGroup.children) {
+      if (child.userData?.freezeTube) updateBeamTube(child, start, end);
     }
+    tower._freezeTrailTimer = (tower._freezeTrailTimer || 0) - dt;
+    const changed = !tower._freezeLastEnd || tower._freezeLastEnd.distanceTo(end) > 0.08;
+    if (tower._freezeTrailTimer <= 0) {
+      spawnFreezeAfterimage(changed ? (tower._freezeLastStart || start) : start, changed ? (tower._freezeLastEnd || end) : end);
+      tower._freezeTrailTimer = 0.08;
+    }
+    tower._freezeLastStart = start.clone();
+    tower._freezeLastEnd = end.clone();
     return;
   }
 
-  // First frame: create beam group once
   const group = new THREE.Group();
   scene.add(group);
 
-  const lineGeom = new THREE.BufferGeometry().setFromPoints([start, end]);
-  const lineMat = new THREE.LineBasicMaterial({
-    color, transparent: true, opacity: 0.85,
-    blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false
-  });
-  group.add(new THREE.Line(lineGeom, lineMat));
-  tower._beamLineMat = lineMat;
+  group.add(makeBeamLine(start, end, 0xc8ffff, 1.0, 3));
+  group.add(makeBeamLine(start, end, 0x00e5ff, 0.62, 7));
+  group.add(makeBeamTube(start, end, 0.055, 0x00e5ff, 0.32));
 
-  for (let i = 0; i < 5; i++) {
-    const t = (i + 1) / 6;
-    const pos = start.clone().add(dir.clone().multiplyScalar(t));
-    const r = 0.04 + t * 0.05;
-    const mat = new THREE.MeshBasicMaterial({
-      color, transparent: true, opacity: 0.6 + Math.sin(state.gameTime * 8 + i) * 0.2,
-      blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false
-    });
-    const mesh = new THREE.Mesh(sharedBeamSphereGeom, mat);
-    mesh.scale.setScalar(r);
-    mesh.position.copy(pos);
-    group.add(mesh);
-  }
+  tower._freezeLastStart = start.clone();
+  tower._freezeLastEnd = end.clone();
+  tower._freezeTrailTimer = 0.08;
 
   tower._beamGroup = group;
+}
+
+function makeBeamLine(start, end, color, opacity, lineWidth = 1) {
+  const geom = new THREE.BufferGeometry().setFromPoints([start, end]);
+  const mat = new THREE.LineBasicMaterial({
+    color,
+    transparent: true,
+    opacity,
+    linewidth: lineWidth,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: false
+  });
+  return new THREE.Line(geom, mat);
+}
+
+function makeBeamTube(start, end, radius, color, opacity) {
+  const geom = new THREE.CylinderGeometry(radius, radius, 1, 10, 1, true);
+  const mat = new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: false
+  });
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.userData.freezeTube = true;
+  updateBeamTube(mesh, start, end);
+  return mesh;
+}
+
+function updateBeamTube(mesh, start, end) {
+  const dir = end.clone().sub(start);
+  const len = dir.length();
+  if (len < 0.1) return;
+  mesh.position.copy(start).add(dir.clone().multiplyScalar(0.5));
+  mesh.scale.set(1, len, 1);
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+}
+
+function spawnFreezeAfterimage(start, end) {
+  const line = makeBeamLine(start, end, 0x8ff8ff, 0.42, 6);
+  scene.add(line);
+  effects.push({ mesh: line, mat: line.material, life: 0.75, maxLife: 0.75, geom: line.geometry, _laserBeam: true, _baseOpacity: 0.42 });
+
+  const tube = makeBeamTube(start, end, 0.04, 0x00e5ff, 0.24);
+  scene.add(tube);
+  effects.push({ mesh: tube, mat: tube.material, life: 0.75, maxLife: 0.75, geom: tube.geometry, _laserBeam: true, _baseOpacity: 0.24 });
+}
+
+function updateRepelPulse(tower, target, dt) {
+  tower._repelPulseTimer = (tower._repelPulseTimer || 0) - dt;
+  if (tower._repelPulseTimer > 0) return;
+  tower._repelPulseTimer = 0.13;
+
+  const start = new THREE.Vector3(tower.wx, 0.5, tower.wz);
+  const end = new THREE.Vector3(target.x, 1.0, target.z);
+  const dir = end.clone().sub(start);
+  const len = dir.length();
+  if (len < 0.1) return;
+  const dirNorm = dir.normalize();
+  const life = 0.42;
+  const geom = new THREE.TorusGeometry(0.16, 0.018, 8, 32);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0xff8a00,
+    transparent: true,
+    opacity: 0.82,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: false
+  });
+  const ring = new THREE.Mesh(geom, mat);
+  ring.position.copy(start).add(dirNorm.clone().multiplyScalar(0.35));
+  ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dirNorm);
+  scene.add(ring);
+  const speed = len / life;
+  effects.push({
+    mesh: ring, mat, geom,
+    life, maxLife: life,
+    _repelRing: true,
+    _baseOpacity: 0.82,
+    _vx: dirNorm.x * speed,
+    _vy: dirNorm.y * speed,
+    _vz: dirNorm.z * speed
+  });
 }
 
 export function removeTowerBeam(tower) {
@@ -573,6 +690,9 @@ export function removeTowerBeam(tower) {
     disposeTowerBeam(tower._beamGroup);
     tower._beamGroup = null;
   }
+  tower._freezeLastStart = null;
+  tower._freezeLastEnd = null;
+  tower._repelPulseTimer = 0;
 }
 
 function disposeTowerBeam(group) {
@@ -581,7 +701,7 @@ function disposeTowerBeam(group) {
       if (Array.isArray(child.material)) child.material.forEach(m => { m.dispose(); });
       else child.material.dispose();
     }
-    if (child.geometry && child.geometry !== sharedBeamSphereGeom) child.geometry.dispose();
+    if (child.geometry) child.geometry.dispose();
   });
 }
 
@@ -597,13 +717,18 @@ export function updatePower() {
       removeTowerBeam(t);
     }
     setStatus('POWER OUTAGE — Build more Power Plants!', '#ff5252');
+    clearSmokeParticles();
+    document.getElementById('powerOverlay').classList.remove('hidden');
     document.getElementById('powerOverlay').classList.add('active');
+    document.getElementById('powerTip').classList.remove('hidden');
     playPowerDownSound();
   } else if (!isOverload && state.powerOutage) {
     state.powerOutage = false;
     for (const t of towers) t.online = true;
     setStatus('Power restored!', '#69f0ae');
     document.getElementById('powerOverlay').classList.remove('active');
+    document.getElementById('powerOverlay').classList.add('hidden');
+    document.getElementById('powerTip').classList.add('hidden');
     playPowerUpSound();
   }
 
@@ -651,7 +776,7 @@ function spawnSmokeParticle(wx, wz, buildingY, localPos) {
 export function updateBuildings(dt) {
   // ResearchCenter dish rotation
   for (const b of buildings) {
-    if (b.mesh.userData.dish) {
+    if (!state.powerOutage && b.mesh.userData.dish) {
       b.mesh.userData.dish.rotation.y += dt * 0.6;
     }
   }
@@ -659,14 +784,16 @@ export function updateBuildings(dt) {
   // Spawn smoke from buildings (skip during construction animation)
   for (const b of buildings) {
     if (b.constructing) continue;
+    if (state.powerOutage) continue;
     if (!b.mesh.userData.hasSmoke || !b.mesh.userData.smokePositions) continue;
     if (!b._smokeTimer) b._smokeTimer = 0;
     b._smokeTimer += dt;
     if (b._smokeTimer > 0.12) {
       b._smokeTimer = 0;
       const buildingY = b.mesh.position.y;
+      const smokeChance = b.mesh.userData.smokeChance ?? 0.5;
       for (const sp of b.mesh.userData.smokePositions) {
-        if (Math.random() < 0.5) {
+        if (Math.random() < smokeChance) {
           spawnSmokeParticle(b.wx, b.wz, buildingY, sp);
         }
       }

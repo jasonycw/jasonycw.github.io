@@ -55,23 +55,23 @@ export function spawnLaserBeam(x1, y1, z1, x2, y2, z2, color) {
   });
   const line = new THREE.Line(lineGeom, lineMat);
   scene.add(line);
-  effects.push({ mesh: line, mat: lineMat, life: 0.2, maxLife: 0.2, geom: lineGeom, _laserBeam: true });
+  effects.push({ mesh: line, mat: lineMat, life: 0.2, maxLife: 0.2, geom: lineGeom, _laserBeam: true, _baseOpacity: 0.95 });
 
-  // Glow spheres: 5 small bright spheres scattered along the beam
-  for (let i = 0; i < 5; i++) {
-    const t = (i + 1) / 6;
-    const pos = start.clone().add(dir.clone().multiplyScalar(t));
-    const r = 0.04 + t * 0.06;
-    const geom = new THREE.SphereGeometry(r, 6, 6);
-    const mat = new THREE.MeshBasicMaterial({
-      color: cols, transparent: true, opacity: 1,
-      blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false
-    });
-    const mesh = new THREE.Mesh(geom, mat);
-    mesh.position.copy(pos);
-    scene.add(mesh);
-    effects.push({ mesh, mat, life: 0.2, maxLife: 0.2, geom, _laserBeam: true });
-  }
+  // Soft beam glow — no dots along the laser.
+  const glowGeom = new THREE.CylinderGeometry(0.045, 0.045, len, 10, 1, true);
+  const glowMat = new THREE.MeshBasicMaterial({
+    color: cols,
+    transparent: true,
+    opacity: 0.28,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: false
+  });
+  const glow = new THREE.Mesh(glowGeom, glowMat);
+  glow.position.copy(start).add(dir.clone().multiplyScalar(0.5));
+  glow.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+  scene.add(glow);
+  effects.push({ mesh: glow, mat: glowMat, life: 0.2, maxLife: 0.2, geom: glowGeom, _laserBeam: true, _baseOpacity: 0.28 });
 }
 
 /** Spawn muzzle flash at the computed barrel tip position */
@@ -100,7 +100,7 @@ export function updateEffects(dt) {
       continue;
     }
     const ratio = e.life / e.maxLife;
-    e.mat.opacity = ratio;
+    e.mat.opacity = (e._baseOpacity ?? 1) * ratio;
 
     if (e._tornado) {
       // Tree parts fly upward and outward with spin (tornado effect)
@@ -126,6 +126,12 @@ export function updateEffects(dt) {
       // Building debris tumbles as it flies
       if (e._tumbleX) e.mesh.rotation.x += e._tumbleX * dt;
       if (e._tumbleY) e.mesh.rotation.y += e._tumbleY * dt;
+    } else if (e._repelRing) {
+      e.mesh.position.x += e._vx * dt;
+      e.mesh.position.y += e._vy * dt;
+      e.mesh.position.z += e._vz * dt;
+      const grow = 0.55 + (1 - ratio) * 1.65;
+      e.mesh.scale.set(grow, grow, grow);
     } else if (!e._laserBeam) {
       e.mesh.scale.setScalar(1 + (1 - ratio) * 2);
     }

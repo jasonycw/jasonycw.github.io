@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { scene } from '../core/three-setup.js';
+import { scene, camera } from '../core/three-setup.js';
 import { CONFIG } from '../core/config.js';
 import { state } from '../core/state.js';
 import { effects, spawnBurst, spawnEffect } from './effects.js';
@@ -14,9 +14,9 @@ export const enemies = [];
 // ==================== ENEMY SHARED GEOMETRIES ====================
 const textureLoader = new THREE.TextureLoader();
 const typhoonSpriteTexture = textureLoader.load('assets/typhoon.png');
-const hpBarBgMat = new THREE.MeshBasicMaterial({ color: 0x444444 });
+const hpBarBgMat = new THREE.MeshBasicMaterial({ color: 0x222222, depthTest: false, depthWrite: false });
 const hpBarBgGeom = new THREE.BoxGeometry(0.8, 0.04, 0.06);
-const hpBarFillMat = new THREE.MeshBasicMaterial({ color: 0x66bb6a });
+const hpBarFillMat = new THREE.MeshBasicMaterial({ color: 0x66bb6a, depthTest: false, depthWrite: false });
 const hpBarFillGeom = new THREE.BoxGeometry(0.76, 0.04, 0.05);
 
 export function spawnEnemy() {
@@ -62,18 +62,6 @@ export function spawnEnemy() {
   midCloud.position.y = -0.06;
   typhoonGroup.add(midCloud);
 
-  // --- EYE (dark blue center gap — calm eye of the storm) ---
-  const eyeGeom = new THREE.CircleGeometry(0.21, 32);
-  const eyeMat = new THREE.MeshBasicMaterial({
-    color: 0x08192e, transparent: true, opacity: 0.72,
-    side: THREE.DoubleSide, depthWrite: false
-  });
-  allTyphoonMats.push(eyeMat);
-  const eye = new THREE.Mesh(eyeGeom, eyeMat);
-  eye.rotation.x = -Math.PI / 2;
-  eye.position.y = 0.01;
-  typhoonGroup.add(eye);
-
   // --- EYEWALL (bright dense ring of violent convection around eye) ---
   const eyewallMat = new THREE.MeshBasicMaterial({
     color: 0xe3e8f0, transparent: true, opacity: 0.48,
@@ -95,16 +83,6 @@ export function spawnEnemy() {
   innerWall.rotation.x = -Math.PI / 2;
   innerWall.position.y = 0.03;
   typhoonGroup.add(innerWall);
-
-  // --- CORE GLOW (blue storm energy at heart of cyclone) ---
-  const coreMat = new THREE.MeshBasicMaterial({
-    color: 0x4fc3f7, transparent: true, opacity: 0.4,
-    blending: THREE.AdditiveBlending, depthWrite: false
-  });
-  allTyphoonMats.push(coreMat);
-  const coreGlow = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 12), coreMat);
-  coreGlow.position.y = 0.04;
-  typhoonGroup.add(coreGlow);
 
   // --- SPIRAL RAINBANDS (4 asymmetric logarithmic-spiral arms) ---
   // Arms vary in length, tightness, and opacity — real typhoons are NOT symmetric
@@ -225,26 +203,29 @@ export function spawnEnemy() {
 
   scene.add(typhoonGroup);
 
-  // Health bar
+  // Health bar — billboarded to camera and always rendered above 3D models.
+  const hpBarGroup = new THREE.Group();
+  hpBarGroup.position.set(x, 1.6, z);
+  hpBarGroup.renderOrder = 10;
+
   const hpBg = new THREE.Mesh(hpBarBgGeom, hpBarBgMat);
-  hpBg.position.set(x, 1.6, z);
-  hpBg.renderOrder = 2;
-  scene.add(hpBg);
+  hpBg.renderOrder = 10;
+  hpBarGroup.add(hpBg);
 
   const hpFill = new THREE.Mesh(hpBarFillGeom, hpBarFillMat.clone());
-  hpFill.position.set(x, 1.6, z);
-  hpFill.renderOrder = 2;
-  scene.add(hpFill);
+  hpFill.position.z = 0.01;
+  hpFill.renderOrder = 11;
+  hpBarGroup.add(hpFill);
+  hpBarGroup.quaternion.copy(camera.quaternion);
+  scene.add(hpBarGroup);
 
   const enemy = {
     mesh: typhoonGroup,
-    coreMat,
-    eyeMat,
     eyewallMat,
     innerWallMat,
     armMats,
     allTyphoonMats,
-    hpBar: { bg: hpBg, fill: hpFill },
+    hpBar: { group: hpBarGroup, bg: hpBg, fill: hpFill },
     x, z,
     hp,
     maxHp: hp,
@@ -313,10 +294,8 @@ export function updateEnemies(dt) {
 
     // Color shift on slow — freeze effect tints blue
     if (slowed) {
-      e.coreMat.color.setHex(0x81d4fa);
       for (const am of e.armMats) am.color.setHex(0xb3e5fc);
     } else {
-      e.coreMat.color.setHex(0x4fc3f7);
       for (const am of e.armMats) am.color.setHex(0xfafafa);
     }
 
@@ -341,7 +320,6 @@ export function updateEnemies(dt) {
       const decayPerSec = (12 + (e.hp / e.maxHp) * 15) * hpScale;
       e.hp -= decayPerSec * dt;
       if (e.hp <= 0) {
-        console.log(`ENEMY_DISSIPATED`);
         spawnBurst(e.x, 0.5, e.z, 0x4fc3f7, 8);
         removeEnemy(i);
         continue;
@@ -355,11 +333,12 @@ export function updateEnemies(dt) {
       e.mesh.userData.hitRadius = newScale * 1.8;
     }
 
-    // HP bar position
-    e.hpBar.bg.position.set(e.x, 1.6, e.z);
-    e.hpBar.fill.position.set(e.x, 1.6, e.z);
+    // HP bar position — billboard to camera so it stays horizontal/readable on screen.
+    e.hpBar.group.position.set(e.x, 1.6, e.z);
+    e.hpBar.group.quaternion.copy(camera.quaternion);
     const hpRatio = Math.max(0, e.hp / e.maxHp);
     e.hpBar.fill.scale.x = Math.max(0.01, hpRatio);
+    e.hpBar.fill.position.x = -0.38 * (1 - hpRatio);
     const hpColor = hpRatio > 0.5 ? 0x66bb6a : (hpRatio > 0.25 ? 0xffa726 : 0xef5350);
     e.hpBar.fill.material.color.setHex(hpColor);
 
@@ -396,8 +375,6 @@ export function updateEnemies(dt) {
       }
     }
 
-    // Core glow pulses with storm intensity (brightness tied to HP ratio)
-    e.coreMat.opacity = (0.4 + Math.sin(state.gameTime * 5) * 0.08) * (0.3 + hpRatio * 0.7);
     // Eyewall brightens as storm weakens (less cloud = more visible dense core ring)
     e.eyewallMat.opacity = 0.48 * (0.3 + hpRatio * 0.7);
     e.innerWallMat.opacity = 0.35 * (0.3 + hpRatio * 0.7);
@@ -444,8 +421,7 @@ export function removeEnemy(index) {
     if (child.geometry) child.geometry.dispose();
   });
   if (e.hpBar) {
-    scene.remove(e.hpBar.bg);
-    scene.remove(e.hpBar.fill);
+    scene.remove(e.hpBar.group);
     // Each enemy clones the fill material — dispose the clone (bg is shared, not disposed)
     if (e.hpBar.fill.material) e.hpBar.fill.material.dispose();
   }
@@ -457,7 +433,6 @@ export function removeEnemy(index) {
 export function damageEnemy(enemy, damage) {
   enemy.hp -= damage;
   if (enemy.hp <= 0) {
-    console.log(`ENEMY_KILLED: hp was ${enemy.hp+damage}, took ${damage} dmg`);
     state.hsi += CONFIG.killRewardHSI;
     state.enemiesKilled++;
     spawnBurst(enemy.x, 0.5, enemy.z, 0xffab00, 12);
