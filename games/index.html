@@ -273,11 +273,19 @@
         void subtitle.offsetHeight;
         
         const subtitleHeight = subtitle.offsetHeight;
+        const subtitleClientWidth = subtitle.clientWidth;
+        const subtitleScrollWidth = subtitle.scrollWidth;
         
-        if (subtitleHeight <= remainingHeight) {
+        // Subtitle must fit both vertically AND horizontally
+        const subtitleFitsWidth = subtitleScrollWidth <= subtitleClientWidth + 1;
+        const subtitleFitsHeight = subtitleHeight <= remainingHeight;
+        
+        if (subtitleFitsWidth && subtitleFitsHeight) {
+          // Size works! Try larger
           subtitleBestFit = testSize;
           subtitleMinFit = testSize;
         } else {
+          // Too big, try smaller
           subtitleMaxFit = testSize;
         }
       }
