@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { camera, renderer } from '../core/three-setup.js';
 
 // ==================== CAMERA ORBIT CONTROLS ====================
