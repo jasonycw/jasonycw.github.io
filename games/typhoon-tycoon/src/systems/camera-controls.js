@@ -19,6 +19,7 @@ let radius = INITIAL_RADIUS;
 let isOrbiting = false;
 let prevX = 0;
 let prevY = 0;
+let dragSideSign = 1;
 let onCameraChange = null; // callback after camera position updates
 
 const SENSITIVITY = 0.005;
@@ -78,6 +79,7 @@ export function initCameraControls(onCameraChangeCallback) {
       isOrbiting = true;
       prevX = e.clientX;
       prevY = e.clientY;
+      dragSideSign = prevY < getTargetScreenY() ? 1 : -1;
       canvas.style.cursor = 'grabbing';
     }
   });
@@ -87,8 +89,6 @@ export function initCameraControls(onCameraChangeCallback) {
     if (!isOrbiting) return;
     const dx = e.clientX - prevX;
     const dy = e.clientY - prevY;
-    const targetScreenY = getTargetScreenY();
-    const dragSideSign = prevY < targetScreenY ? 1 : -1;
     prevX = e.clientX;
     prevY = e.clientY;
 
