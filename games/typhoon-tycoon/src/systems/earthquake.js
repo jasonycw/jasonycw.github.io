@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { scene, camera, renderer } from '../core/three-setup.js';
 import { CONFIG } from '../core/config.js';
-import { state } from '../core/state.js';
+import { isStructureUnlocked, state } from '../core/state.js';
 import { buildings } from './towers.js';
 import { effects, spawnBurst, spawnEffect } from './effects.js';
 import { gridCells } from '../world/map.js';
@@ -10,6 +10,34 @@ import { gridCells } from '../world/map.js';
 
 const EARTHQUAKE_START_YEAR = 5; // No quakes before year 5
 const MAX_ACTIVE_QUAKES = 4;
+
+export function syncTechAfterBuildingChange() {
+  state.universityCount = buildings.filter(b => b.type === 'University').length;
+  state.researchCenterCount = buildings.filter(b => b.type === 'ResearchCenter').length;
+  state.hasUniversity = state.universityCount > 0;
+  state.hasResearchCenter = state.researchCenterCount > 0;
+  state.hasCheungKong = buildings.some(b => b.type === 'CheungKong');
+
+  const gatedTypes = ['FreezeTower', 'ResearchCenter', 'RepelTower', 'NuclearPlant', 'CheungKong'];
+  for (const type of gatedTypes) {
+    const btn = document.querySelector(`.build-btn[data-type="${type}"]`);
+    if (!btn) continue;
+    btn.classList.toggle('disabled', !isStructureUnlocked(type));
+  }
+
+  if (state.selectedType && !isStructureUnlocked(state.selectedType)) {
+    state.selectedType = null;
+    document.querySelectorAll('.build-btn').forEach(btn => {
+      btn.classList.remove('selected');
+    });
+    document.getElementById('cancelBtn').classList.add('hidden');
+    const status = document.getElementById('statusMsg');
+    if (status) {
+      status.textContent = 'Selected structure is locked again — rebuild required tech first.';
+      status.style.color = '#ff5252';
+    }
+  }
+}
 
 /** Get land cells for earthquake targeting */
 function getLandCells() {
@@ -139,8 +167,13 @@ function destroyBuilding(building) {
   scene.remove(mesh);
   mesh.traverse(c => {
     if (c.material) {
-      if (Array.isArray(c.material)) c.material.forEach(m => m.dispose());
-      else c.material.dispose();
+      if (Array.isArray(c.material)) {
+        c.material.forEach(m => {
+          m.dispose();
+        });
+      } else {
+        c.material.dispose();
+      }
     }
     if (c.geometry) c.geometry.dispose();
   });
@@ -159,18 +192,7 @@ function destroyBuilding(building) {
     buildings.splice(idx, 1);
   }
 
-  // Update tech flags if destroyed
-  if (type === 'University') {
-    state.hasUniversity = false;
-    state.universityCount = Math.max(0, state.universityCount - 1);
-  }
-  if (type === 'ResearchCenter') {
-    state.hasResearchCenter = false;
-    state.researchCenterCount = Math.max(0, state.researchCenterCount - 1);
-  }
-  if (type === 'CheungKong') {
-    state.hasCheungKong = false;
-  }
+  syncTechAfterBuildingChange();
 }
 
 /** Trigger shockwave visual effect + screen shake */

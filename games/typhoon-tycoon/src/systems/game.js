@@ -8,7 +8,7 @@ import { scenery, sceneryGroup, setupScenery, updateSceneryDepthSort, updateTree
 import { gridCells, useHitareaClassification } from '../world/map.js';
 import { updateYears } from './waves.js';
 import { updateEarthquakes, resetEarthquakes } from './earthquake.js';
-import { setStatus, updateUI, gameOver } from './ui.js';
+import { setStatus, updateBuildButtonStates, updateUI, gameOver } from './ui.js';
 import { placeDefaultBuildings, updateStructureDepthSort, clearPreviewGhost } from './placement.js';
 import { startBGM } from './audio.js';
 import { initCameraControls } from './camera-controls.js';
@@ -50,6 +50,7 @@ function updateHSI(dt) {
   if (hsiEl.textContent !== roundedHsi.toString()) {
     hsiEl.textContent = roundedHsi;
   }
+  updateBuildButtonStates();
 }
 
 // ==================== CONSTRUCTION ANIMATION ====================
@@ -146,8 +147,8 @@ export function startGame() {
   // Clear entities
   for (const e of enemies) {
     if (e.hpBar) {
-      scene.remove(e.hpBar.bg);
-      scene.remove(e.hpBar.fill);
+      scene.remove(e.hpBar.group);
+      if (e.hpBar.fill?.material) e.hpBar.fill.material.dispose();
     }
     scene.remove(e.mesh);
     e.mesh.traverse(child => {
@@ -227,6 +228,8 @@ export function startGame() {
   document.getElementById('quakeCountdown').classList.add('hidden');
   document.getElementById('shockwave').classList.remove('active');
   document.getElementById('powerOverlay').classList.remove('active');
+  document.getElementById('powerOverlay').classList.add('hidden');
+  document.getElementById('powerTip').classList.add('hidden');
   resetEarthquakes();
   startBGM();
 

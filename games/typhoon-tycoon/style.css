@@ -264,13 +264,14 @@ body {
 
 /* Row wrapping grid + cancel button side by side */
 #toolbar-row {
+  position: relative;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   width: 100%;
-  max-width: 500px;
+  max-width: 560px;
   pointer-events: auto;
 }
 
@@ -325,6 +326,38 @@ body {
   color: #ccc;
 }
 
+.build-btn.waiting-hsi:not(.disabled) {
+  border-color: rgba(255, 193, 7, 0.85);
+  background: rgba(70, 48, 8, 0.86);
+  color: #ffe082;
+  box-shadow: inset 0 0 16px rgba(255, 193, 7, 0.12);
+}
+.build-btn.waiting-hsi:not(.disabled):hover {
+  border-color: #ffd54f;
+  background: rgba(90, 62, 10, 0.94);
+  color: #fff3c4;
+}
+.build-btn.waiting-hsi:not(.disabled)::after {
+  content: '...';
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  transform: translateX(-50%);
+  width: 0;
+  text-align: left;
+  color: #ffd54f;
+  font-weight: 900;
+  overflow: hidden;
+  animation: waitingDots 1.1s steps(4, end) infinite;
+}
+
+@keyframes waitingDots {
+  0%   { width: 0; }
+  25%  { width: 0.35em; }
+  50%  { width: 0.7em; }
+  75%, 100% { width: 1.1em; }
+}
+
 .btn-icon { font-size: 1.1rem; line-height: 1; }
 .btn-label { line-height: 1; }
 .btn-hotkey {
@@ -337,6 +370,10 @@ body {
 
 /* Cancel button — sits next to toolbar grid */
 .cancel-btn {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
   width: 100px;
   min-height: 52px;
   padding: 0.3rem 0.6rem;
@@ -564,38 +601,53 @@ body {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 8;
+  z-index: 6;
   background: rgba(0, 0, 0, 0);
   transition: background 0.5s ease;
 }
 #powerOverlay.active {
-  background: rgba(0, 0, 0, 0.94);
+  background:
+    radial-gradient(circle at 50% 45%, rgba(10, 18, 32, 0.32) 0%, rgba(0, 0, 0, 0.58) 58%, rgba(0, 0, 0, 0.74) 100%);
+  box-shadow: inset 0 0 180px 52px rgba(0, 0, 0, 0.78);
   animation: powerOutagePulse 1.8s ease-in-out infinite;
 }
 
-/* Power outage text in center of overlay */
-#powerOverlay::after {
-  content: '⚡ POWER OUTAGE ⚡';
-  position: absolute;
-  top: 50%;
+/* Power outage tip — top-center like status tips, above HUD, without blocking controls */
+#powerTip {
+  position: fixed;
+  top: 4.5rem;
   left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 1.8rem;
+  transform: translateX(-50%);
+  z-index: 16;
+  pointer-events: none;
+  background: rgba(40, 0, 0, 0.92);
+  color: #ffebee;
+  border: 1px solid rgba(255, 82, 82, 0.75);
+  box-shadow: 0 0 24px rgba(255, 23, 68, 0.35), inset 0 0 16px rgba(255, 23, 68, 0.12);
+  padding: 0.45rem 1.15rem;
+  border-radius: 20px;
+  font-size: 0.82rem;
   font-weight: 800;
-  color: #ff1744;
-  text-shadow: 0 0 20px rgba(255, 23, 68, 0.6), 0 0 60px rgba(255, 23, 68, 0.3);
-  opacity: 0;
-  transition: opacity 0.5s ease;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.08em;
   white-space: nowrap;
+  text-shadow: 0 0 12px rgba(255, 23, 68, 0.7);
+  animation: powerTipPulse 1.1s ease-in-out infinite alternate;
 }
-#powerOverlay.active::after {
-  opacity: 1;
+
+@keyframes powerTipPulse {
+  from { opacity: 0.82; }
+  to   { opacity: 1; }
 }
 
 @keyframes powerOutagePulse {
-  0%, 100% { background: rgba(0, 0, 0, 0.94); }
-  50%      { background: rgba(0, 0, 0, 0.84); }
+  0%, 100% {
+    filter: brightness(0.9);
+    box-shadow: inset 0 0 180px 52px rgba(0, 0, 0, 0.78);
+  }
+  50% {
+    filter: brightness(0.75);
+    box-shadow: inset 0 0 260px 90px rgba(0, 0, 0, 0.9);
+  }
 }
 
 @keyframes criticalTintPulse {

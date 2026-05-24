@@ -58,6 +58,6 @@ export function updateYears(dt) {
     }
   }
 
-  // Update enemy count display
+  // Update typhoon count display
   document.getElementById('enemyCount').textContent = enemies.length;
 }
