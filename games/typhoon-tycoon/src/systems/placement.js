@@ -58,6 +58,8 @@ export function isPlacementValid(wx, wz, type) {
   const isSea = isSeaAt(wx, wz);
   if (onLand && isSea) return false;
   if (!onLand && !isSea) return false;
+  const cell = getGridCell(wx, wz);
+  if (cell?.occupied) return false;
   if (checkPlacementOverlap(wx, wz, type)) return false;
   return true;
 }
@@ -126,6 +128,8 @@ export function placeStructure(wx, wz, type) {
   if (cfg.power > 0) state.powerQuota += cfg.power;
   else state.powerUsed += cfg.power;
 
+  const cell = getGridCell(wx, wz);
+
   const structure = {
     type,
     mesh,
@@ -135,10 +139,13 @@ export function placeStructure(wx, wz, type) {
     online: false, // will be set to true after construction completes
     cooldown: 0,
     target: null,
+    cell,
     constructing: true,
     constructStartTime: state.gameTime,
     ...(isTower ? { range: cfg.range + (type === 'RepelTower' && state.hasCheungKong ? 1.5 : 0) } : {})
   };
+
+  if (cell) cell.occupied = structure;
 
   if (isTower) {
     towers.push(structure);
