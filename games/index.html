@@ -223,12 +223,12 @@
       const cardWidth = cardElement.clientWidth;
       
       // Step 1: Binary search for maximum title font size
-      // Reduced to 25 iterations (precision ~0.5px for 1-200 range)
+      // 12 iterations provide enough precision for the 1-200px range.
       let minFit = 1;
       let maxFit = 200;
       let bestFit = 1;
       
-      for (let iter = 0; iter < 25; iter++) {
+      for (let iter = 0; iter < 12; iter++) {
         const testSize = (minFit + maxFit) / 2;
         title.style.fontSize = testSize + 'px';
         
