@@ -37,7 +37,7 @@
      min-height: 75px;
      padding: 0;
      transition: color 0.05s ease;
-     will-change: transform, left, top, color;
+     will-change: transform, color;
      -webkit-font-smoothing: antialiased;
      -moz-osx-font-smoothing: grayscale;
     }
@@ -328,10 +328,11 @@
 
     /**
      * Apply position and color styles to a card
+     * Uses CSS transform for positioning to avoid layout reflows
      */
     function applyCardStyle(state) {
-      state.element.style.left = state.x + 'px';
-      state.element.style.top = state.y + 'px';
+      // Use transform for better performance (avoids layout reflow)
+      state.element.style.transform = `translate(${state.x}px, ${state.y}px)`;
       state.element.style.color = state.isFlashing 
         ? RAINBOW_COLORS[state.rainbowIndex]
         : state.color;
@@ -468,8 +469,8 @@
         document.body.appendChild(cardElement);
       });
 
-      // Wait for cards to be fully rendered before initializing physics
-      setTimeout(() => {
+      // Use requestAnimationFrame for more reliable DOM measurements
+      requestAnimationFrame(() => {
         const cardElements = document.querySelectorAll('.game-card');
         cardElements.forEach((cardElement, index) => {
           // Fit text to card dimensions
@@ -484,7 +485,7 @@
 
         // Handle window resize
         window.addEventListener('resize', handleWindowResize);
-      }, 50);
+      });
     }
 
     /**
