@@ -50,8 +50,9 @@
       line-height: 1;
       width: 100%;
       flex-shrink: 0;
-      word-break: break-word;
-      overflow-wrap: break-word;
+      word-break: normal;
+      overflow-wrap: normal;
+      white-space: normal;
     }
 
     .game-card p {
@@ -59,8 +60,8 @@
       margin: 0;
       padding: 0;
       line-height: 1.1;
-      word-wrap: break-word;
-      overflow-wrap: break-word;
+      word-break: normal;
+      overflow-wrap: normal;
       width: 100%;
       flex-shrink: 1;
     }
@@ -217,11 +218,10 @@
       
       if (!title || !subtitle) return;
 
-      const cardHeight = cardElement.offsetHeight;
-      const cardWidth = cardElement.offsetWidth;
+      const cardHeight = cardElement.clientHeight;
+      const cardWidth = cardElement.clientWidth;
       
-      // Step 1: Find maximum title font size
-      // Binary search to find the largest font where text fits in card dimensions
+      // Step 1: Binary search for maximum title font size
       let minFit = 1;
       let maxFit = 200;
       let bestFit = 1;
@@ -230,34 +230,38 @@
         const testSize = (minFit + maxFit) / 2;
         title.style.fontSize = testSize + 'px';
         
-        // Force layout
-        title.offsetHeight;
+        // Force reflow
+        void title.offsetHeight;
         
-        // Check actual rendered dimensions
-        const titleBox = title.getBoundingClientRect();
-        const titleWidth = titleBox.width;
-        const titleHeight = titleBox.height;
+        const titleHeight = title.offsetHeight;
+        const titleClientWidth = title.clientWidth;
+        const titleScrollWidth = title.scrollWidth;
         
-        // Text fits if it's within card bounds
-        if (titleWidth <= cardWidth && titleHeight <= cardHeight * 0.5) {
-          // Size fits! Try larger
+        // Text fits if:
+        // 1. All text fits within container width (scrollWidth <= clientWidth)
+        // 2. Height doesn't exceed 50% of card
+        const textFitsWidth = titleScrollWidth <= titleClientWidth + 1; // small tolerance
+        const textFitsHeight = titleHeight <= cardHeight * 0.5;
+        
+        if (textFitsWidth && textFitsHeight) {
+          // Size works! Try larger
           bestFit = testSize;
           minFit = testSize;
         } else {
-          // Too big, try smaller
+          // Doesn't fit, try smaller
           maxFit = testSize;
         }
       }
       
       // Apply best fitting title size
       title.style.fontSize = bestFit + 'px';
-      title.offsetHeight; // Force layout
+      void title.offsetHeight;
       
       // Step 2: Calculate remaining space for subtitle
       const titleHeight = title.offsetHeight;
       const remainingHeight = cardHeight - titleHeight;
       
-      // Step 3: Binary search for subtitle size that fills remaining height
+      // Step 3: Binary search for subtitle size
       let subtitleMinFit = 1;
       let subtitleMaxFit = remainingHeight * 3;
       let subtitleBestFit = 1;
@@ -266,22 +270,18 @@
         const testSize = (subtitleMinFit + subtitleMaxFit) / 2;
         subtitle.style.fontSize = testSize + 'px';
         
-        // Force layout
-        subtitle.offsetHeight;
+        void subtitle.offsetHeight;
         
         const subtitleHeight = subtitle.offsetHeight;
         
         if (subtitleHeight <= remainingHeight) {
-          // Fits! Try larger
           subtitleBestFit = testSize;
           subtitleMinFit = testSize;
         } else {
-          // Too tall, try smaller
           subtitleMaxFit = testSize;
         }
       }
       
-      // Apply final subtitle size
       subtitle.style.fontSize = subtitleBestFit + 'px';
     }
 
