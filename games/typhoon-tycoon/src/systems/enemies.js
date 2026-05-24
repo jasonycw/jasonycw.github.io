@@ -287,10 +287,8 @@ export function updateEnemies(dt) {
     }
 
     // Movement
-    let moveX = Math.cos(e.moveAngle);
-    let moveZ = Math.sin(e.moveAngle);
-    const len = Math.sqrt(moveX * moveX + moveZ * moveZ);
-    if (len > 0) { moveX /= len; moveZ /= len; }
+    const moveX = Math.cos(e.moveAngle);
+    const moveZ = Math.sin(e.moveAngle);
 
     // Color shift on slow — freeze effect tints blue
     if (slowed) {
