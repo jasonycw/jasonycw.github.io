@@ -289,12 +289,22 @@ function buildPreviewGhost(type) {
   return group;
 }
 
+function disposePreviewGhost() {
+  if (!previewGhost) return;
+  scene.remove(previewGhost);
+  previewGhost.traverse(child => {
+    if (child.material) {
+      if (Array.isArray(child.material)) child.material.forEach(m => { m.dispose(); });
+      else child.material.dispose();
+    }
+    if (child.geometry) child.geometry.dispose();
+  });
+  previewGhost = null;
+}
+
 /** Remove preview ghost and ring from scene (called from game.js on restart) */
 export function clearPreviewGhost() {
-  if (previewGhost) {
-    scene.remove(previewGhost);
-    previewGhost = null;
-  }
+  disposePreviewGhost();
   previewRadiusRing = null;
   previewLastType = null;
   previewValid = false;
@@ -308,7 +318,7 @@ function updatePreview(event) {
 
   // Rebuild ghost if type changed
   if (previewLastType !== state.selectedType) {
-    if (previewGhost) { scene.remove(previewGhost); previewGhost = null; }
+    disposePreviewGhost();
     previewGhost = buildPreviewGhost(state.selectedType);
     previewLastType = state.selectedType;
   }
@@ -374,7 +384,7 @@ export function selectStructure(type) {
 
   if (!isStructureUnlocked(type)) {
     state.selectedType = null;
-    if (previewGhost) { scene.remove(previewGhost); previewGhost = null; }
+    clearPreviewGhost();
     setStatus(`${cfg.title} is locked! Build required tech first.`, '#ff5252');
     return;
   }
