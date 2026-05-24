@@ -10,7 +10,7 @@ A 2.5D browser-based tower defense game rebuilt in Three.js, inspired by the ori
 *Start screen with the Hong Kong / South China Sea map and concentric danger zone rings.*
 
 ![In-Game Action](assets/screenshots/action.png)
-*All 8 structure types deployed (Laser/Freeze/Repel Towers, Power/University/Research/Nuclear Plants, CheungKong HQ) defending against realistic 3D typhoons with dark calm eyes, bright eyewalls, asymmetric spiral rainbands, and multi-layer particle systems.*
+*All 8 structure types deployed at real in-game placement scale/rules (Laser/Freeze/Repel Towers, Power/University/Research/Nuclear Plants, CheungKong HQ) defending against realistic 3D typhoons with empty eyes, bright eyewalls, asymmetric spiral rainbands, camera-facing HP bars, and multi-layer particle systems.*
 
 ![Game Over](assets/screenshots/lose.png)
 *Game over screen shown when HSI drops to zero — the economy has collapsed.*
@@ -59,12 +59,12 @@ src/
 ```
 
 ### Curved Trajectories
-Each typhoon follows a **sinusoidal wobble path** instead of a straight line toward center. The wobble amplitude is randomized per enemy and decays as it approaches the island, creating natural-looking spiral approaches like real storm tracks.
+Each typhoon follows a **sinusoidal wobble path** instead of a straight line toward center. The wobble amplitude is randomized per typhoon and decays as it approaches the island, creating natural-looking spiral approaches like real storm tracks.
 
 ### Attack VFX
-- **Laser Towers** fire instant beam lines from the turret barrel to the typhoon body, followed by a particle burst at the impact point
-- **Freeze Towers** apply a constant slow beam (cyan) and keep enemies chilled while in range
-- **Repel Towers** push enemies away with an orange beam and force impulse
+- **Laser Towers** fire instant glowing yellow beams from the turret barrel to the typhoon body, without bead/dot artifacts along the beam
+- **Freeze Towers** apply a thicker icy cyan beam and leave fading aftershadow trails when the target direction changes
+- **Repel Towers** push typhoons away with expanding orange psychic rings that travel toward the storm instead of a straight beam
 - Kill explosions release a 12-particle burst
 
 ## Background
@@ -89,11 +89,13 @@ In the year 21XX, the Li's field (李氏力場) becomes reality in the form of a
 | `R` | Select Li's Enterprise HQ |
 | `Esc` | Cancel selection |
 | Click on map | Place selected structure |
+| Hold right mouse + drag | Orbit camera around Hong Kong |
+| Mouse wheel | Zoom camera in/out with safe limits |
 
 ### UI Elements
 
 - **Bottom toolbar (4×2 grid):** Structure buttons in two rows — towers on top row, buildings on bottom. Cancel button appears only when a structure is selected.
-- **Top-left HUD:** Year with countdown below, HSI, Enemies remaining
+- **Top-left HUD:** Year with countdown below, HSI, TYPHOON# remaining
 - **Top-right HUD:** Power meter with battery-style UI
 - **Map:** South China Sea / Hong Kong region with concentric danger zone rings
 
@@ -101,15 +103,15 @@ In the year 21XX, the Li's field (李氏力場) becomes reality in the form of a
 
 Each year intensifies as the typhoons grow stronger:
 
-| Year | Enemies | Spawn Interval | Notes |
+| Year | Typhoons | Spawn Interval | Notes |
 |------|---------|----------------|-------|
 | 1 | 3 | 10.5s | First wave — gentle start |
-| 5 | 13 | 8.5s | Enemies per year ramps up linearly |
+| 5 | 13 | 8.5s | Typhoons per year ramp up linearly |
 | 10 | 23 | 6.0s | Mid-game, pace quickens |
-| 15 | 30 | 3.5s | Max enemies per year reached |
+| 15 | 30 | 3.5s | Max typhoons per year reached |
 | 20 | 30 | 1.5s | Final year — maximum intensity |
 
-- Enemy HP and speed also increase with each year
+- Typhoon HP and speed also increase with each year
 - The cooldown between years shortens as the game progresses (starts at 10s, drops to 1.5s by year 20)
 - The top-right **Next Year** countdown shows remaining seconds until the next year begins
 - Survive all 20 years to win — you have defended Hong Kong from the typhoons!
@@ -121,8 +123,8 @@ Each year intensifies as the typhoons grow stronger:
 | Tower | Cost | Power | Effect |
 |-------|------|-------|--------|
 | **Laser Tower** | 500 HSI | -3 | Direct damage (25 dmg, 0.5s interval) |
-| **Freeze Tower** | 700 HSI | -6 | Slows enemies (requires University) |
-| **Repel Tower** | 2500 HSI | -10 | Pushes enemies away (requires Research Center) |
+| **Freeze Tower** | 700 HSI | -6 | Slows typhoons (requires University) |
+| **Repel Tower** | 2500 HSI | -10 | Pushes typhoons away (requires Research Center) |
 
 ### Buildings (place on land)
 
@@ -131,7 +133,7 @@ Each year intensifies as the typhoons grow stronger:
 | **Power Plant** | 1000 HSI | +10 | Generates power |
 | **University** | 2500 HSI | -20 | Unlocks Freeze Tower, boosts tower damage |
 | **Research Center** | 4000 HSI | -30 | Unlocks Repel Tower & Nuclear Plant, further damage boost (requires University) |
-| **Nuclear Power Plant** | 5000 HSI | +40 | High-output power (requires Research Center) |
+| **Nuclear Power Plant** | 5000 HSI | +40 | Thin curved cooling-tower cylinder with a large open through-hole and heavier smoke (requires Research Center) |
 | **Li's Enterprise HQ** | 7000 HSI | -50 | 1.5x HSI passive income (requires Research Center) |
 
 ### Power Management
