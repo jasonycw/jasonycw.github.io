@@ -371,8 +371,13 @@ export function updateTreeRegrowth(dt) {
 
 /** Destroy and burst scenery within a radius of a world position */
 export function destroySceneryNear(wx, wz, radius) {
-  const hit = scenery.filter(s => s.alive && Math.hypot(s.worldX - wx, s.worldZ - wz) < radius);
-  for (const s of hit) {
+  const radiusSq = radius * radius;
+  for (const s of scenery) {
+    if (!s.alive) continue;
+    const dx = s.worldX - wx;
+    const dz = s.worldZ - wz;
+    if (dx * dx + dz * dz >= radiusSq) continue;
+
     s.alive = false;
     // Track destroyed tree position for regrowth
     if (s.type === 'tree') {
