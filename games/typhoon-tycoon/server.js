@@ -24,23 +24,32 @@ function startServer(port, attempt) {
       res.end('Forbidden');
       return;
     }
-    let ext = path.extname(fp);
-    res.writeHead(200, { 'Content-Type': types[ext] || 'application/octet-stream', 'Cache-Control': 'no-store' });
+    fs.stat(fp, (statErr, stats) => {
+      if (statErr || !stats.isFile()) {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not found');
+        return;
+      }
 
-    // Compute MD5 hash for main.js while streaming (small file, double-read negligible)
-    if (fp.endsWith('main.js')) {
-      const c = fs.readFileSync(fp);
-      const hash = crypto.createHash('md5').update(c).digest('hex');
-      console.log('Serving main.js MD5:', hash, 'Size:', c.length);
-    }
+      let ext = path.extname(fp);
+      res.writeHead(200, { 'Content-Type': types[ext] || 'application/octet-stream', 'Cache-Control': 'no-store' });
 
-    // Stream file to response — memory-efficient for large assets (textures, audio)
-    const stream = fs.createReadStream(fp);
-    stream.on('error', () => {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Not found');
+      if (fp.endsWith('main.js')) {
+        fs.readFile(fp, (err, c) => {
+          if (err) return;
+          const hash = crypto.createHash('md5').update(c).digest('hex');
+          console.log('Serving main.js MD5:', hash, 'Size:', c.length);
+        });
+      }
+
+      // Stream file to response — memory-efficient for large assets (textures, audio)
+      const stream = fs.createReadStream(fp);
+      stream.on('error', () => {
+        if (!res.headersSent) res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not found');
+      });
+      stream.pipe(res);
     });
-    stream.pipe(res);
   });
 
   server.on('error', (err) => {
