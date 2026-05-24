@@ -11,7 +11,6 @@ function applyRenderOrderToParts(parts, centerWorld) {
   const dz = centerWorld.z - camera.position.z;
   const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
   const ro = Math.round(-dist * 100);
-  console.log(`applyRenderOrder: parts=${parts.length} center=(${centerWorld.x.toFixed(2)},${centerWorld.y.toFixed(2)},${centerWorld.z.toFixed(2)}) dist=${dist.toFixed(2)} ro=${ro}`);
   for (const p of parts) p.renderOrder = ro;
 }
 

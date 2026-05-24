@@ -7,11 +7,14 @@ import { camera, renderer } from '../core/three-setup.js';
 // Vertical drag   → change polar angle (top-down ↔ horizontal)
 
 const TARGET = new THREE.Vector3(0, 0, 0);
-const RADIUS = Math.sqrt(18 * 18 + 18 * 18 + 18 * 18); // ~31.18
+const INITIAL_RADIUS = Math.sqrt(18 * 18 + 18 * 18 + 18 * 18); // ~31.18
+const MIN_RADIUS = 14;
+const MAX_RADIUS = INITIAL_RADIUS;
 
 // Initial spherical angles derived from camera.position (18, 18, 18)
 let theta = Math.PI / 4;           // azimuth (radians) — rotation around Y
-let phi = Math.acos(18 / RADIUS);  // polar (radians) — angle from Y axis
+let phi = Math.acos(18 / INITIAL_RADIUS);  // polar (radians) — angle from Y axis
+let radius = INITIAL_RADIUS;
 
 let isOrbiting = false;
 let prevX = 0;
@@ -21,6 +24,11 @@ let onCameraChange = null; // callback after camera position updates
 const SENSITIVITY = 0.005;
 const PHI_MIN = 0.05;      // near top-down
 const PHI_MAX = Math.PI / 2 - 0.05; // near horizontal
+
+function getTargetScreenY() {
+  const projected = TARGET.clone().project(camera);
+  return (-projected.y * 0.5 + 0.5) * window.innerHeight;
+}
 
 /** Check whether the user is currently dragging the camera */
 export function isCameraOrbiting() {
@@ -37,9 +45,9 @@ function updateCamera() {
   const ct = Math.cos(theta);
 
   camera.position.set(
-    RADIUS * ct * sp,
-    RADIUS * cp,
-    RADIUS * st * sp
+    radius * ct * sp,
+    radius * cp,
+    radius * st * sp
   );
   camera.lookAt(TARGET);
 
@@ -59,6 +67,12 @@ export function initCameraControls(onCameraChangeCallback) {
   // Prevent browser context menu on right-click
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    radius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, radius * Math.exp(e.deltaY * 0.001)));
+    updateCamera();
+  }, { passive: false });
+
   canvas.addEventListener('pointerdown', (e) => {
     if (e.button === 2) {
       isOrbiting = true;
@@ -73,11 +87,13 @@ export function initCameraControls(onCameraChangeCallback) {
     if (!isOrbiting) return;
     const dx = e.clientX - prevX;
     const dy = e.clientY - prevY;
+    const targetScreenY = getTargetScreenY();
+    const verticalSign = prevY < targetScreenY ? 1 : -1;
     prevX = e.clientX;
     prevY = e.clientY;
 
     theta -= dx * SENSITIVITY;
-    phi   += dy * SENSITIVITY;
+    phi   += dy * verticalSign * SENSITIVITY;
 
     updateCamera();
   });

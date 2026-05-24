@@ -212,7 +212,6 @@ export function placeDefaultBuildings() {
       }
     }
   }
-  console.log('DEFAULT BUILDINGS PLACED');
 }
 
 /** Recalculate renderOrder on all placed structures (buildings + towers) based on current camera position */

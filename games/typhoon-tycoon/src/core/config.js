@@ -7,7 +7,7 @@ export const CONFIG = {
   cellSize: 2,
   islandRadius: 4.5, // center island radius
   groundY: 0, // ground plane Y
-  islandHeight: 0.8, // building placement Y offset
+  islandHeight: 0, // building placement Y offset (flat map surface)
 
   // HSI (currency + health)
   hsiInit: 5000,
