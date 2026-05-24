@@ -2,6 +2,8 @@ import { state } from '../core/state.js';
 import { getStructConfig, isStructureUnlocked } from '../core/state.js';
 
 // ==================== UI ====================
+let buildButtons = null;
+
 export function setStatus(msg, color) {
   const el = document.getElementById('statusMsg');
   el.textContent = msg;
@@ -24,7 +26,8 @@ export function updateUI() {
 }
 
 export function updateBuildButtonStates() {
-  document.querySelectorAll('.build-btn[data-type]').forEach(btn => {
+  if (!buildButtons) buildButtons = document.querySelectorAll('.build-btn[data-type]');
+  buildButtons.forEach(btn => {
     const type = btn.dataset.type;
     const cfg = getStructConfig(type);
     if (!cfg) return;
