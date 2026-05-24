@@ -84,16 +84,18 @@ function gameLoop() {
 
   if (state.phase === 'playing') {
     if (useHitareaClassification && !state.defaultBuildingsPlaced) {
+      const hsiBeforeStarterPlacement = state.hsi;
+      const buildingCountBeforeStarterPlacement = buildings.length;
       placeDefaultBuildings();
       // Only run scenery setup once (prevents duplication on retry)
       if (!state.sceneryPlaced) {
         setupScenery();
         state.sceneryPlaced = true;
       }
-      // Restore HSI after starter buildings deduct their cost
-      state.hsi = CONFIG.hsiInit;
-      // Only mark as placed if the starter PowerPlant succeeded (retry next frame otherwise)
-      if (buildings.length >= 1) {
+      const starterPlaced = buildings.length > buildingCountBeforeStarterPlacement;
+      if (starterPlaced) {
+        // Restore only the starter placement cost, without refunding prior player spending.
+        state.hsi = hsiBeforeStarterPlacement;
         state.defaultBuildingsPlaced = true;
       }
     }
