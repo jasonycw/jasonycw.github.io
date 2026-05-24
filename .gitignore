@@ -1,3 +1,5 @@
 /node_modules
 /.playwright-mcp/
 /.sisyphus/
+/.herenow/
+package-lock.json
