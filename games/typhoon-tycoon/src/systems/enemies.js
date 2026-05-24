@@ -4,12 +4,54 @@ import { CONFIG } from '../core/config.js';
 import { state } from '../core/state.js';
 import { effects, spawnBurst, spawnEffect } from './effects.js';
 import { destroySceneryNear } from './scenery.js';
-import { isSeaAt, isOnMap } from '../world/map.js';
+import { isSeaAt, isOnMap, MAP_OFFSET_X, MAP_OFFSET_Z, MAP_PLANE_SIZE } from '../world/map.js';
 import { gameOver } from './ui.js';
 import { playHitSound } from './audio.js';
 import { setStatus } from './ui.js';
 
 export const enemies = [];
+
+const SPAWN_EDGE_MARGIN = 0.8;
+
+function randomInRange(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+function getOceanSpawnPoint() {
+  const half = MAP_PLANE_SIZE / 2;
+  const minX = MAP_OFFSET_X - half + SPAWN_EDGE_MARGIN;
+  const maxX = MAP_OFFSET_X + half - SPAWN_EDGE_MARGIN;
+  const minZ = MAP_OFFSET_Z - half + SPAWN_EDGE_MARGIN;
+  const maxZ = MAP_OFFSET_Z + half - SPAWN_EDGE_MARGIN;
+
+  for (let attempt = 0; attempt < 80; attempt++) {
+    const side = Math.floor(Math.random() * 4);
+    const point = side === 0
+      ? { x: minX, z: randomInRange(minZ, maxZ) }
+      : side === 1
+        ? { x: maxX, z: randomInRange(minZ, maxZ) }
+        : side === 2
+          ? { x: randomInRange(minX, maxX), z: minZ }
+          : { x: randomInRange(minX, maxX), z: maxZ };
+    if (isOnMap(point.x, point.z) && isSeaAt(point.x, point.z)) return point;
+  }
+
+  let fallback = { x: maxX, z: MAP_OFFSET_Z };
+  let fallbackDistSq = -Infinity;
+  for (let ix = 0; ix <= 16; ix++) {
+    for (let iz = 0; iz <= 16; iz++) {
+      const x = minX + ((maxX - minX) * ix) / 16;
+      const z = minZ + ((maxZ - minZ) * iz) / 16;
+      if (!isOnMap(x, z) || !isSeaAt(x, z)) continue;
+      const distSq = x * x + z * z;
+      if (distSq > fallbackDistSq) {
+        fallback = { x, z };
+        fallbackDistSq = distSq;
+      }
+    }
+  }
+  return fallback;
+}
 
 // ==================== ENEMY SHARED GEOMETRIES ====================
 const textureLoader = new THREE.TextureLoader();
@@ -20,12 +62,7 @@ const hpBarFillMat = new THREE.MeshBasicMaterial({ color: 0x66bb6a, depthTest: f
 const hpBarFillGeom = new THREE.BoxGeometry(0.76, 0.04, 0.05);
 
 export function spawnEnemy() {
-  const r = CONFIG.enemySpawnRadius;
-  const dirs = [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2];
-  const dir = dirs[Math.floor(Math.random() * dirs.length)];
-  const angle = dir + (Math.random() - 0.5) * Math.PI/9;
-  const x = Math.cos(angle) * r;
-  const z = Math.sin(angle) * r;
+  const { x, z } = getOceanSpawnPoint();
 
   const baseHp = CONFIG.enemyBaseHP + state.gameTime * 4;
   const hp = Math.round(baseHp * (0.4 + Math.random() * 1.2)); // 40%-160% for size variety
