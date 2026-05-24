@@ -104,6 +104,25 @@ export function placeStructure(wx, wz, type) {
   mesh.scale.setScalar(0.01); // start tiny for construction animation
   scene.add(mesh);
 
+  // Compute world center of this structure for depth sorting
+  const centerOffset = mesh.userData.centerOffset || { x: 0, y: 0, z: 0 };
+  const worldCenter = {
+    x: wx + centerOffset.x,
+    y: yPos + centerOffset.y,
+    z: wz + centerOffset.z
+  };
+  // Apply initial renderOrder based on camera distance
+  {
+    const dx = worldCenter.x - camera.position.x;
+    const dy = worldCenter.y - camera.position.y;
+    const dz = worldCenter.z - camera.position.z;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    const ro = Math.round(-dist * 100);
+    mesh.traverse(child => {
+      if (child.isMesh) child.renderOrder = ro;
+    });
+  }
+
   if (cfg.power > 0) state.powerQuota += cfg.power;
   else state.powerUsed += cfg.power;
 
@@ -112,6 +131,7 @@ export function placeStructure(wx, wz, type) {
     mesh,
     wx,
     wz,
+    worldCenter,
     online: false, // will be set to true after construction completes
     cooldown: 0,
     target: null,
@@ -193,6 +213,22 @@ export function placeDefaultBuildings() {
     }
   }
   console.log('DEFAULT BUILDINGS PLACED');
+}
+
+/** Recalculate renderOrder on all placed structures (buildings + towers) based on current camera position */
+export function updateStructureDepthSort(cameraPos) {
+  const allStructs = [...towers, ...buildings];
+  for (const s of allStructs) {
+    if (!s.worldCenter) continue;
+    const dx = s.worldCenter.x - cameraPos.x;
+    const dy = s.worldCenter.y - cameraPos.y;
+    const dz = s.worldCenter.z - cameraPos.z;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    const ro = Math.round(-dist * 100);
+    s.mesh.traverse(child => {
+      if (child.isMesh) child.renderOrder = ro;
+    });
+  }
 }
 
 // ==================== BUILDING PREVIEW (free-form) ====================

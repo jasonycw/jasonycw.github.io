@@ -4,13 +4,20 @@ import { state, getStructConfig } from '../core/state.js';
 import { enemies, updateEnemies } from './enemies.js';
 import { towers, buildings, updateTowers, removeTowerBeam, updatePower, updateBuildings, clearSmokeParticles } from './towers.js';
 import { effects, updateEffects } from './effects.js';
-import { scenery, setupScenery, updateTreeRegrowth, destroyedSpots, growingTrees, treeTrunkGeom, treeCrownGeom, treeCrown2Geom, treeTrunkMat, treeCrownMat, treeCrown2Mat } from './scenery.js';
+import { scenery, sceneryGroup, setupScenery, updateSceneryDepthSort, updateTreeRegrowth, destroyedSpots, growingTrees, treeTrunkGeom, treeCrownGeom, treeCrown2Geom, treeTrunkMat, treeCrownMat, treeCrown2Mat } from './scenery.js';
 import { gridCells, useHitareaClassification } from '../world/map.js';
 import { updateYears } from './waves.js';
 import { updateEarthquakes, resetEarthquakes } from './earthquake.js';
 import { setStatus, updateUI, gameOver } from './ui.js';
-import { placeDefaultBuildings, clearPreviewGhost } from './placement.js';
+import { placeDefaultBuildings, updateStructureDepthSort, clearPreviewGhost } from './placement.js';
 import { startBGM } from './audio.js';
+import { initCameraControls } from './camera-controls.js';
+
+// Initialize camera orbit controls once
+initCameraControls(() => {
+  updateSceneryDepthSort(camera.position);
+  updateStructureDepthSort(camera.position);
+});
 
 // ==================== HSI UPDATE ====================
 function updateHSI(dt) {
@@ -162,7 +169,7 @@ export function startGame() {
 
   for (const s of scenery) {
     for (const part of s.parts) {
-      scene.remove(part);
+      sceneryGroup.remove(part);
       if (part.geometry &&
           part.geometry !== treeTrunkGeom && part.geometry !== treeCrownGeom && part.geometry !== treeCrown2Geom) {
         part.geometry.dispose();

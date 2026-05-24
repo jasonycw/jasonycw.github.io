@@ -40,6 +40,10 @@ scene.add(hemiLight);
 
 export const clock = new THREE.Clock();
 
+// Expose for debugging
+window.__scene = scene;
+window.__camera = camera;
+
 // ==================== RESIZE HANDLER ====================
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;

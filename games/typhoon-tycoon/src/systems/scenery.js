@@ -1,10 +1,40 @@
 import * as THREE from 'three';
-import { scene } from '../core/three-setup.js';
+import { scene, camera } from '../core/three-setup.js';
 import { CONFIG } from '../core/config.js';
 import { gridCells, useHitareaClassification, isSeaAt, MAP_PLANE_SIZE, MAP_OFFSET_X, MAP_OFFSET_Z } from '../world/map.js';
 import { effects } from './effects.js';
 
+/** Set uniform renderOrder on all meshes of a composite object based on camera distance from its geometric center */
+function applyRenderOrderToParts(parts, centerWorld) {
+  const dx = centerWorld.x - camera.position.x;
+  const dy = centerWorld.y - camera.position.y;
+  const dz = centerWorld.z - camera.position.z;
+  const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  const ro = Math.round(-dist * 100);
+  console.log(`applyRenderOrder: parts=${parts.length} center=(${centerWorld.x.toFixed(2)},${centerWorld.y.toFixed(2)},${centerWorld.z.toFixed(2)}) dist=${dist.toFixed(2)} ro=${ro}`);
+  for (const p of parts) p.renderOrder = ro;
+}
+
+/** Recalculate renderOrder on all alive scenery based on current camera position */
+export function updateSceneryDepthSort(cameraPos) {
+  for (const s of scenery) {
+    if (!s.alive) continue;
+    if (!s.worldCenter) continue;
+    const dx = s.worldCenter.x - cameraPos.x;
+    const dy = s.worldCenter.y - cameraPos.y;
+    const dz = s.worldCenter.z - cameraPos.z;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    const ro = Math.round(-dist * 100);
+    for (const part of s.parts) {
+      part.renderOrder = ro;
+    }
+  }
+}
+
+export const sceneryGroup = new THREE.Group();
+scene.add(sceneryGroup);
 export const scenery = [];
+window.__scenery = scenery;
 
 // Track destroyed tree positions for regrowth
 export const destroyedSpots = [];
@@ -37,83 +67,170 @@ export function setupScenery() {
     const parts = [];
     const allocs = [];
 
-    const totalH = 0.4 + Math.random() * 0.8;
-    const w = 0.15 + Math.random() * 0.1;
-    const bodyColor = bodyColors[Math.floor(Math.random() * bodyColors.length)];
-    const glassColor = glassColors[Math.floor(Math.random() * glassColors.length)];
+    const totalH = 0.2 + Math.random() * 0.3;
+    const w = 0.2 + Math.random() * 0.15;
+    const bodyColor1 = bodyColors[Math.floor(Math.random() * bodyColors.length)];
+    const bodyColor2 = bodyColors[Math.floor(Math.random() * bodyColors.length)];
     const crownColor = crownColors[Math.floor(Math.random() * crownColors.length)];
 
-    const bodyMat = new THREE.MeshBasicMaterial({ color: bodyColor });
-    const bodyGeom = new THREE.BoxGeometry(w, totalH, w);
-    const body = new THREE.Mesh(bodyGeom, bodyMat);
-    body.position.set(wx, elev + totalH / 2, wz);
-    scene.add(body);
-    parts.push(body);
-    allocs.push({ mat: bodyMat, geom: bodyGeom });
+    // Lower body (70% of height)
+    const lowerH = totalH * 0.7;
+    const bodyMat1 = new THREE.MeshBasicMaterial({ color: bodyColor1 });
+    const bodyGeom1 = new THREE.BoxGeometry(w, lowerH, w);
+    const body1 = new THREE.Mesh(bodyGeom1, bodyMat1);
+    body1.position.set(wx, elev + lowerH / 2, wz);
+    sceneryGroup.add(body1);
+    parts.push(body1);
+    allocs.push({ mat: bodyMat1, geom: bodyGeom1 });
 
-    const bandH = 0.025;
-    const bandSpread = 0.02;
-    const bandMat = new THREE.MeshBasicMaterial({ color: glassColor });
-    const bandGeom = new THREE.BoxGeometry(w + bandSpread, bandH, w + bandSpread);
-    const bandInterval = 0.25 + Math.random() * 0.15;
-    const bandCount = Math.floor(Math.max(0, totalH - 0.4) / bandInterval);
+    // Upper body (30% of height, different color)
+    const upperH = totalH - lowerH;
+    const bodyMat2 = new THREE.MeshBasicMaterial({ color: bodyColor2 });
+    const bodyGeom2 = new THREE.BoxGeometry(w * 0.9, upperH, w * 0.9);
+    const body2 = new THREE.Mesh(bodyGeom2, bodyMat2);
+    body2.position.set(wx, elev + lowerH + upperH / 2, wz);
+    sceneryGroup.add(body2);
+    parts.push(body2);
+    allocs.push({ mat: bodyMat2, geom: bodyGeom2 });
+
+    // Horizontal glass bands on lower body — frequent and thin
+    const bandH = 0.015;
+    const bandSpread = 0.025;
+    const bandInterval = 0.05 + Math.random() * 0.03;
+    const bandCount = Math.floor(Math.max(0, lowerH - 0.1) / bandInterval);
     for (let i = 0; i < bandCount; i++) {
-      const yPos = 0.2 + i * bandInterval + bandH / 2;
-      if (yPos + bandH / 2 > totalH) break;
+      const yPos = 0.08 + i * bandInterval + bandH / 2;
+      if (yPos + bandH / 2 > lowerH) break;
+      const c = glassColors[Math.floor(Math.random() * glassColors.length)];
+      const bandMat = new THREE.MeshBasicMaterial({ color: c });
+      const bandGeom = new THREE.BoxGeometry(w + bandSpread, bandH, w + bandSpread);
       const band = new THREE.Mesh(bandGeom, bandMat);
       band.position.set(wx, elev + yPos, wz);
-      scene.add(band);
+      sceneryGroup.add(band);
       parts.push(band);
       allocs.push({ mat: bandMat, geom: bandGeom });
     }
 
-    const crownW = w * (0.5 + Math.random() * 0.25);
-    const crownH = 0.15 + Math.random() * 0.2;
-    const crownMat = new THREE.MeshBasicMaterial({ color: crownColor });
-    const crownGeom = new THREE.BoxGeometry(crownW, crownH, crownW);
-    const crown = new THREE.Mesh(crownGeom, crownMat);
-    crown.position.set(wx, elev + totalH - crownH / 2, wz);
-    scene.add(crown);
-    parts.push(crown);
-    allocs.push({ mat: crownMat, geom: crownGeom });
-
-    if (Math.random() < 0.4) {
-      const antMat = new THREE.MeshBasicMaterial({ color: 0x616161 });
-      const antH = 0.15 + Math.random() * 0.2;
-      const antGeom = new THREE.CylinderGeometry(0.008, 0.012, antH, 3);
-      const ant = new THREE.Mesh(antGeom, antMat);
-      ant.position.set(wx, elev + totalH + antH / 2, wz);
-      scene.add(ant);
-      parts.push(ant);
-      allocs.push({ mat: antMat, geom: antGeom });
-      const tipMat = new THREE.MeshBasicMaterial({ color: 0xFF1744 });
-      const tipGeom = new THREE.SphereGeometry(0.012, 4, 4);
-      const tip = new THREE.Mesh(tipGeom, tipMat);
-      tip.position.set(wx, elev + totalH + antH + 0.01, wz);
-      scene.add(tip);
-      parts.push(tip);
-      allocs.push({ mat: tipMat, geom: tipGeom });
+    // A few vertical accent strips on multiple faces
+    const stripColors = [glassColors[Math.floor(Math.random() * glassColors.length)]];
+    const stripColors2 = [glassColors[Math.floor(Math.random() * glassColors.length)]];
+    for (let side = -1; side <= 1; side += 2) {
+      if (Math.random() < 0.4) {
+        const sMat = new THREE.MeshBasicMaterial({ color: stripColors[Math.floor(Math.random() * stripColors.length)] });
+        const sGeom = new THREE.BoxGeometry(0.015, lowerH * 0.6, 0.005);
+        const strip = new THREE.Mesh(sGeom, sMat);
+        strip.position.set(wx + side * w * 0.4, elev + lowerH * 0.3, wz + w / 2 + 0.005);
+        sceneryGroup.add(strip);
+        parts.push(strip);
+        allocs.push({ mat: sMat, geom: sGeom });
+      }
+      if (Math.random() < 0.3) {
+        const sMat = new THREE.MeshBasicMaterial({ color: stripColors2[Math.floor(Math.random() * stripColors2.length)] });
+        const sGeom = new THREE.BoxGeometry(0.005, lowerH * 0.5, 0.015);
+        const strip = new THREE.Mesh(sGeom, sMat);
+        strip.position.set(wx, elev + lowerH * 0.25, wz + side * w * 0.4 + 0.005);
+        sceneryGroup.add(strip);
+        parts.push(strip);
+        allocs.push({ mat: sMat, geom: sGeom });
+      }
     }
 
-    if (Math.random() < 0.3) {
+    // Base entrance detail
+    if (Math.random() < 0.6) {
+      const entMat = new THREE.MeshBasicMaterial({ color: 0x263238 });
+      const entGeom = new THREE.BoxGeometry(w * 0.3, 0.06, 0.02);
+      const ent = new THREE.Mesh(entGeom, entMat);
+      ent.position.set(wx, elev + 0.03, wz + w / 2 + 0.001);
+      sceneryGroup.add(ent);
+      parts.push(ent);
+      allocs.push({ mat: entMat, geom: entGeom });
+    }
+
+    // Crown / roof element — two styles
+    const crownStyle = Math.floor(Math.random() * 3);
+    if (crownStyle === 0) {
+      // Flat crown
+      const cH = 0.04 + Math.random() * 0.04;
+      const cMat = new THREE.MeshBasicMaterial({ color: crownColor });
+      const cGeom = new THREE.BoxGeometry(w * 0.85, cH, w * 0.85);
+      const crown = new THREE.Mesh(cGeom, cMat);
+      crown.position.set(wx, elev + totalH - cH / 2, wz);
+      sceneryGroup.add(crown);
+      parts.push(crown);
+      allocs.push({ mat: cMat, geom: cGeom });
+    } else if (crownStyle === 1) {
+      // Step-back crown (wider base, narrower top)
+      const cH = 0.06 + Math.random() * 0.05;
+      const cMat = new THREE.MeshBasicMaterial({ color: crownColor });
+      // Base step
+      const cGeom1 = new THREE.BoxGeometry(w * 0.8, cH * 0.5, w * 0.8);
+      const crown1 = new THREE.Mesh(cGeom1, cMat);
+      crown1.position.set(wx, elev + totalH - cH, wz);
+      sceneryGroup.add(crown1);
+      parts.push(crown1);
+      allocs.push({ mat: cMat, geom: cGeom1 });
+      // Top step
+      const cGeom2 = new THREE.BoxGeometry(w * 0.5, cH * 0.5, w * 0.5);
+      const crown2 = new THREE.Mesh(cGeom2, cMat.clone());
+      crown2.position.set(wx, elev + totalH - cH / 2, wz);
+      sceneryGroup.add(crown2);
+      parts.push(crown2);
+      allocs.push({ mat: crown2.material, geom: cGeom2 });
+    } else {
+      // Peaked crown (pyramid-like)
+      const cMat = new THREE.MeshBasicMaterial({ color: crownColor });
+      const cGeom = new THREE.ConeGeometry(w * 0.55, 0.08 + Math.random() * 0.08, 4);
+      const crown = new THREE.Mesh(cGeom, cMat);
+      crown.position.set(wx, elev + totalH, wz);
+      sceneryGroup.add(crown);
+      parts.push(crown);
+      allocs.push({ mat: cMat, geom: cGeom });
+    }
+
+    // Antenna (reduced chance for shorter buildings — only when tall enough)
+    if (totalH > 0.3 && Math.random() < 0.35) {
+      const antMat = new THREE.MeshBasicMaterial({ color: 0x616161 });
+      const antH = 0.08 + Math.random() * 0.12;
+      const antGeom = new THREE.CylinderGeometry(0.006, 0.01, antH, 3);
+      const ant = new THREE.Mesh(antGeom, antMat);
+      ant.position.set(wx, elev + totalH + antH / 2, wz);
+      sceneryGroup.add(ant);
+      parts.push(ant);
+      allocs.push({ mat: antMat, geom: antGeom });
+      if (Math.random() < 0.5) {
+        const tipMat = new THREE.MeshBasicMaterial({ color: 0xFF1744 });
+        const tipGeom = new THREE.SphereGeometry(0.008, 4, 4);
+        const tip = new THREE.Mesh(tipGeom, tipMat);
+        tip.position.set(wx, elev + totalH + antH + 0.005, wz);
+        sceneryGroup.add(tip);
+        parts.push(tip);
+        allocs.push({ mat: tipMat, geom: tipGeom });
+      }
+    }
+
+    // Accent ring (more common)
+    if (Math.random() < 0.5) {
       const accColor = accentColors[Math.floor(Math.random() * accentColors.length)];
       const accMat = new THREE.MeshBasicMaterial({ color: accColor });
-      const accH = 0.03;
-      const accGeom = new THREE.BoxGeometry(w * 1.15, accH, w * 1.15);
+      const accH = 0.025;
+      const accGeom = new THREE.BoxGeometry(w * 1.12, accH, w * 1.12);
       const accRing = new THREE.Mesh(accGeom, accMat);
-      accRing.position.set(wx, elev + totalH * 0.85, wz);
-      scene.add(accRing);
+      accRing.position.set(wx, elev + lowerH * (0.4 + Math.random() * 0.5), wz);
+      sceneryGroup.add(accRing);
       parts.push(accRing);
       allocs.push({ mat: accMat, geom: accGeom });
     }
 
-    scenery.push({ type: 'building', parts, worldX: wx, worldZ: wz, alive: true, allocs });
+    const centerY = totalH / 2;
+    applyRenderOrderToParts(parts, { x: wx, y: centerY, z: wz });
+
+    scenery.push({ type: 'building', parts, worldX: wx, worldZ: wz, worldCenter: { x: wx, y: centerY, z: wz }, alive: true, allocs });
   }
 
   function makeMidrise(wx, wz) {
     const parts = [];
     const allocs = [];
-    const totalH = 0.3 + Math.random() * 0.5;
+    const totalH = 0.2 + Math.random() * 0.3;
     const w = 0.2 + Math.random() * 0.1;
     const color = bodyColors[Math.floor(Math.random() * bodyColors.length)];
 
@@ -121,7 +238,7 @@ export function setupScenery() {
     const bodyGeom = new THREE.BoxGeometry(w, totalH, w);
     const body = new THREE.Mesh(bodyGeom, bodyMat);
     body.position.set(wx, elev + totalH / 2, wz);
-    scene.add(body);
+    sceneryGroup.add(body);
     parts.push(body);
     allocs.push({ mat: bodyMat, geom: bodyGeom });
 
@@ -129,11 +246,14 @@ export function setupScenery() {
     const roofGeom = new THREE.BoxGeometry(w * 1.05, 0.03, w * 1.05);
     const roof = new THREE.Mesh(roofGeom, roofMat);
     roof.position.set(wx, elev + totalH, wz);
-    scene.add(roof);
+    sceneryGroup.add(roof);
     parts.push(roof);
     allocs.push({ mat: roofMat, geom: roofGeom });
 
-    scenery.push({ type: 'building', parts, worldX: wx, worldZ: wz, alive: true, allocs });
+    const midCenterY = totalH / 2;
+    applyRenderOrderToParts(parts, { x: wx, y: midCenterY, z: wz });
+
+    scenery.push({ type: 'building', parts, worldX: wx, worldZ: wz, worldCenter: { x: wx, y: midCenterY, z: wz }, alive: true, allocs });
   }
 
   // Skyscrapers
@@ -196,10 +316,13 @@ export function spawnTree(wx, wz, withGrowth) {
     growingTrees.push({ parts: [trunk, crown1, crown2], age: 0, maxAge: 0.6 });
   }
 
-  scene.add(trunk);
-  scene.add(crown1);
-  scene.add(crown2);
-  scenery.push({ type: 'tree', parts: [trunk, crown1, crown2], worldX: wx, worldZ: wz, alive: true });
+  sceneryGroup.add(trunk);
+  sceneryGroup.add(crown1);
+  sceneryGroup.add(crown2);
+  const parts = [trunk, crown1, crown2];
+  const treeCenter = { x: wx, y: CONFIG.groundY + 0.2, z: wz };
+  applyRenderOrderToParts(parts, treeCenter);
+  scenery.push({ type: 'tree', parts, worldX: wx, worldZ: wz, worldCenter: treeCenter, alive: true });
 }
 
 /** Update growing tree scale animations */
@@ -257,7 +380,7 @@ export function destroySceneryNear(wx, wz, radius) {
       destroyedSpots.push({ x: s.worldX, z: s.worldZ, age: 0 });
     }
     for (const part of s.parts) {
-      scene.remove(part);
+      sceneryGroup.remove(part);
     }
     if (s.type === 'building' && s.allocs) {
       for (const a of s.allocs) {
@@ -285,8 +408,8 @@ export function destroySceneryNear(wx, wz, radius) {
         const outSpeed = 1.5 + Math.random() * 3;
         const upSpeed = 3 + Math.random() * 4;
         const spinSpeed = (Math.random() - 0.5) * 8;
-        // Detach from scene — effect system handles removal
-        scene.remove(part);
+        // Detach from scenery group — effect system handles removal from main scene
+        sceneryGroup.remove(part);
         scene.add(part);
     effects.push({
       mesh: part, mat: part.material.clone(), life: 1.5, maxLife: 1.5, geom: null,
@@ -348,7 +471,7 @@ export function removeSceneryAt(wx, wz) {
   const hit = scenery.filter(s => s.alive && Math.hypot(s.worldX - wx, s.worldZ - wz) < 0.6);
   for (const s of hit) {
     s.alive = false;
-    for (const part of s.parts) scene.remove(part);
+    for (const part of s.parts) sceneryGroup.remove(part);
     if (s.type === 'building' && s.allocs) {
       for (const a of s.allocs) {
         if (a.geom) a.geom.dispose();

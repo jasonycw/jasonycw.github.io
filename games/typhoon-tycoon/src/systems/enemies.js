@@ -214,15 +214,26 @@ export function spawnEnemy() {
   }
   typhoonGroup.userData.particles = particleData;
 
+  // Render typhoons on top of all islands/structures
+  typhoonGroup.traverse(c => {
+    if (c.isMesh) {
+      c.renderOrder = 2;
+      c.material.depthTest = false;
+      c.material.depthWrite = false;
+    }
+  });
+
   scene.add(typhoonGroup);
 
   // Health bar
   const hpBg = new THREE.Mesh(hpBarBgGeom, hpBarBgMat);
   hpBg.position.set(x, 1.6, z);
+  hpBg.renderOrder = 2;
   scene.add(hpBg);
 
   const hpFill = new THREE.Mesh(hpBarFillGeom, hpBarFillMat.clone());
   hpFill.position.set(x, 1.6, z);
+  hpFill.renderOrder = 2;
   scene.add(hpFill);
 
   const enemy = {

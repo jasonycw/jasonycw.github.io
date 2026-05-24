@@ -10,6 +10,8 @@ import { playPowerDownSound, playPowerUpSound } from './audio.js';
 
 export const towers = [];
 export const buildings = [];
+window.__towers = towers;
+window.__buildings = buildings;
 // Shared unit sphere for beam glow spheres — scales per instance to avoid per-frame geometry allocation
 const sharedBeamSphereGeom = new THREE.SphereGeometry(1, 6, 6);
 // ==================== TOWER MESHES ====================
@@ -39,6 +41,7 @@ export function createTowerMesh(type) {
     group.add(ring);
     group.userData.turret = barrel;
     group.userData.ring = ring;
+    group.userData.centerOffset = new THREE.Vector3(0, 0.4, 0);
   } else if (type === 'FreezeTower') {
     const base = new THREE.Mesh(
       new THREE.CylinderGeometry(0.5, 0.55, 0.3, 8),
@@ -62,6 +65,7 @@ export function createTowerMesh(type) {
     group.add(iceRing);
     group.userData.body = body;
     group.userData.iceRing = iceRing;
+    group.userData.centerOffset = new THREE.Vector3(0, 0.4, 0);
   } else if (type === 'RepelTower') {
     const base = new THREE.Mesh(
       new THREE.CylinderGeometry(0.6, 0.65, 0.3, 8),
@@ -86,6 +90,7 @@ export function createTowerMesh(type) {
       group.userData.rings = group.userData.rings || [];
       group.userData.rings.push(r);
     }
+    group.userData.centerOffset = new THREE.Vector3(0, 0.25, 0);
   }
 
   group.castShadow = true;
@@ -127,39 +132,43 @@ export function createBuildingMesh(type) {
     // Store pipe top positions for smoke emission
     group.userData.smokePositions = pipePositions.map(p => new THREE.Vector3(p[0], p[1] + 0.3, p[2]));
     group.userData.hasSmoke = true;
+    // Depth-sorting center offset (geometric center of all parts in local space)
+    group.userData.centerOffset = new THREE.Vector3(0, 0.375, 0);
   } else if (type === 'NuclearPlant') {
-    // Circular cylinder base
-    const base = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.5, 0.6, 0.4, 16),
-      new THREE.MeshStandardMaterial({ color: 0x546e7a, roughness: 0.7, metalness: 0.3 })
+    // Circular tube — fully open at top, smaller hole, no rim covers
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x607d8b, roughness: 0.7, metalness: 0.3 });
+    // Tapered cylinder wall open at both ends (hole goes through)
+    const body = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.25, 0.6, 0.7, 16, 1, true),
+      bodyMat
     );
-    base.position.y = 0.2;
-    group.add(base);
-    // Dome roof (upper hemisphere)
-    const dome = new THREE.Mesh(
-      new THREE.SphereGeometry(0.5, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2),
-      new THREE.MeshStandardMaterial({ color: 0x78909c, roughness: 0.5, metalness: 0.4 })
+    body.position.y = 0.35;
+    group.add(body);
+    // Concrete base ring
+    const baseRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.55, 0.04, 8, 16),
+      new THREE.MeshStandardMaterial({ color: 0x546e7a, roughness: 0.8 })
     );
-    dome.position.y = 0.4;
-    group.add(dome);
-    // Small chimney on top of dome
-    const chimney = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.06, 0.08, 0.15, 8),
-      new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.8 })
-    );
-    chimney.position.y = 0.6;
-    group.add(chimney);
+    baseRing.position.y = 0.05;
+    baseRing.rotation.x = Math.PI / 2;
+    group.add(baseRing);
     // Glow ring around base
     const glowRing = new THREE.Mesh(
-      new THREE.TorusGeometry(0.45, 0.03, 8, 16),
+      new THREE.TorusGeometry(0.48, 0.03, 8, 16),
       new THREE.MeshBasicMaterial({ color: 0x00e676, transparent: true, opacity: 0.5 })
     );
-    glowRing.position.y = 0.05;
+    glowRing.position.y = 0.02;
     glowRing.rotation.x = Math.PI / 2;
     group.add(glowRing);
-    // Smoke emission from chimney
-    group.userData.smokePositions = [new THREE.Vector3(0, 0.65, 0)];
+    // Smoke from the narrow opening at top
+    group.userData.smokePositions = [
+      new THREE.Vector3(0, 0.72, 0),
+      new THREE.Vector3(0.08, 0.72, 0.06),
+      new THREE.Vector3(-0.06, 0.72, 0.08),
+      new THREE.Vector3(0.03, 0.72, -0.08)
+    ];
     group.userData.hasSmoke = true;
+    group.userData.centerOffset = new THREE.Vector3(0, 0.35, 0);
   } else if (type === 'University') {
     // Brownish main body
     const bodyMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.8 });
@@ -169,16 +178,15 @@ export function createBuildingMesh(type) {
     );
     body.position.y = 0.225;
     group.add(body);
-    // Small windows on all walls
-    const windowMat = new THREE.MeshStandardMaterial({ color: 0xffe0b2, emissive: 0xffe0b2, emissiveIntensity: 0.2, side: THREE.DoubleSide });
-    const windowGeom = new THREE.PlaneGeometry(0.06, 0.08);
+    // Small windows on all walls (thin boxes for correct depth rendering)
+    const windowMat = new THREE.MeshStandardMaterial({ color: 0xffe0b2, emissive: 0xffe0b2, emissiveIntensity: 0.2 });
+    const windowGeom = new THREE.BoxGeometry(0.06, 0.08, 0.003);
     // Front (+Z) and back (-Z)
     for (let side = -1; side <= 1; side += 2) {
       for (let row = 0; row < 2; row++) {
         for (let col = 0; col < 3; col++) {
           const w = new THREE.Mesh(windowGeom, windowMat);
           w.position.set(-0.25 + col * 0.25, 0.13 + row * 0.15, side * 0.351);
-          w.rotation.y = side > 0 ? 0 : Math.PI;
           group.add(w);
         }
       }
@@ -189,7 +197,6 @@ export function createBuildingMesh(type) {
         for (let col = 0; col < 2; col++) {
           const w = new THREE.Mesh(windowGeom, windowMat);
           w.position.set(side * 0.451, 0.13 + row * 0.15, -0.1 + col * 0.3);
-          w.rotation.y = side > 0 ? Math.PI / 2 : -Math.PI / 2;
           group.add(w);
         }
       }
@@ -235,6 +242,7 @@ export function createBuildingMesh(type) {
     );
     spire.position.set(0.3, 0.95, 0);
     group.add(spire);
+    group.userData.centerOffset = new THREE.Vector3(0, 0.35, 0);
   } else if (type === 'ResearchCenter') {
     // Gray main body
     const bodyMat = new THREE.MeshStandardMaterial({ color: 0x90a4ae, roughness: 0.6, metalness: 0.3 });
@@ -244,16 +252,15 @@ export function createBuildingMesh(type) {
     );
     body.position.y = 0.225;
     group.add(body);
-    // Windows on all sides (glowing blue tint)
-    const windowMat = new THREE.MeshStandardMaterial({ color: 0xb0bec5, emissive: 0x4fc3f7, emissiveIntensity: 0.1, side: THREE.DoubleSide });
-    const windowGeom = new THREE.PlaneGeometry(0.08, 0.06);
+    // Windows on all sides (glowing blue tint, thin boxes for correct depth)
+    const windowMat = new THREE.MeshStandardMaterial({ color: 0xb0bec5, emissive: 0x4fc3f7, emissiveIntensity: 0.1 });
+    const windowGeom = new THREE.BoxGeometry(0.08, 0.06, 0.003);
     // Front (+Z) and back (-Z)
     for (let side = -1; side <= 1; side += 2) {
       for (let row = 0; row < 2; row++) {
         for (let col = 0; col < 3; col++) {
           const w = new THREE.Mesh(windowGeom, windowMat);
           w.position.set(-0.2 + col * 0.2, 0.13 + row * 0.17, side * 0.401);
-          w.rotation.y = side > 0 ? 0 : Math.PI;
           group.add(w);
         }
       }
@@ -264,7 +271,6 @@ export function createBuildingMesh(type) {
         for (let col = 0; col < 3; col++) {
           const w = new THREE.Mesh(windowGeom, windowMat);
           w.position.set(side * 0.401, 0.13 + row * 0.17, -0.2 + col * 0.2);
-          w.rotation.y = side > 0 ? Math.PI / 2 : -Math.PI / 2;
           group.add(w);
         }
       }
@@ -319,36 +325,38 @@ export function createBuildingMesh(type) {
     group.add(dishGroup);
     // Store dish group reference for rotation animation in updateBuildings()
     group.userData.dish = dishGroup;
+    group.userData.centerOffset = new THREE.Vector3(0, 0.35, 0);
   } else if (type === 'CheungKong') {
     // Tall skyscraper — 4 stacked sections with windows on all sides
     const sections = [
-      { h: 0.25, w: 0.5, y: 0.125, color: 0xb0bec5 },
-      { h: 0.2, w: 0.45, y: 0.35, color: 0x90a4ae },
-      { h: 0.2, w: 0.4, y: 0.55, color: 0x78909c },
-      { h: 0.18, w: 0.35, y: 0.74, color: 0x607d8b }
+      { h: 0.5, w: 0.5, y: 0.25, color: 0xb0bec5 },
+      { h: 0.4, w: 0.45, y: 0.7, color: 0x90a4ae },
+      { h: 0.4, w: 0.4, y: 1.1, color: 0x78909c },
+      { h: 0.36, w: 0.35, y: 1.48, color: 0x607d8b }
     ];
-    const windowMat = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, emissive: 0xbbdefb, emissiveIntensity: 0.15, side: THREE.DoubleSide });
-    const windowGeom = new THREE.PlaneGeometry(0.04, 0.06);
+    const windowMat = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, emissive: 0xbbdefb, emissiveIntensity: 0.15 });
     for (const sec of sections) {
       const secMat = new THREE.MeshStandardMaterial({ color: sec.color, roughness: 0.3, metalness: 0.7 });
       const box = new THREE.Mesh(new THREE.BoxGeometry(sec.w, sec.h, sec.w), secMat);
       box.position.y = sec.y;
       group.add(box);
-      // Window grid on all four sides
-      const rows = 2;
+      // Window grid — scale row count and spacing with section height
       const cols = 3;
+      const rows = Math.max(2, Math.floor(sec.h / 0.12));
       const spacingX = sec.w * 0.6 / cols;
       const spacingZ = sec.w * 0.6 / cols;
+      const spacingY = sec.h * 0.28;
       const startX = -spacingX * (cols - 1) / 2;
       const startZ = -spacingZ * (cols - 1) / 2;
-      const yBase = sec.y - sec.h / 2 + 0.04;
+      const yBase = sec.y - sec.h / 2 + 0.05;
+      const wDepth = 0.003;
+      const wH = rows > 2 ? 0.07 : 0.06;
       // Front (+Z) and back (-Z)
       for (let side = -1; side <= 1; side += 2) {
         for (let row = 0; row < rows; row++) {
           for (let col = 0; col < cols; col++) {
-            const w = new THREE.Mesh(windowGeom, windowMat);
-            w.position.set(startX + col * spacingX, yBase + row * 0.07, side * (sec.w / 2 + 0.001));
-            w.rotation.y = side > 0 ? 0 : Math.PI;
+            const w = new THREE.Mesh(new THREE.BoxGeometry(0.05, wH, wDepth), windowMat);
+            w.position.set(startX + col * spacingX, yBase + row * spacingY, side * (sec.w / 2 + 0.002));
             group.add(w);
           }
         }
@@ -357,9 +365,8 @@ export function createBuildingMesh(type) {
       for (let side = -1; side <= 1; side += 2) {
         for (let row = 0; row < rows; row++) {
           for (let col = 0; col < cols; col++) {
-            const w = new THREE.Mesh(windowGeom, windowMat);
-            w.position.set(side * (sec.w / 2 + 0.001), yBase + row * 0.07, startZ + col * spacingZ);
-            w.rotation.y = side > 0 ? Math.PI / 2 : -Math.PI / 2;
+            const w = new THREE.Mesh(new THREE.BoxGeometry(wDepth, wH, 0.05), windowMat);
+            w.position.set(side * (sec.w / 2 + 0.002), yBase + row * spacingY, startZ + col * spacingZ);
             group.add(w);
           }
         }
@@ -368,15 +375,17 @@ export function createBuildingMesh(type) {
     // Flat roof slab
     const roofMat = new THREE.MeshStandardMaterial({ color: 0xcfd8dc, roughness: 0.3, metalness: 0.8 });
     const roof = new THREE.Mesh(new THREE.BoxGeometry(0.37, 0.04, 0.37), roofMat);
-    roof.position.y = 0.87;
+    const totalHeight = 0.5 + 0.4 + 0.4 + 0.36; // sum of section heights
+    roof.position.y = totalHeight + 0.02;
     group.add(roof);
     // Small antenna on roof
     const antenna = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.008, 0.015, 0.08, 6),
+      new THREE.CylinderGeometry(0.008, 0.015, 0.1, 6),
       new THREE.MeshStandardMaterial({ color: 0xcfd8dc, roughness: 0.3, metalness: 0.9 })
     );
-    antenna.position.y = 0.93;
+    antenna.position.y = totalHeight + 0.08;
     group.add(antenna);
+    group.userData.centerOffset = new THREE.Vector3(0, 0.9, 0);
   }
 
   group.castShadow = true;
