@@ -21,7 +21,7 @@ const hpBarFillGeom = new THREE.BoxGeometry(0.76, 0.04, 0.05);
 
 export function spawnEnemy() {
   const r = CONFIG.enemySpawnRadius;
-  const dirs = [0, Math.PI/4, Math.PI/2, 3*Math.PI/4];
+  const dirs = [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2];
   const dir = dirs[Math.floor(Math.random() * dirs.length)];
   const angle = dir + (Math.random() - 0.5) * Math.PI/9;
   const x = Math.cos(angle) * r;
