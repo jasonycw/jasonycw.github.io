@@ -107,6 +107,10 @@ export function createMap(scene) {
 
   // Load hitarea mask to classify land vs sea from the actual map
   const hitareaImg = new Image();
+  hitareaImg.onerror = () => {
+    console.warn('MAP: hitarea failed to load, using circular fallback classification');
+    useHitareaClassification = true;
+  };
   hitareaImg.onload = () => {
     const cvs = document.createElement('canvas');
     cvs.width = hitareaImg.width;
