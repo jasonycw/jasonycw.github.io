@@ -6,6 +6,17 @@ import { setStatus } from './ui.js';
 
 const WIN_YEAR = 20;
 
+function getSpawnInterval(year) {
+  return Math.max(0.3, 0.8 - year * 0.03) + Math.random() * 0.3;
+}
+
+function getYearDuration(year, enemiesPerYear) {
+  const baseDuration = CONFIG.waveSpawnInterval + Math.max(0, 10 - year * 0.5);
+  const maxSpawnInterval = Math.max(0.3, 0.8 - year * 0.03) + 0.3;
+  const spawnDuration = Math.max(0, enemiesPerYear - 1) * maxSpawnInterval + 0.5;
+  return Math.max(baseDuration, spawnDuration);
+}
+
 // ==================== YEAR SYSTEM ====================
 export function updateYears(dt) {
   state.gameTime += dt;
@@ -23,7 +34,7 @@ export function updateYears(dt) {
     state.enemiesSpawnedInYear = 0;
     state.enemiesPerYear = Math.min(3 + state.year * 2, 30);
     state.spawnTimer = 0;
-    state.yearTimer = CONFIG.waveSpawnInterval + Math.max(0, 10 - state.year * 0.5);
+    state.yearTimer = getYearDuration(state.year, state.enemiesPerYear);
 
     setStatus(`Year ${state.year} incoming!`, '#ffab40');
     document.getElementById('yearDisplay').textContent = state.year;
@@ -51,7 +62,7 @@ export function updateYears(dt) {
     if (state.spawnTimer <= 0) {
       spawnEnemy();
       state.enemiesSpawnedInYear++;
-      state.spawnTimer = Math.max(0.3, 0.8 - state.year * 0.03) + Math.random() * 0.3;
+      state.spawnTimer = getSpawnInterval(state.year);
     }
   }
 
