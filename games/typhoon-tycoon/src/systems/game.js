@@ -101,6 +101,11 @@ function gameLoop() {
     }
 
     updateYears(dt);
+    if (state.phase !== 'playing') {
+      updateEffects(dt);
+      renderer.render(scene, camera);
+      return;
+    }
     updateEarthquakes(dt);
     updateEnemies(dt);
     updateConstruction();
