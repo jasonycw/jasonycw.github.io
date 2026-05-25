@@ -380,23 +380,23 @@
       let hitYBoundary = false;
 
       // Horizontal boundary check (left or right edge)
-      if (state.x <= margin) {
-        state.x = margin;
+      if (state.x <= 0) {
+        state.x = 0;
         state.vx = Math.abs(state.vx);
         hitXBoundary = true;
-      } else if (state.x + state.width >= window.innerWidth - margin) {
-        state.x = window.innerWidth - state.width - margin;
+      } else if (state.x + state.width >= window.innerWidth) {
+        state.x = window.innerWidth - state.width;
         state.vx = -Math.abs(state.vx);
         hitXBoundary = true;
       }
 
       // Vertical boundary check (top or bottom edge)
-      if (state.y <= margin) {
-        state.y = margin;
+      if (state.y <= 0) {
+        state.y = 0;
         state.vy = Math.abs(state.vy);
         hitYBoundary = true;
-      } else if (state.y + state.height >= window.innerHeight - margin) {
-        state.y = window.innerHeight - state.height - margin;
+      } else if (state.y + state.height >= window.innerHeight) {
+        state.y = window.innerHeight - state.height;
         state.vy = -Math.abs(state.vy);
         hitYBoundary = true;
       }
