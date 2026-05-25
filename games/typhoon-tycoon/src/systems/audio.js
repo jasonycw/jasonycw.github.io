@@ -128,10 +128,12 @@ let bgmPlaying = false;
 
 export function startBGM() {
   if (bgmPlaying) return;
-  bgm.play().catch(err => {
+  bgm.play().then(() => {
+    bgmPlaying = true;
+  }).catch(err => {
     console.warn('BGM autoplay failed:', err);
+    bgmPlaying = false;
   });
-  bgmPlaying = true;
   const btn = document.getElementById('musicBtn');
   if (btn) btn.textContent = '\u{1F50A} BGM';
 }
@@ -143,10 +145,12 @@ export function toggleBGM() {
     bgmPlaying = false;
     btn.textContent = '\u{1F3B5} BGM';
   } else {
-    bgm.play().catch(err => {
+    bgm.play().then(() => {
+      bgmPlaying = true;
+      btn.textContent = '\u{1F50A} BGM';
+    }).catch(err => {
       console.warn('BGM play failed:', err);
+      bgmPlaying = false;
     });
-    bgmPlaying = true;
-    btn.textContent = '\u{1F50A} BGM';
   }
 }
