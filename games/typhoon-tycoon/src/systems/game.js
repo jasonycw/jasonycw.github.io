@@ -2,7 +2,7 @@ import { clock, renderer, scene, camera } from '../core/three-setup.js';
 import { CONFIG } from '../core/config.js';
 import { state, getStructConfig } from '../core/state.js';
 import { enemies, updateEnemies } from './enemies.js';
-import { towers, buildings, updateTowers, removeTowerBeam, updatePower, updateBuildings, clearSmokeParticles } from './towers.js';
+import { towers, buildings, updateTowers, removeTowerBeam, updatePower, updateBuildings, clearSmokeParticles, sharedTowerGeoms } from './towers.js';
 import { effects, updateEffects } from './effects.js';
 import { scenery, sceneryGroup, setupScenery, updateSceneryDepthSort, updateTreeRegrowth, destroyedSpots, growingTrees, treeTrunkGeom, treeCrownGeom, treeCrown2Geom, treeTrunkMat, treeCrownMat, treeCrown2Mat } from './scenery.js';
 import { gridCells, useHitareaClassification } from '../world/map.js';
@@ -201,7 +201,7 @@ export function startGame() {
     scene.remove(t.mesh);
     t.mesh.traverse(c => {
       if (c.material) c.material.dispose();
-      if (c.geometry) c.geometry.dispose();
+      if (c.geometry && !sharedTowerGeoms.has(c.geometry)) c.geometry.dispose();
     });
   }
   towers.length = 0;

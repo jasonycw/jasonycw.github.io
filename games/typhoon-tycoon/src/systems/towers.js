@@ -15,6 +15,25 @@ const towerUpVector = new THREE.Vector3(0, 1, 0);
 const towerTargetDir = new THREE.Vector3();
 window.__towers = towers;
 window.__buildings = buildings;
+
+// Shared tower geometries — created once per page load, reused by all towers of the same type
+const towerGeoms = {
+  // LaserTower
+  laserBase: new THREE.CylinderGeometry(0.5, 0.6, 0.3, 8),
+  laserBarrel: new THREE.CylinderGeometry(0.08, 0.12, 0.7, 8),
+  laserRing: new THREE.TorusGeometry(0.2, 0.05, 8, 12),
+  // FreezeTower
+  freezeBase: new THREE.CylinderGeometry(0.5, 0.55, 0.3, 8),
+  freezeBody: new THREE.OctahedronGeometry(0.4),
+  freezeRing: new THREE.TorusGeometry(0.35, 0.04, 8, 16),
+  // RepelTower
+  repelBase: new THREE.CylinderGeometry(0.6, 0.65, 0.3, 8),
+  repelDome: new THREE.SphereGeometry(0.4, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+  repelRing0: new THREE.TorusGeometry(0.25, 0.03, 8, 16),
+  repelRing1: new THREE.TorusGeometry(0.40, 0.03, 8, 16),
+};
+export const sharedTowerGeoms = new Set(Object.values(towerGeoms));
+
 // ==================== TOWER MESHES ====================
 export function createTowerMesh(type) {
   const group = new THREE.Group();
@@ -22,19 +41,19 @@ export function createTowerMesh(type) {
 
   if (type === 'LaserTower') {
     const base = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.5, 0.6, 0.3, 8),
+      towerGeoms.laserBase,
       new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.6, metalness: 0.4 })
     );
     base.position.y = 0.15;
     group.add(base);
     const barrel = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.08, 0.12, 0.7, 8),
+      towerGeoms.laserBarrel,
       new THREE.MeshStandardMaterial({ color: 0x4fc3f7, emissive: 0x4fc3f7, emissiveIntensity: 0.3, metalness: 0.7, roughness: 0.2 })
     );
     barrel.position.y = 0.45;
     group.add(barrel);
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.2, 0.05, 8, 12),
+      towerGeoms.laserRing,
       new THREE.MeshStandardMaterial({ color: 0x4fc3f7, emissive: 0x4fc3f7, emissiveIntensity: 0.2 })
     );
     ring.position.y = 0.3;
@@ -45,20 +64,20 @@ export function createTowerMesh(type) {
     group.userData.centerOffset = new THREE.Vector3(0, 0.4, 0);
   } else if (type === 'FreezeTower') {
     const base = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.5, 0.55, 0.3, 8),
+      towerGeoms.freezeBase,
       new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.6, metalness: 0.4 })
     );
     base.position.y = 0.15;
     group.add(base);
     const body = new THREE.Mesh(
-      new THREE.OctahedronGeometry(0.4),
+      towerGeoms.freezeBody,
       new THREE.MeshStandardMaterial({ color: 0x81d4fa, emissive: 0x4fc3f7, emissiveIntensity: 0.4, roughness: 0.2, metalness: 0.5 })
     );
     body.position.y = 0.5;
     body.rotation.y = Math.PI / 4;
     group.add(body);
     const iceRing = new THREE.Mesh(
-      new THREE.TorusGeometry(0.35, 0.04, 8, 16),
+      towerGeoms.freezeRing,
       new THREE.MeshBasicMaterial({ color: 0xb3e5fc, transparent: true, opacity: 0.7 })
     );
     iceRing.position.y = 0.5;
@@ -69,20 +88,20 @@ export function createTowerMesh(type) {
     group.userData.centerOffset = new THREE.Vector3(0, 0.4, 0);
   } else if (type === 'RepelTower') {
     const base = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.6, 0.65, 0.3, 8),
+      towerGeoms.repelBase,
       new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.6, metalness: 0.4 })
     );
     base.position.y = 0.15;
     group.add(base);
     const dome = new THREE.Mesh(
-      new THREE.SphereGeometry(0.4, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+      towerGeoms.repelDome,
       new THREE.MeshStandardMaterial({ color: 0xff8a65, emissive: 0xff6d00, emissiveIntensity: 0.3, roughness: 0.3, metalness: 0.4 })
     );
     dome.position.y = 0.4;
     group.add(dome);
     for (let i = 0; i < 2; i++) {
       const r = new THREE.Mesh(
-        new THREE.TorusGeometry(0.25 + i * 0.15, 0.03, 8, 16),
+        i === 0 ? towerGeoms.repelRing0 : towerGeoms.repelRing1,
         new THREE.MeshBasicMaterial({ color: 0xffab40, transparent: true, opacity: 0.6 - i * 0.15 })
       );
       r.position.y = 0.3 + i * 0.1;
