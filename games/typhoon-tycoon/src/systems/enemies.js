@@ -12,6 +12,7 @@ import { setStatus } from './ui.js';
 export const enemies = [];
 
 const SPAWN_EDGE_MARGIN = 0.8;
+const DESPAWN_MAP_MARGIN = 2.0;
 
 function randomInRange(min, max) {
   return min + Math.random() * (max - min);
@@ -51,6 +52,14 @@ function getOceanSpawnPoint() {
     }
   }
   return fallback;
+}
+
+function isBeyondDespawnBounds(x, z) {
+  const half = MAP_PLANE_SIZE / 2;
+  return x < MAP_OFFSET_X - half - DESPAWN_MAP_MARGIN ||
+    x > MAP_OFFSET_X + half + DESPAWN_MAP_MARGIN ||
+    z < MAP_OFFSET_Z - half - DESPAWN_MAP_MARGIN ||
+    z > MAP_OFFSET_Z + half + DESPAWN_MAP_MARGIN;
 }
 
 // ==================== ENEMY SHARED GEOMETRIES ====================
@@ -419,8 +428,8 @@ export function updateEnemies(dt) {
       am.opacity = base * (0.3 + hpRatio * 0.7);
     }
 
-    // Despawn if off map (beyond spawn radius) — prevents circling back
-    if (Math.abs(e.x) > 16 || Math.abs(e.z) > 16) {
+    // Despawn only after leaving the visible offset map bounds with margin.
+    if (isBeyondDespawnBounds(e.x, e.z)) {
       removeEnemy(i);
       continue;
     }
