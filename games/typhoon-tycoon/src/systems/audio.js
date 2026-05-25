@@ -278,45 +278,108 @@ export function playTreeDestroySound() {
   } catch (e) { /* audio not available */ }
 }
 
-// Freeze tower sound — icy crystal shards
-export function playFreezeSound() {
+// Freeze tower sound — continuous icy wind + shimmer while beam is active
+export function startFreezeSound(tower) {
   try {
     const ctx = getAudioCtx();
+    if (!ctx || tower._freezeNodes) return;
     const t = ctx.currentTime;
+    const nodes = {};
 
-    // Phase 1: High icy shimmer — two detuned oscillators
+    // Master gain for fade-out
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.35, t);
+    master.connect(ctx.destination);
+    nodes.master = master;
+
+    // Continuous icy wind — looping noise with gentle LFO amplitude modulation
+    const windLen = Math.floor(ctx.sampleRate * 2);
+    const windBuf = ctx.createBuffer(1, windLen, ctx.sampleRate);
+    const windData = windBuf.getChannelData(0);
+    for (let i = 0; i < windLen; i++) {
+      windData[i] = (Math.random() * 2 - 1) * (1 - 0.3 * (i / windLen));
+    }
+    const wind = ctx.createBufferSource();
+    wind.buffer = windBuf;
+    wind.loop = true;
+    const windGain = ctx.createGain();
+    windGain.gain.setValueAtTime(0.15, t);
+    nodes.windGain = windGain;
+    // LFO for wind modulation
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.frequency.setValueAtTime(1.5, t);
+    lfoGain.gain.setValueAtTime(0.07, t);
+    lfo.connect(lfoGain);
+    lfoGain.connect(windGain.gain);
+    wind.connect(windGain);
+    windGain.connect(master);
+    wind.start(t);
+    lfo.start(t);
+    nodes.wind = wind;
+    nodes.lfo = lfo;
+    nodes.lfoGain = lfoGain;
+
+    // High icy shimmer — two detuned oscillators at steady pitch
+    const shimmerOscs = [];
     for (let i = 0; i < 2; i++) {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
-      const offset = i === 0 ? 0 : 15;
-      osc.frequency.setValueAtTime(1800 + offset, t);
-      osc.frequency.exponentialRampToValueAtTime(300 + offset, t + 0.35);
-      gain.gain.setValueAtTime(0.12, t);
-      gain.gain.linearRampToValueAtTime(0.08, t + 0.1);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+      const offset = i === 0 ? 0 : 17;
+      osc.frequency.setValueAtTime(2200 + offset, t);
+      osc.frequency.linearRampToValueAtTime(1800 + offset, t + 0.15);
+      gain.gain.setValueAtTime(0.0, t);
+      gain.gain.linearRampToValueAtTime(0.08, t + 0.15);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(master);
       osc.start(t);
-      osc.stop(t + 0.4);
+      shimmerOscs.push({ osc, gain });
     }
+    nodes.shimmerOscs = shimmerOscs;
 
-    // Phase 2: Ice crackle — noise burst
-    const crackSize = Math.floor(ctx.sampleRate * 0.15);
-    const crackBuf = ctx.createBuffer(1, crackSize, ctx.sampleRate);
-    const crackData = crackBuf.getChannelData(0);
-    for (let i = 0; i < crackSize; i++) {
-      crackData[i] = (Math.random() * 2 - 1) * Math.max(0, 1 - i / crackSize);
+    // Occasional ice crackle — periodic noise bursts using a script-based approach
+    const crackleLen = Math.floor(ctx.sampleRate * 0.4);
+    const crackleBuf = ctx.createBuffer(1, crackleLen, ctx.sampleRate);
+    const crackleData = crackleBuf.getChannelData(0);
+    for (let i = 0; i < crackleLen; i++) {
+      // Bursts of noise every ~120ms with decay
+      const posInBurst = i % Math.floor(ctx.sampleRate * 0.12);
+      const burstEnv = Math.max(0, 1 - posInBurst / Math.floor(ctx.sampleRate * 0.06));
+      crackleData[i] = (Math.random() * 2 - 1) * burstEnv * 0.4;
     }
-    const crack = ctx.createBufferSource();
-    crack.buffer = crackBuf;
-    const crackGain = ctx.createGain();
-    crackGain.gain.setValueAtTime(0.1, t + 0.05);
-    crackGain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-    crack.connect(crackGain);
-    crackGain.connect(ctx.destination);
-    crack.start(t + 0.05);
+    const crackle = ctx.createBufferSource();
+    crackle.buffer = crackleBuf;
+    crackle.loop = true;
+    const crackleGain = ctx.createGain();
+    crackleGain.gain.setValueAtTime(0.12, t + 0.15);
+    crackle.connect(crackleGain);
+    crackleGain.connect(master);
+    crackle.start(t + 0.15);
+    nodes.crackle = crackle;
+    nodes.crackleGain = crackleGain;
+
+    tower._freezeNodes = nodes;
   } catch (e) { /* audio not available */ }
+}
+
+// Stop the continuous freeze sound
+export function stopFreezeSound(tower) {
+  const nodes = tower._freezeNodes;
+  if (!nodes) return;
+  try {
+    const ctx = getAudioCtx();
+    const t = ctx.currentTime + 0.05;
+    // Fade out master
+    nodes.master.gain.linearRampToValueAtTime(0.001, t + 0.3);
+    // Stop all sources after fade
+    const stopTime = t + 0.35;
+    if (nodes.wind) nodes.wind.stop(stopTime);
+    if (nodes.lfo) nodes.lfo.stop(stopTime);
+    if (nodes.shimmerOscs) nodes.shimmerOscs.forEach(({ osc }) => { osc.stop(stopTime); });
+    if (nodes.crackle) nodes.crackle.stop(stopTime);
+  } catch (e) { /* audio not available */ }
+  tower._freezeNodes = null;
 }
 
 // Repel tower sound — psychic force push

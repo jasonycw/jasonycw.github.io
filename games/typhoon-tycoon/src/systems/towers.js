@@ -3,7 +3,7 @@ import { scene } from '../core/three-setup.js';
 import { state, getStructConfig } from '../core/state.js';
 import { enemies, damageEnemy } from './enemies.js';
 import { effects, spawnBurst, spawnLaserBeam } from './effects.js';
-import { playLaserSound, playFreezeSound, playRepelSound } from './audio.js';
+import { playLaserSound, startFreezeSound, stopFreezeSound, playRepelSound } from './audio.js';
 import { setStatus } from './ui.js';
 import { playPowerDownSound, playPowerUpSound } from './audio.js';
 
@@ -538,12 +538,12 @@ export function updateTowers(dt) {
     // Freeze Tower
     if (t.type === 'FreezeTower') {
       if (nearest) {
-        if (!t._hadFreezeTarget) { t._hadFreezeTarget = true; playFreezeSound(); }
+        if (!t._hadFreezeTarget) { t._hadFreezeTarget = true; startFreezeSound(t); }
         nearest.isSlowed = 2.0;
         nearest.slowFactor = 0.5;
         updateFreezeBeam(t, nearest, dt);
       } else {
-        t._hadFreezeTarget = false;
+        if (t._hadFreezeTarget) { t._hadFreezeTarget = false; stopFreezeSound(t); }
         removeTowerBeam(t);
       }
       continue;
@@ -719,6 +719,7 @@ export function removeTowerBeam(tower) {
   tower._repelPulseTimer = 0;
   tower._hadFreezeTarget = false;
   tower._hadRepelTarget = false;
+  stopFreezeSound(tower);
 }
 
 function disposeTowerBeam(group) {
