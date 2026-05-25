@@ -42,7 +42,7 @@ export const CONFIG = {
     },
     RepelTower: {
       title: 'Repel Tower', power: -10, cost: 2500, range: 6.5, damage: 0,
-      req: 'ResearchCenter', builtOn: 'sea', repelForce: 6,
+      req: 'ResearchCenter', builtOn: 'sea', repelForce: 6, repelForceBoost: 2,
       attackInterval: 1.5, color: 0xff8a65, radius: 0.8
     },
     PowerPlant: {

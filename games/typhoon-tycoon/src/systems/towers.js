@@ -536,8 +536,10 @@ export function updateTowers(dt) {
         const dz = nearest.z - t.wz;
         const dist = Math.sqrt(dx * dx + dz * dz);
         if (dist > 0) {
-          nearest.repelX += (dx / dist) * 8 * dt;
-          nearest.repelZ += (dz / dist) * 8 * dt;
+          const repelConfig = getStructConfig('RepelTower');
+          const repelForce = repelConfig.repelForce + (state.hasCheungKong ? repelConfig.repelForceBoost : 0);
+          nearest.repelX += (dx / dist) * repelForce * dt;
+          nearest.repelZ += (dz / dist) * repelForce * dt;
         }
         updateRepelPulse(t, nearest, dt);
       } else {
