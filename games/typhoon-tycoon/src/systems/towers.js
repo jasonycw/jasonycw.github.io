@@ -10,6 +10,7 @@ import { playPowerDownSound, playPowerUpSound } from './audio.js';
 
 export const towers = [];
 export const buildings = [];
+const smokeGeom = new THREE.SphereGeometry(1, 6, 6);
 window.__towers = towers;
 window.__buildings = buildings;
 // ==================== TOWER MESHES ====================
@@ -750,7 +751,6 @@ const smokeParticles = [];
 
 function spawnSmokeParticle(wx, wz, buildingY, localPos) {
   const size = 0.06 + Math.random() * 0.07;
-  const geom = new THREE.SphereGeometry(size, 6, 6);
   const brightness = 0.85 + Math.random() * 0.15;
   const mat = new THREE.MeshBasicMaterial({
     color: new THREE.Color(brightness, brightness, brightness),
@@ -758,7 +758,8 @@ function spawnSmokeParticle(wx, wz, buildingY, localPos) {
     opacity: 0.45 + Math.random() * 0.25,
     depthWrite: false
   });
-  const mesh = new THREE.Mesh(geom, mat);
+  const mesh = new THREE.Mesh(smokeGeom, mat);
+  mesh.scale.setScalar(size);
   mesh.position.set(
     wx + localPos.x + (Math.random() - 0.5) * 0.08,
     buildingY + localPos.y,
@@ -766,7 +767,7 @@ function spawnSmokeParticle(wx, wz, buildingY, localPos) {
   );
   scene.add(mesh);
   smokeParticles.push({
-    mesh, mat, geom,
+    mesh, mat,
     vx: (Math.random() - 0.5) * 0.25,
     vy: 0.3 + Math.random() * 0.4,
     vz: (Math.random() - 0.5) * 0.25,
@@ -809,7 +810,6 @@ export function updateBuildings(dt) {
     if (p.life <= 0) {
       scene.remove(p.mesh);
       p.mat.dispose();
-      p.geom.dispose();
       smokeParticles.splice(i, 1);
       continue;
     }
@@ -830,7 +830,6 @@ export function clearSmokeParticles() {
   for (const p of smokeParticles) {
     scene.remove(p.mesh);
     p.mat.dispose();
-    p.geom.dispose();
   }
   smokeParticles.length = 0;
 }
