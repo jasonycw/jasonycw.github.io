@@ -26,7 +26,7 @@ export function updateYears(dt) {
     // Win after surviving year WIN_YEAR (timer expires → current year is done)
     if (state.year >= WIN_YEAR) {
       state.phase = 'win'; // block the game loop immediately
-      import('./ui.js').then(m => m.winGame()).catch(() => {});
+      import('./ui.js').then(m => m.winGame()).catch(e => console.error('Failed to import winGame:', e));
       return;
     }
 
