@@ -2,15 +2,18 @@ import * as THREE from 'three';
 import { scene } from '../core/three-setup.js';
 
 // ==================== VISUAL EFFECTS ====================
+const effectGeom = new THREE.SphereGeometry(1, 6, 6);
+const burstGeom = new THREE.SphereGeometry(1, 4, 4);
+
 export const effects = [];
 
 export function spawnEffect(x, y, z, color, duration) {
-  const geom = new THREE.SphereGeometry(0.1, 6, 6);
   const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1 });
-  const mesh = new THREE.Mesh(geom, mat);
+  const mesh = new THREE.Mesh(effectGeom, mat);
+  mesh.scale.setScalar(0.1);
   mesh.position.set(x, y, z);
   scene.add(mesh);
-  effects.push({ mesh, mat, geom, life: duration, maxLife: duration });
+  effects.push({ mesh, mat, geom: effectGeom, life: duration, maxLife: duration, _baseScale: 0.1 });
 }
 
 /** Multi-particle burst flying outward from a point */
@@ -19,13 +22,13 @@ export function spawnBurst(x, y, z, color, count) {
   for (let i = 0; i < n; i++) {
     const angle = (i / n) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
     const speed = 1.5 + Math.random() * 3;
-    const geom = new THREE.SphereGeometry(0.04, 4, 4);
     const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1 });
-    const mesh = new THREE.Mesh(geom, mat);
+    const mesh = new THREE.Mesh(burstGeom, mat);
+    mesh.scale.setScalar(0.04);
     mesh.position.set(x, y, z);
     scene.add(mesh);
     effects.push({
-      mesh, mat, life: 0.5, maxLife: 0.5, geom,
+      mesh, mat, life: 0.5, maxLife: 0.5, geom: burstGeom, _baseScale: 0.04,
       _vx: Math.cos(angle) * speed,
       _vz: Math.sin(angle) * speed,
       _vy: 0.8 + Math.random() * 1.5,
@@ -95,7 +98,7 @@ export function updateEffects(dt) {
     if (e.life <= 0) {
       scene.remove(e.mesh);
       e.mat.dispose();
-      if (e.geom) e.geom.dispose();
+      if (e.geom && e.geom !== effectGeom && e.geom !== burstGeom) e.geom.dispose();
       effects.splice(i, 1);
       continue;
     }
@@ -122,7 +125,7 @@ export function updateEffects(dt) {
       e._vx *= 0.96;
       e._vz *= 0.96;
       e._vy -= 2.5 * dt;
-      e.mesh.scale.setScalar(0.8 + (1 - ratio) * 0.6);
+      e.mesh.scale.setScalar((e._baseScale ?? 1) * (0.8 + (1 - ratio) * 0.6));
       // Building debris tumbles as it flies
       if (e._tumbleX) e.mesh.rotation.x += e._tumbleX * dt;
       if (e._tumbleY) e.mesh.rotation.y += e._tumbleY * dt;
@@ -133,7 +136,7 @@ export function updateEffects(dt) {
       const grow = 0.55 + (1 - ratio) * 1.65;
       e.mesh.scale.set(grow, grow, grow);
     } else if (!e._laserBeam) {
-      e.mesh.scale.setScalar(1 + (1 - ratio) * 2);
+      e.mesh.scale.setScalar((e._baseScale ?? 1) * (1 + (1 - ratio) * 2));
     }
   }
 }
