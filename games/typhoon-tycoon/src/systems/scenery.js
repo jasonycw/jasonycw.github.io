@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { scene, camera } from '../core/three-setup.js';
 import { CONFIG } from '../core/config.js';
-import { gridCells, useHitareaClassification, isSeaAt, MAP_PLANE_SIZE, MAP_OFFSET_X, MAP_OFFSET_Z } from '../world/map.js';
+import { gridCells, isSeaAt, MAP_PLANE_SIZE, MAP_OFFSET_X, MAP_OFFSET_Z, halfCells } from '../world/map.js';
 import { effects } from './effects.js';
 
 /** Set uniform renderOrder on all meshes of a composite object based on camera distance from its geometric center */
@@ -291,7 +291,7 @@ function isValidTreeSpot(wx, wz) {
   // Check no grid cell occupant (player-built structure)
   const cx = Math.round(wx / CONFIG.cellSize);
   const cz = Math.round(wz / CONFIG.cellSize);
-  const half = 7;
+  const half = halfCells;
   if (Math.abs(cx) <= half && Math.abs(cz) <= half) {
     const cols = half * 2 + 1;
     const cell = gridCells[(cx + half) * cols + (cz + half)];
