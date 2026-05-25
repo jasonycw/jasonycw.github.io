@@ -299,7 +299,7 @@ export function updateEnemies(dt) {
     const e = enemies[i];
     if (!e.alive) continue;
 
-    // Repel — apply as direct position push (not angle tweak)
+    // Repel — velocity set each frame by tower (capped at repelForce), decays smoothly when out of range
     if (e.repelX !== 0 || e.repelZ !== 0) {
       e.mesh.position.x += e.repelX * dt;
       e.mesh.position.z += e.repelZ * dt;
