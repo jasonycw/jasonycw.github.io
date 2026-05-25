@@ -11,6 +11,8 @@ import { playPowerDownSound, playPowerUpSound } from './audio.js';
 export const towers = [];
 export const buildings = [];
 const smokeGeom = new THREE.SphereGeometry(1, 6, 6);
+const towerUpVector = new THREE.Vector3(0, 1, 0);
+const towerTargetDir = new THREE.Vector3();
 window.__towers = towers;
 window.__buildings = buildings;
 // ==================== TOWER MESHES ====================
@@ -500,9 +502,8 @@ export function updateTowers(dt) {
       const dz = nearest.z - t.wz;
       const dist2d = Math.sqrt(dx * dx + dz * dz);
       if (dist2d > 0.1) {
-        const up = new THREE.Vector3(0, 1, 0);
-        const targetDir = new THREE.Vector3(dx, 1.0 - 0.45, dz).normalize();
-        t.mesh.userData.turret.quaternion.setFromUnitVectors(up, targetDir);
+        towerTargetDir.set(dx, 1.0 - 0.45, dz).normalize();
+        t.mesh.userData.turret.quaternion.setFromUnitVectors(towerUpVector, towerTargetDir);
         if (t.mesh.userData.ring) {
           t.mesh.userData.ring.rotation.z = Math.atan2(dx, dz);
         }
