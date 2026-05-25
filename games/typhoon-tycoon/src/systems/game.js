@@ -1,7 +1,7 @@
 import { clock, renderer, scene, camera } from '../core/three-setup.js';
 import { CONFIG } from '../core/config.js';
 import { state, getStructConfig } from '../core/state.js';
-import { enemies, updateEnemies } from './enemies.js';
+import { enemies, updateEnemies, sharedEnemyMats, sharedEnemyGeoms } from './enemies.js';
 import { towers, buildings, updateTowers, removeTowerBeam, updatePower, updateBuildings, clearSmokeParticles, sharedTowerGeoms } from './towers.js';
 import { effects, updateEffects, clearEffects } from './effects.js';
 import { scenery, sceneryGroup, setupScenery, updateSceneryDepthSort, updateTreeRegrowth, destroyedSpots, growingTrees, treeTrunkGeom, treeCrownGeom, treeCrown2Geom, treeTrunkMat, treeCrownMat, treeCrown2Mat } from './scenery.js';
@@ -162,12 +162,12 @@ export function startGame() {
     e.mesh.traverse(child => {
       if (child.material) {
         if (Array.isArray(child.material)) {
-          child.material.forEach(m => { if (!e._sharedMats || !e._sharedMats.has(m)) m.dispose(); });
-        } else if (!e._sharedMats || !e._sharedMats.has(child.material)) {
+          child.material.forEach(m => { if (!sharedEnemyMats.has(m)) m.dispose(); });
+        } else if (!sharedEnemyMats.has(child.material)) {
           child.material.dispose();
         }
       }
-      if (child.geometry && (!e._sharedGeoms || !e._sharedGeoms.has(child.geometry))) child.geometry.dispose();
+      if (child.geometry && !sharedEnemyGeoms.has(child.geometry)) child.geometry.dispose();
     });
   }
   enemies.length = 0;

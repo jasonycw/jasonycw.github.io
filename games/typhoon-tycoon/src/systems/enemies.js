@@ -94,8 +94,8 @@ const planeMat_s = new THREE.MeshBasicMaterial({
 });
 
 // Track shared resources so removeEnemy skips disposal
-const sharedEnemyGeoms = new Set([canopyGeom, midCloudGeom, eyewallGeom, innerWallGeom, texPlaneGeom, windPartGeom, wispPartGeom, rainPartGeom]);
-const sharedEnemyMats = new Set([canopyMat_s, midCloudMat_s, planeMat_s, hpBarBgMat]);
+export const sharedEnemyGeoms = new Set([canopyGeom, midCloudGeom, eyewallGeom, innerWallGeom, texPlaneGeom, windPartGeom, wispPartGeom, rainPartGeom]);
+export const sharedEnemyMats = new Set([canopyMat_s, midCloudMat_s, planeMat_s, hpBarBgMat]);
 
 export function spawnEnemy() {
   const { x, z } = getOceanSpawnPoint();
