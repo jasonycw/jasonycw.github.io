@@ -472,6 +472,13 @@ export function destroySceneryNear(wx, wz, radius) {
       }
     }
   }
+  pruneDestroyedSceneryRecords();
+}
+
+function pruneDestroyedSceneryRecords() {
+  for (let i = scenery.length - 1; i >= 0; i--) {
+    if (!scenery[i].alive) scenery.splice(i, 1);
+  }
 }
 
 /** Silently remove scenery at a world position (no debris burst) */
@@ -487,4 +494,5 @@ export function removeSceneryAt(wx, wz) {
       }
     }
   }
+  pruneDestroyedSceneryRecords();
 }
