@@ -768,6 +768,7 @@ function spawnSmokeParticle(wx, wz, buildingY, localPos) {
   scene.add(mesh);
   smokeParticles.push({
     mesh, mat,
+    baseSize: size,
     vx: (Math.random() - 0.5) * 0.25,
     vy: 0.3 + Math.random() * 0.4,
     vz: (Math.random() - 0.5) * 0.25,
@@ -822,7 +823,7 @@ export function updateBuildings(dt) {
     p.vz *= 0.97;
     p.mat.opacity = ratio * 0.5;
     const grow = 0.5 + (1 - ratio) * 1.2;
-    p.mesh.scale.setScalar(grow);
+    p.mesh.scale.setScalar(p.baseSize * grow);
   }
 }
 
