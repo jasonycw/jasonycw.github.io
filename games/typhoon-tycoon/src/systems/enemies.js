@@ -2,12 +2,11 @@ import * as THREE from 'three';
 import { scene, camera } from '../core/three-setup.js';
 import { CONFIG } from '../core/config.js';
 import { state } from '../core/state.js';
-import { effects, spawnBurst, spawnEffect } from './effects.js';
+import { spawnBurst, spawnEffect } from './effects.js';
 import { destroySceneryNear } from './scenery.js';
 import { isSeaAt, isOnMap, MAP_OFFSET_X, MAP_OFFSET_Z, MAP_PLANE_SIZE } from '../world/map.js';
 import { gameOver } from './ui.js';
 import { playHitSound } from './audio.js';
-import { setStatus } from './ui.js';
 
 export const enemies = [];
 
@@ -281,8 +280,6 @@ export function spawnEnemy() {
     innerWallMat,
     armMats,
     allTyphoonMats,
-    _sharedMats: sharedEnemyMats,
-    _sharedGeoms: sharedEnemyGeoms,
     hpBar: { group: hpBarGroup, bg: hpBg, fill: hpFill },
     x, z,
     hp,
@@ -490,6 +487,7 @@ export function removeEnemy(index) {
 }
 
 export function damageEnemy(enemy, damage) {
+  if (!enemy || !enemy.alive) return;
   enemy.hp -= damage;
   if (enemy.hp <= 0) {
     state.hsi += CONFIG.killRewardHSI;
