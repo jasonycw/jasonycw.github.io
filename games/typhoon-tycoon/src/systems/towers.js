@@ -1,9 +1,8 @@
 import * as THREE from 'three';
 import { scene } from '../core/three-setup.js';
-import { CONFIG } from '../core/config.js';
 import { state, getStructConfig } from '../core/state.js';
 import { enemies, damageEnemy } from './enemies.js';
-import { effects, spawnBurst, spawnEffect, spawnLaserBeam } from './effects.js';
+import { effects, spawnBurst, spawnLaserBeam } from './effects.js';
 import { playLaserSound } from './audio.js';
 import { setStatus } from './ui.js';
 import { playPowerDownSound, playPowerUpSound } from './audio.js';
@@ -37,7 +36,6 @@ export const sharedTowerGeoms = new Set(Object.values(towerGeoms));
 // ==================== TOWER MESHES ====================
 export function createTowerMesh(type) {
   const group = new THREE.Group();
-  const cfg = getStructConfig(type);
 
   if (type === 'LaserTower') {
     const base = new THREE.Mesh(
@@ -119,7 +117,6 @@ export function createTowerMesh(type) {
 
 export function createBuildingMesh(type) {
   const group = new THREE.Group();
-  const cfg = getStructConfig(type);
 
   if (type === 'PowerPlant') {
     // Blue-ish main body
