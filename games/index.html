@@ -68,15 +68,15 @@
 
     /* Ensure no overflow - text is clipped if needed (shouldn't happen with proper sizing) */
     .game-card-content {
-     width: 100%;
-     height: 100%;
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     justify-content: flex-start;
-     overflow: hidden;
-     padding: 0;
-     margin: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow: hidden;
+      padding: 0;
+      margin: 0;
     }
   </style>
 </head>
@@ -198,12 +198,23 @@
       const card = document.createElement('a');
       card.className = 'game-card';
       card.href = game.href;
-      card.innerHTML = `
-        <div class="game-card-content">
-          <h2>${game.title}</h2>
-          <p>${game.subtitle}</p>
-        </div>
-      `;
+      card.tabIndex = 0;
+      card.setAttribute('aria-label', `${game.title}: ${game.subtitle}`);
+      card.setAttribute('role', 'button');
+      
+      const content = document.createElement('div');
+      content.className = 'game-card-content';
+      
+      const title = document.createElement('h2');
+      title.textContent = game.title;
+      
+      const subtitle = document.createElement('p');
+      subtitle.textContent = game.subtitle;
+      
+      content.appendChild(title);
+      content.appendChild(subtitle);
+      card.appendChild(content);
+      
       return card;
     }
 
@@ -263,7 +274,7 @@
       // Step 3: Binary search for subtitle size
       // Reduced to 12 iterations for performance
       let subtitleMinFit = 1;
-      let subtitleMaxFit = remainingHeight * 3;
+      let subtitleMaxFit = Math.min(remainingHeight * 3, 48);
       let subtitleBestFit = 1;
       
       for (let iter = 0; iter < 12; iter++) {
@@ -309,12 +320,25 @@
       const width = cardElement.offsetWidth;
       const height = cardElement.offsetHeight;
       
+      // Generate velocity with minimum threshold to ensure visible movement
+      let vx = (Math.random() - 0.5) * 1.5 + (Math.random() > 0.5 ? 1 : -1);
+      let vy = (Math.random() - 0.5) * 1.5 + (Math.random() > 0.5 ? 1 : -1);
+      
+      // Ensure minimum velocity magnitude (at least 0.5 px/frame)
+      const minVelocity = 0.5;
+      const velocityMagnitude = Math.sqrt(vx * vx + vy * vy);
+      if (velocityMagnitude < minVelocity) {
+        const scale = minVelocity / velocityMagnitude;
+        vx *= scale;
+        vy *= scale;
+      }
+      
       const state = {
         element: cardElement,
         x: Math.random() * (window.innerWidth - width),
         y: Math.random() * (window.innerHeight - height),
-        vx: (Math.random() - 0.5) * 1.5 + (Math.random() > 0.5 ? 1 : -1),
-        vy: (Math.random() - 0.5) * 1.5 + (Math.random() > 0.5 ? 1 : -1),
+        vx: vx,
+        vy: vy,
         color: getRandomNeonColor(),
         isFlashing: false,
         rainbowIndex: 0,
@@ -352,7 +376,6 @@
      * Detects wall hits, corner hits, and applies appropriate collision responses
      */
     function handleBoundaryCollision(state) {
-      const margin = 0;
       let hitXBoundary = false;
       let hitYBoundary = false;
 
@@ -402,6 +425,12 @@
         if (state.rainbowCounter >= 10) {
           state.rainbowCounter = 0;
           state.rainbowIndex = (state.rainbowIndex + 1) % RAINBOW_COLORS.length;
+          
+          // Stop flashing after completing one full cycle
+          if (state.rainbowIndex === 0) {
+            state.isFlashing = false;
+            state.color = getRandomNeonColor();
+          }
         }
       }
     }
@@ -516,10 +545,19 @@
         cancelAnimationFrame(resizeFrameId);
       }
       window.removeEventListener('resize', debouncedHandleWindowResize);
+      
+      // Remove all game card elements from DOM
+      cardStates.forEach(state => {
+        if (state.element && state.element.parentNode) {
+          state.element.parentNode.removeChild(state.element);
+        }
+      });
+      cardStates.length = 0;
     }
 
     // Initialize when DOM is ready
-    document.addEventListener('DOMContentLoaded', initializeGameCards);
+    const initListener = initializeGameCards;
+    document.addEventListener('DOMContentLoaded', initListener, { once: true });
 
     // Cleanup on page unload
     window.addEventListener('beforeunload', cleanup);
