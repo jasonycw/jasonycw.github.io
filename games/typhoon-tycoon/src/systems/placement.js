@@ -7,6 +7,7 @@ import { removeSceneryAt } from './scenery.js';
 import { towers, buildings, createTowerMesh, createBuildingMesh, updatePower } from './towers.js';
 import { spawnEffect } from './effects.js';
 import { setStatus } from './ui.js';
+import { playBuildSound } from './audio.js';
 
 // ==================== INPUT HANDLING ====================
 const raycaster = new THREE.Raycaster();
@@ -178,6 +179,7 @@ export function placeStructure(wx, wz, type) {
 
   spawnEffect(wx, 0.3, wz, cfg.color || 0xffffff, 0.5);
   updatePower();
+  playBuildSound();
   updateUI();
 
   return true;

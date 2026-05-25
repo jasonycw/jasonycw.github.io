@@ -3,7 +3,7 @@ import { scene } from '../core/three-setup.js';
 import { state, getStructConfig } from '../core/state.js';
 import { enemies, damageEnemy } from './enemies.js';
 import { effects, spawnBurst, spawnLaserBeam } from './effects.js';
-import { playLaserSound } from './audio.js';
+import { playLaserSound, playFreezeSound, playRepelSound } from './audio.js';
 import { setStatus } from './ui.js';
 import { playPowerDownSound, playPowerUpSound } from './audio.js';
 
@@ -538,10 +538,12 @@ export function updateTowers(dt) {
     // Freeze Tower
     if (t.type === 'FreezeTower') {
       if (nearest) {
+        if (!t._hadFreezeTarget) { t._hadFreezeTarget = true; playFreezeSound(); }
         nearest.isSlowed = 2.0;
         nearest.slowFactor = 0.5;
         updateFreezeBeam(t, nearest, dt);
       } else {
+        t._hadFreezeTarget = false;
         removeTowerBeam(t);
       }
       continue;
@@ -550,6 +552,7 @@ export function updateTowers(dt) {
     // Repel Tower
     if (t.type === 'RepelTower') {
       if (nearest) {
+        if (!t._hadRepelTarget) { t._hadRepelTarget = true; playRepelSound(); }
         const dx = nearest.x - t.wx;
         const dz = nearest.z - t.wz;
         const dist = Math.sqrt(dx * dx + dz * dz);
@@ -561,6 +564,7 @@ export function updateTowers(dt) {
         }
         updateRepelPulse(t, nearest, dt);
       } else {
+        t._hadRepelTarget = false;
         removeTowerBeam(t);
       }
       continue;
@@ -713,6 +717,8 @@ export function removeTowerBeam(tower) {
   tower._freezeLastStart = null;
   tower._freezeLastEnd = null;
   tower._repelPulseTimer = 0;
+  tower._hadFreezeTarget = false;
+  tower._hadRepelTarget = false;
 }
 
 function disposeTowerBeam(group) {

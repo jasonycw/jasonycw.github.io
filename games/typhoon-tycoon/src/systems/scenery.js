@@ -3,6 +3,7 @@ import { scene, camera } from '../core/three-setup.js';
 import { CONFIG } from '../core/config.js';
 import { gridCells, isSeaAt, MAP_PLANE_SIZE, MAP_OFFSET_X, MAP_OFFSET_Z, halfCells } from '../world/map.js';
 import { effects } from './effects.js';
+import { playBuildingDestroySound, playTreeDestroySound } from './audio.js';
 
 /** Set uniform renderOrder on all meshes of a composite object based on camera distance from its geometric center */
 function applyRenderOrderToParts(parts, centerWorld) {
@@ -374,12 +375,14 @@ export function updateTreeRegrowth(dt) {
 /** Destroy and burst scenery within a radius of a world position */
 export function destroySceneryNear(wx, wz, radius) {
   const radiusSq = radius * radius;
+  let treeHit = 0;
+  let buildingHit = 0;
   for (const s of scenery) {
     if (!s.alive) continue;
     const dx = s.worldX - wx;
     const dz = s.worldZ - wz;
     if (dx * dx + dz * dz >= radiusSq) continue;
-
+    if (s.type === 'tree') treeHit++; else buildingHit++;
     s.alive = false;
     // Track destroyed tree position for regrowth
     if (s.type === 'tree') {
@@ -473,6 +476,8 @@ export function destroySceneryNear(wx, wz, radius) {
     }
   }
   pruneDestroyedSceneryRecords();
+  if (treeHit > 0) playTreeDestroySound();
+  if (buildingHit > 0) playBuildingDestroySound();
 }
 
 function pruneDestroyedSceneryRecords() {

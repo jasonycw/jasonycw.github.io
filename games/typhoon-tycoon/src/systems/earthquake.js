@@ -5,6 +5,7 @@ import { getStructConfig, isStructureUnlocked, state } from '../core/state.js';
 import { buildings, towers } from './towers.js';
 import { effects, spawnBurst, spawnEffect } from './effects.js';
 import { gridCells } from '../world/map.js';
+import { playEarthquakeSound } from './audio.js';
 
 // ==================== EARTHQUAKE SYSTEM ====================
 
@@ -273,6 +274,7 @@ export function updateEarthquakes(dt) {
     if (q.countdown <= 0 && !q.fired) {
       q.fired = true;
       // Earthquake strikes!
+      playEarthquakeSound();
       triggerShockwave();
 
       // Destroy buildings within radius
