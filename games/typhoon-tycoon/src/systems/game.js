@@ -107,6 +107,7 @@ function gameLoop() {
       return;
     }
     updateEarthquakes(dt);
+    updatePower();
     updateEnemies(dt);
     updateConstruction();
     updateTowers(dt);
