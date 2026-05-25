@@ -3,7 +3,7 @@ import { CONFIG } from '../core/config.js';
 import { state, getStructConfig } from '../core/state.js';
 import { enemies, updateEnemies } from './enemies.js';
 import { towers, buildings, updateTowers, removeTowerBeam, updatePower, updateBuildings, clearSmokeParticles, sharedTowerGeoms } from './towers.js';
-import { effects, updateEffects } from './effects.js';
+import { effects, updateEffects, clearEffects } from './effects.js';
 import { scenery, sceneryGroup, setupScenery, updateSceneryDepthSort, updateTreeRegrowth, destroyedSpots, growingTrees, treeTrunkGeom, treeCrownGeom, treeCrown2Geom, treeTrunkMat, treeCrownMat, treeCrown2Mat } from './scenery.js';
 import { gridCells, useHitareaClassification } from '../world/map.js';
 import { updateYears } from './waves.js';
@@ -172,12 +172,7 @@ export function startGame() {
   }
   enemies.length = 0;
 
-  for (const e of effects) {
-    scene.remove(e.mesh);
-    e.mat.dispose();
-    if (e.geom) e.geom.dispose();
-  }
-  effects.length = 0;
+  clearEffects();
 
   for (const s of scenery) {
     for (const part of s.parts) {

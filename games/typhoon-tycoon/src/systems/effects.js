@@ -92,6 +92,18 @@ export function spawnLaserMuzzle(tower, target) {
   }
 }
 
+/** Clear all active effects — safe for game restart (preserves shared geometries) */
+export function clearEffects() {
+  for (const e of effects) {
+    scene.remove(e.mesh);
+    e.mat.dispose();
+    if (e.geom && e.geom !== effectGeom && e.geom !== burstGeom && e.geom !== laserGlowGeom) {
+      e.geom.dispose();
+    }
+  }
+  effects.length = 0;
+}
+
 export function updateEffects(dt) {
   for (let i = effects.length - 1; i >= 0; i--) {
     const e = effects[i];
