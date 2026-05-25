@@ -2,10 +2,10 @@ import * as THREE from 'three';
 import { scene, camera } from '../core/three-setup.js';
 import { CONFIG } from '../core/config.js';
 import { state, getStructConfig, meetsRequirements, isStructureUnlocked } from '../core/state.js';
-import { gridCells, isOnMap, isSeaAt, MAP_OFFSET_X, MAP_OFFSET_Z, MAP_PLANE_SIZE, halfCells } from '../world/map.js';
-import { scenery, removeSceneryAt } from './scenery.js';
+import { gridCells, isOnMap, isSeaAt, halfCells } from '../world/map.js';
+import { removeSceneryAt } from './scenery.js';
 import { towers, buildings, createTowerMesh, createBuildingMesh, updatePower } from './towers.js';
-import { effects, spawnEffect } from './effects.js';
+import { spawnEffect } from './effects.js';
 import { setStatus } from './ui.js';
 
 // ==================== INPUT HANDLING ====================
