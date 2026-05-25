@@ -1,5 +1,6 @@
 import { state } from '../core/state.js';
 import { getStructConfig, isStructureUnlocked } from '../core/state.js';
+import { resetEarthquakes } from './earthquake.js';
 
 // ==================== UI ====================
 let buildButtons = null;
@@ -41,6 +42,7 @@ export function updateBuildButtonStates() {
 }
 
 export function gameOver() {
+  resetEarthquakes();
   state.phase = 'gameover';
   document.getElementById('gameover').classList.remove('hidden');
   document.getElementById('gameoverStat').textContent =
@@ -50,6 +52,7 @@ export function gameOver() {
 }
 
 export function winGame() {
+  resetEarthquakes();
   state.phase = 'win';
   document.getElementById('winoverlay').classList.remove('hidden');
   document.getElementById('winStat').textContent =
