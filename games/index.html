@@ -261,12 +261,12 @@
       const remainingHeight = cardHeight - titleHeight;
       
       // Step 3: Binary search for subtitle size
-      // Reduced to 25 iterations for performance
+      // Reduced to 12 iterations for performance
       let subtitleMinFit = 1;
       let subtitleMaxFit = remainingHeight * 3;
       let subtitleBestFit = 1;
       
-      for (let iter = 0; iter < 25; iter++) {
+      for (let iter = 0; iter < 12; iter++) {
         const testSize = (subtitleMinFit + subtitleMaxFit) / 2;
         subtitle.style.fontSize = testSize + 'px';
         
@@ -298,6 +298,7 @@
     // ============================================================================
     const cardStates = []; // Array of { element, x, y, vx, vy, color, isFlashing, rainbowIndex, width, height }
     let animationFrameId;
+    let resizeFrameId = null;
     let lastWidth = window.innerWidth;
     let lastHeight = window.innerHeight;
 
@@ -455,6 +456,19 @@
        lastHeight = newHeight;
      }
     }
+    
+    /**
+     * Debounce resize handler using requestAnimationFrame for smooth updates
+     */
+    function debouncedHandleWindowResize() {
+      if (resizeFrameId !== null) {
+        cancelAnimationFrame(resizeFrameId);
+      }
+      resizeFrameId = requestAnimationFrame(() => {
+        handleWindowResize();
+        resizeFrameId = null;
+      });
+    }
 
     // ============================================================================
     // Initialization (Phase 1-2)
@@ -469,22 +483,25 @@
         document.body.appendChild(cardElement);
       });
 
-      // Use requestAnimationFrame for more reliable DOM measurements
+      // Use nested requestAnimationFrame for reliable DOM measurements
+      // First frame allows browser to complete initial layout and paint
       requestAnimationFrame(() => {
-        const cardElements = document.querySelectorAll('.game-card');
-        cardElements.forEach((cardElement, index) => {
-          // Fit text to card dimensions
-          fitTextToCard(cardElement);
-           
-          // Initialize physics state
-          initializeCardState(cardElement, index);
+        requestAnimationFrame(() => {
+          const cardElements = document.querySelectorAll('.game-card');
+          cardElements.forEach((cardElement, index) => {
+            // Fit text to card dimensions
+            fitTextToCard(cardElement);
+             
+            // Initialize physics state
+            initializeCardState(cardElement, index);
+          });
+
+          // Start animation loop
+          animateCards();
+
+          // Handle window resize
+          window.addEventListener('resize', debouncedHandleWindowResize);
         });
-
-        // Start animation loop
-        animateCards();
-
-        // Handle window resize
-        window.addEventListener('resize', handleWindowResize);
       });
     }
 
@@ -495,7 +512,10 @@
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
       }
-      window.removeEventListener('resize', handleWindowResize);
+      if (resizeFrameId !== null) {
+        cancelAnimationFrame(resizeFrameId);
+      }
+      window.removeEventListener('resize', debouncedHandleWindowResize);
     }
 
     // Initialize when DOM is ready
