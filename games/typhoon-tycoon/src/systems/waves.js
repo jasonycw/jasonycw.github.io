@@ -1,10 +1,8 @@
-import { CONFIG } from '../core/config.js';
+import { CONFIG, WIN_YEAR } from '../core/config.js';
 import { state } from '../core/state.js';
 import { enemies } from './enemies.js';
 import { spawnEnemy } from './enemies.js';
 import { setStatus } from './ui.js';
-
-const WIN_YEAR = 20;
 
 function getSpawnInterval(year) {
   return Math.max(0.3, 0.8 - year * 0.03) + Math.random() * 0.3;
