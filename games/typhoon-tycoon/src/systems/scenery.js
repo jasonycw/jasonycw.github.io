@@ -417,12 +417,14 @@ export function destroySceneryNear(wx, wz, radius) {
         // Detach from scenery group — effect system handles removal from main scene
         sceneryGroup.remove(part);
         scene.add(part);
-    effects.push({
-      mesh: part, mat: part.material.clone(), life: 1.5, maxLife: 1.5, geom: null,
-      _tornado: true, _spin: spinSpeed, _upSpeed: upSpeed,
-      _vx: Math.cos(angle) * outSpeed,
-      _vz: Math.sin(angle) * outSpeed
-    });
+        const tornadoMat = part.material.clone();
+        part.material = tornadoMat;
+        effects.push({
+          mesh: part, mat: tornadoMat, life: 1.5, maxLife: 1.5, geom: null,
+          _tornado: true, _spin: spinSpeed, _upSpeed: upSpeed,
+          _vx: Math.cos(angle) * outSpeed,
+          _vz: Math.sin(angle) * outSpeed
+        });
       }
       // Green burst of leaves
       for (let i = 0; i < 8; i++) {
