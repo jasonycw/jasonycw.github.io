@@ -9,7 +9,7 @@ A 2.5D browser-based tower defense game rebuilt in Three.js, inspired by the ori
 | Menu | In-Game Action |
 |------|----------------|
 | ![Game Menu](assets/screenshots/menu.png) | ![In-Game Action](assets/screenshots/action.png) |
-| Start screen with the Hong Kong / South China Sea map and concentric danger zone rings. | All 8 structure types deployed at real in-game placement scale/rules (Laser/Freeze/Repel Towers, Power/University/Research/Nuclear Plants, CheungKong HQ) defending against realistic 3D typhoons with empty eyes, bright eyewalls, asymmetric spiral rainbands, camera-facing HP bars, and multi-layer particle systems. |
+| Start screen with the Hong Kong / South China Sea map and concentric danger zone rings. | All 8 structure types deployed at real in-game placement scale/rules (Laser/Freeze/Repel Towers, Power/University/Research/Nuclear Plants, Li's Enterprise HQ) defending against realistic 3D typhoons with empty eyes, bright eyewalls, asymmetric spiral rainbands, camera-facing HP bars, and multi-layer particle systems. |
 
 | Game Over | Victory |
 |-----------|---------|
@@ -77,8 +77,8 @@ In the year 21XX, the Li's field (李氏力場) becomes reality in the form of a
 
 | Key | Action |
 |-----|--------|
-| `1` | Select Laser Tower |
-| `2` | Select Power Plant |
+| `1` | Select Power Plant |
+| `2` | Select Laser Tower |
 | `3` | Select Freeze Tower |
 | `4` | Select Repel Tower |
 | `Q` | Select Nuclear Power Plant |
