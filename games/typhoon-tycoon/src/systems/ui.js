@@ -23,6 +23,7 @@ export function setStatus(msg, color) {
 export function updateUI() {
   document.getElementById('hsiDisplay').textContent = Math.round(state.hsi);
   document.getElementById('yearDisplay').textContent = state.year;
+  document.getElementById('enemyCount').textContent = state.enemyCount;
   updateBuildButtonStates();
 }
 
