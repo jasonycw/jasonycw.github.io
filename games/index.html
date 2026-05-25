@@ -68,15 +68,15 @@
 
     /* Ensure no overflow - text is clipped if needed (shouldn't happen with proper sizing) */
     .game-card-content {
-     width: 100%;
-     height: 100%;
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     justify-content: flex-start;
-     overflow: hidden;
-     padding: 0;
-     margin: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow: hidden;
+      padding: 0;
+      margin: 0;
     }
   </style>
 </head>
@@ -181,6 +181,20 @@
     ];
 
     // ============================================================================
+    // Configuration Constants
+    // ============================================================================
+    const CONFIG = {
+      TITLE_MAX_HEIGHT_PERCENT: 0.5,
+      SUBTITLE_MAX_FONT_SIZE: 48,
+      SUBTITLE_MAX_MULTIPLIER: 3,
+      VELOCITY_MULTIPLIER: 1.5,
+      MIN_VELOCITY: 0.5,
+      RAINBOW_FLASH_INTERVAL: 10,
+      COLOR_TRANSITION_TIME: '0.05s',
+      TEXT_FIT_PRECISION: 12
+    };
+
+    // ============================================================================
     // Utility Functions
     // ============================================================================
 
@@ -198,12 +212,22 @@
       const card = document.createElement('a');
       card.className = 'game-card';
       card.href = game.href;
-      card.innerHTML = `
-        <div class="game-card-content">
-          <h2>${game.title}</h2>
-          <p>${game.subtitle}</p>
-        </div>
-      `;
+      card.tabIndex = 0;
+      card.setAttribute('aria-label', `${game.title}: ${game.subtitle}`);
+      
+      const content = document.createElement('div');
+      content.className = 'game-card-content';
+      
+      const title = document.createElement('h2');
+      title.textContent = game.title;
+      
+      const subtitle = document.createElement('p');
+      subtitle.textContent = game.subtitle;
+      
+      content.appendChild(title);
+      content.appendChild(subtitle);
+      card.appendChild(content);
+      
       return card;
     }
 
@@ -239,9 +263,9 @@
         
         // Text fits if:
         // 1. All text fits within container width (scrollWidth <= clientWidth)
-        // 2. Height doesn't exceed 50% of card
+        // 2. Height doesn't exceed configured maximum
         const textFitsWidth = titleScrollWidth <= titleClientWidth + 1;
-        const textFitsHeight = titleHeight <= cardHeight * 0.5;
+        const textFitsHeight = titleHeight <= cardHeight * CONFIG.TITLE_MAX_HEIGHT_PERCENT;
         
         if (textFitsWidth && textFitsHeight) {
           // Size works! Try larger
@@ -261,12 +285,12 @@
       const remainingHeight = cardHeight - titleHeight;
       
       // Step 3: Binary search for subtitle size
-      // Reduced to 25 iterations for performance
+      // Reduced to 12 iterations for performance
       let subtitleMinFit = 1;
-      let subtitleMaxFit = remainingHeight * 3;
+      let subtitleMaxFit = Math.min(remainingHeight * CONFIG.SUBTITLE_MAX_MULTIPLIER, CONFIG.SUBTITLE_MAX_FONT_SIZE);
       let subtitleBestFit = 1;
       
-      for (let iter = 0; iter < 25; iter++) {
+      for (let iter = 0; iter < 12; iter++) {
         const testSize = (subtitleMinFit + subtitleMaxFit) / 2;
         subtitle.style.fontSize = testSize + 'px';
         
@@ -298,6 +322,7 @@
     // ============================================================================
     const cardStates = []; // Array of { element, x, y, vx, vy, color, isFlashing, rainbowIndex, width, height }
     let animationFrameId;
+    let resizeFrameId = null;
     let lastWidth = window.innerWidth;
     let lastHeight = window.innerHeight;
 
@@ -308,12 +333,24 @@
       const width = cardElement.offsetWidth;
       const height = cardElement.offsetHeight;
       
+      // Generate velocity with minimum threshold to ensure visible movement
+      let vx = (Math.random() - 0.5) * CONFIG.VELOCITY_MULTIPLIER + (Math.random() > 0.5 ? 1 : -1);
+      let vy = (Math.random() - 0.5) * CONFIG.VELOCITY_MULTIPLIER + (Math.random() > 0.5 ? 1 : -1);
+      
+      // Ensure minimum velocity magnitude
+      const velocityMagnitude = Math.sqrt(vx * vx + vy * vy);
+      if (velocityMagnitude < CONFIG.MIN_VELOCITY) {
+        const scale = CONFIG.MIN_VELOCITY / velocityMagnitude;
+        vx *= scale;
+        vy *= scale;
+      }
+      
       const state = {
         element: cardElement,
         x: Math.random() * (window.innerWidth - width),
         y: Math.random() * (window.innerHeight - height),
-        vx: (Math.random() - 0.5) * 1.5 + (Math.random() > 0.5 ? 1 : -1),
-        vy: (Math.random() - 0.5) * 1.5 + (Math.random() > 0.5 ? 1 : -1),
+        vx: vx,
+        vy: vy,
         color: getRandomNeonColor(),
         isFlashing: false,
         rainbowIndex: 0,
@@ -351,28 +388,27 @@
      * Detects wall hits, corner hits, and applies appropriate collision responses
      */
     function handleBoundaryCollision(state) {
-      const margin = 0;
       let hitXBoundary = false;
       let hitYBoundary = false;
 
       // Horizontal boundary check (left or right edge)
-      if (state.x <= margin) {
-        state.x = margin;
+      if (state.x <= 0) {
+        state.x = 0;
         state.vx = Math.abs(state.vx);
         hitXBoundary = true;
-      } else if (state.x + state.width >= window.innerWidth - margin) {
-        state.x = window.innerWidth - state.width - margin;
+      } else if (state.x + state.width >= window.innerWidth) {
+        state.x = window.innerWidth - state.width;
         state.vx = -Math.abs(state.vx);
         hitXBoundary = true;
       }
 
       // Vertical boundary check (top or bottom edge)
-      if (state.y <= margin) {
-        state.y = margin;
+      if (state.y <= 0) {
+        state.y = 0;
         state.vy = Math.abs(state.vy);
         hitYBoundary = true;
-      } else if (state.y + state.height >= window.innerHeight - margin) {
-        state.y = window.innerHeight - state.height - margin;
+      } else if (state.y + state.height >= window.innerHeight) {
+        state.y = window.innerHeight - state.height;
         state.vy = -Math.abs(state.vy);
         hitYBoundary = true;
       }
@@ -398,9 +434,15 @@
     function updateRainbowFlash(state) {
       if (state.isFlashing) {
         state.rainbowCounter++;
-        if (state.rainbowCounter >= 10) {
+        if (state.rainbowCounter >= CONFIG.RAINBOW_FLASH_INTERVAL) {
           state.rainbowCounter = 0;
           state.rainbowIndex = (state.rainbowIndex + 1) % RAINBOW_COLORS.length;
+          
+          // Stop flashing after completing one full cycle
+          if (state.rainbowIndex === 0) {
+            state.isFlashing = false;
+            state.color = getRandomNeonColor();
+          }
         }
       }
     }
@@ -455,6 +497,19 @@
        lastHeight = newHeight;
      }
     }
+    
+    /**
+     * Debounce resize handler using requestAnimationFrame for smooth updates
+     */
+    function debouncedHandleWindowResize() {
+      if (resizeFrameId !== null) {
+        cancelAnimationFrame(resizeFrameId);
+      }
+      resizeFrameId = requestAnimationFrame(() => {
+        handleWindowResize();
+        resizeFrameId = null;
+      });
+    }
 
     // ============================================================================
     // Initialization (Phase 1-2)
@@ -469,22 +524,25 @@
         document.body.appendChild(cardElement);
       });
 
-      // Use requestAnimationFrame for more reliable DOM measurements
+      // Use nested requestAnimationFrame for reliable DOM measurements
+      // First frame allows browser to complete initial layout and paint
       requestAnimationFrame(() => {
-        const cardElements = document.querySelectorAll('.game-card');
-        cardElements.forEach((cardElement, index) => {
-          // Fit text to card dimensions
-          fitTextToCard(cardElement);
-           
-          // Initialize physics state
-          initializeCardState(cardElement, index);
+        requestAnimationFrame(() => {
+          const cardElements = document.querySelectorAll('.game-card');
+          cardElements.forEach((cardElement, index) => {
+            // Fit text to card dimensions
+            fitTextToCard(cardElement);
+             
+            // Initialize physics state
+            initializeCardState(cardElement, index);
+          });
+
+          // Start animation loop
+          animateCards();
+
+          // Handle window resize
+          window.addEventListener('resize', debouncedHandleWindowResize);
         });
-
-        // Start animation loop
-        animateCards();
-
-        // Handle window resize
-        window.addEventListener('resize', handleWindowResize);
       });
     }
 
@@ -494,12 +552,26 @@
     function cleanup() {
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
       }
-      window.removeEventListener('resize', handleWindowResize);
+      if (resizeFrameId !== null) {
+        cancelAnimationFrame(resizeFrameId);
+        resizeFrameId = null;
+      }
+      window.removeEventListener('resize', debouncedHandleWindowResize);
+      
+      // Remove all game card elements from DOM
+      cardStates.forEach(state => {
+        if (state.element && state.element.parentNode) {
+          state.element.parentNode.removeChild(state.element);
+        }
+      });
+      cardStates.length = 0;
     }
 
     // Initialize when DOM is ready
-    document.addEventListener('DOMContentLoaded', initializeGameCards);
+    const initListener = initializeGameCards;
+    document.addEventListener('DOMContentLoaded', initListener, { once: true });
 
     // Cleanup on page unload
     window.addEventListener('beforeunload', cleanup);
