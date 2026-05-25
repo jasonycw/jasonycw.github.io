@@ -437,55 +437,86 @@ export function playEarthquakeSound() {
     const ctx = getAudioCtx();
     const t = ctx.currentTime;
 
+    // Master gain to easily adjust overall volume
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.7, t);
+    master.connect(ctx.destination);
+
     // Phase 1: Deep rumbling — low-frequency oscillation with modulation
     const rumble = ctx.createOscillator();
     const rumbleGain = ctx.createGain();
     rumble.type = 'sine';
-    rumble.frequency.setValueAtTime(40, t);
-    rumble.frequency.linearRampToValueAtTime(25, t + 0.3);
-    rumble.frequency.linearRampToValueAtTime(45, t + 0.7);
-    rumble.frequency.exponentialRampToValueAtTime(10, t + 1.8);
-    rumbleGain.gain.setValueAtTime(0.5, t);
-    rumbleGain.gain.linearRampToValueAtTime(0.35, t + 0.4);
-    rumbleGain.gain.exponentialRampToValueAtTime(0.001, t + 2.0);
+    rumble.frequency.setValueAtTime(35, t);
+    rumble.frequency.linearRampToValueAtTime(20, t + 0.5);
+    rumble.frequency.linearRampToValueAtTime(45, t + 1.0);
+    rumble.frequency.exponentialRampToValueAtTime(8, t + 2.5);
+    rumbleGain.gain.setValueAtTime(0.55, t);
+    rumbleGain.gain.linearRampToValueAtTime(0.4, t + 0.5);
+    rumbleGain.gain.exponentialRampToValueAtTime(0.001, t + 2.8);
     rumble.connect(rumbleGain);
-    rumbleGain.connect(ctx.destination);
+    rumbleGain.connect(master);
     rumble.start(t);
-    rumble.stop(t + 2.0);
+    rumble.stop(t + 2.8);
 
-    // Phase 2: Rock grinding — noise with amplitude modulation
-    const grindSize = Math.floor(ctx.sampleRate * 1.2);
+    // Phase 2: Impact thump — short sharp hit (structure cracking)
+    const thump = ctx.createOscillator();
+    const thumpGain = ctx.createGain();
+    thump.type = 'triangle';
+    thump.frequency.setValueAtTime(200, t);
+    thump.frequency.exponentialRampToValueAtTime(30, t + 0.15);
+    thumpGain.gain.setValueAtTime(0.6, t);
+    thumpGain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    thump.connect(thumpGain);
+    thumpGain.connect(master);
+    thump.start(t);
+    thump.stop(t + 0.3);
+
+    // Phase 3: Rock grinding — noise with amplitude modulation
+    const grindSize = Math.floor(ctx.sampleRate * 1.5);
     const grindBuf = ctx.createBuffer(1, grindSize, ctx.sampleRate);
     const grindData = grindBuf.getChannelData(0);
     for (let i = 0; i < grindSize; i++) {
       const env = Math.max(0, 1 - i / grindSize);
-      const mod = 0.5 + 0.5 * Math.sin(i * 0.02);
+      const mod = 0.5 + 0.5 * Math.sin(i * 0.025);
       grindData[i] = (Math.random() * 2 - 1) * env * mod;
     }
     const grind = ctx.createBufferSource();
     grind.buffer = grindBuf;
     const grindGain = ctx.createGain();
-    grindGain.gain.setValueAtTime(0.2, t + 0.1);
-    grindGain.gain.linearRampToValueAtTime(0.3, t + 0.3);
-    grindGain.gain.exponentialRampToValueAtTime(0.001, t + 1.3);
-    grind.connect(grindGain);
-    grindGain.connect(ctx.destination);
-    grind.start(t + 0.1);
+    grindGain.gain.setValueAtTime(0.0, t + 0.05);
+    grindGain.gain.linearRampToValueAtTime(0.35, t + 0.35);
+    grindGain.gain.exponentialRampToValueAtTime(0.001, t + 1.6);
 
-    // Phase 3: Distant crash — low thump (structure creaking/failing)
+    // LFO modulates grind amplitude for gritty texture
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.frequency.setValueAtTime(8, t);
+    lfoGain.gain.setValueAtTime(0.15, t);
+    lfo.connect(lfoGain);
+    lfoGain.connect(grindGain.gain);
+    grind.connect(grindGain);
+    grindGain.connect(master);
+    grind.start(t + 0.05);
+    lfo.start(t + 0.05);
+    lfo.stop(t + 1.6);
+
+    // Phase 4: Distant crash — low thump (structure creaking/failing)
     const crash = ctx.createOscillator();
     const crashGain = ctx.createGain();
     crash.type = 'triangle';
-    crash.frequency.setValueAtTime(150, t + 0.5);
-    crash.frequency.exponentialRampToValueAtTime(30, t + 1.0);
-    crashGain.gain.setValueAtTime(0.15, t + 0.5);
-    crashGain.gain.linearRampToValueAtTime(0.1, t + 0.7);
-    crashGain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+    crash.frequency.setValueAtTime(180, t + 0.6);
+    crash.frequency.exponentialRampToValueAtTime(25, t + 1.3);
+    crashGain.gain.setValueAtTime(0.2, t + 0.6);
+    crashGain.gain.linearRampToValueAtTime(0.15, t + 0.85);
+    crashGain.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
     crash.connect(crashGain);
-    crashGain.connect(ctx.destination);
-    crash.start(t + 0.5);
-    crash.stop(t + 1.2);
-  } catch (e) { /* audio not available */ }
+    crashGain.connect(master);
+    crash.start(t + 0.6);
+    crash.stop(t + 1.5);
+    master.gain.exponentialRampToValueAtTime(0.001, t + 2.8);
+  } catch (e) {
+    if (typeof console !== 'undefined') console.warn('Earthquake sound error:', e);
+  }
 }
 const bgm = new Audio('./assets/bgm.mp3');
 bgm.loop = true;

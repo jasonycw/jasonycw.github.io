@@ -6,17 +6,15 @@ A 2.5D browser-based tower defense game rebuilt in Three.js, inspired by the ori
 
 ## Screenshots
 
-![Game Menu](assets/screenshots/menu.png)
-*Start screen with the Hong Kong / South China Sea map and concentric danger zone rings.*
+| Menu | In-Game Action |
+|------|----------------|
+| ![Game Menu](assets/screenshots/menu.png) | ![In-Game Action](assets/screenshots/action.png) |
+| Start screen with the Hong Kong / South China Sea map and concentric danger zone rings. | All 8 structure types deployed at real in-game placement scale/rules (Laser/Freeze/Repel Towers, Power/University/Research/Nuclear Plants, CheungKong HQ) defending against realistic 3D typhoons with empty eyes, bright eyewalls, asymmetric spiral rainbands, camera-facing HP bars, and multi-layer particle systems. |
 
-![In-Game Action](assets/screenshots/action.png)
-*All 8 structure types deployed at real in-game placement scale/rules (Laser/Freeze/Repel Towers, Power/University/Research/Nuclear Plants, CheungKong HQ) defending against realistic 3D typhoons with empty eyes, bright eyewalls, asymmetric spiral rainbands, camera-facing HP bars, and multi-layer particle systems.*
-
-![Game Over](assets/screenshots/lose.png)
-*Game over screen shown when HSI drops to zero — the economy has collapsed.*
-
-![Victory](assets/screenshots/win.png)
-*Victory screen after surviving all 20 years — Hong Kong is safe... for now.*
+| Game Over | Victory |
+|-----------|---------|
+| ![Game Over](assets/screenshots/lose.png) | ![Victory](assets/screenshots/win.png) |
+| HSI has dropped to zero — the economy has collapsed. | Survived all 20 years — Hong Kong is safe... for now. |
 
 ## Visual Features
 
