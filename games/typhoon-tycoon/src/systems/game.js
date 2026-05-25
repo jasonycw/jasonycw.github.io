@@ -161,10 +161,13 @@ export function startGame() {
     scene.remove(e.mesh);
     e.mesh.traverse(child => {
       if (child.material) {
-        if (Array.isArray(child.material)) child.material.forEach(m => { m.dispose(); });
-        else child.material.dispose();
+        if (Array.isArray(child.material)) {
+          child.material.forEach(m => { if (!e._sharedMats || !e._sharedMats.has(m)) m.dispose(); });
+        } else if (!e._sharedMats || !e._sharedMats.has(child.material)) {
+          child.material.dispose();
+        }
       }
-      if (child.geometry) child.geometry.dispose();
+      if (child.geometry && (!e._sharedGeoms || !e._sharedGeoms.has(child.geometry))) child.geometry.dispose();
     });
   }
   enemies.length = 0;

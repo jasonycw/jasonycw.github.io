@@ -70,6 +70,34 @@ const hpBarBgGeom = new THREE.BoxGeometry(0.8, 0.04, 0.06);
 const hpBarFillMat = new THREE.MeshBasicMaterial({ color: 0x66bb6a, depthTest: false, depthWrite: false });
 const hpBarFillGeom = new THREE.BoxGeometry(0.76, 0.04, 0.05);
 
+// Shared typhoon geometries — created once per page load, reused across all enemies
+const canopyGeom = new THREE.RingGeometry(0.3, 2.8, 64);
+const midCloudGeom = new THREE.RingGeometry(0.25, 2.2, 56);
+const eyewallGeom = new THREE.RingGeometry(0.19, 0.36, 48);
+const innerWallGeom = new THREE.RingGeometry(0.21, 0.28, 40);
+const texPlaneGeom = new THREE.PlaneGeometry(3.4, 3.4);
+const windPartGeom = new THREE.SphereGeometry(0.02, 4, 4);
+const wispPartGeom = new THREE.SphereGeometry(0.04, 4, 4);
+const rainPartGeom = new THREE.SphereGeometry(0.012, 3, 3);
+
+// Shared typhoon materials — fixed colors/opacities for parts that don't animate per enemy
+const canopyMat_s = new THREE.MeshBasicMaterial({
+  color: 0xf0f0f0, transparent: true, opacity: 0.13,
+  side: THREE.DoubleSide, depthWrite: false
+});
+const midCloudMat_s = new THREE.MeshBasicMaterial({
+  color: 0xfafafa, transparent: true, opacity: 0.18,
+  side: THREE.DoubleSide, depthWrite: false
+});
+const planeMat_s = new THREE.MeshBasicMaterial({
+  map: typhoonSpriteTexture, transparent: true, opacity: 0.14,
+  side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending
+});
+
+// Track shared resources so removeEnemy skips disposal
+const sharedEnemyGeoms = new Set([canopyGeom, midCloudGeom, eyewallGeom, innerWallGeom, texPlaneGeom, windPartGeom, wispPartGeom, rainPartGeom]);
+const sharedEnemyMats = new Set([canopyMat_s, midCloudMat_s, planeMat_s, hpBarBgMat]);
+
 export function spawnEnemy() {
   const { x, z } = getOceanSpawnPoint();
 
@@ -87,23 +115,13 @@ export function spawnEnemy() {
   const allTyphoonMats = [];
 
   // --- OUTER CLOUD CANOPY (broad semi-transparent deck, fading edges) ---
-  const canopyMat = new THREE.MeshBasicMaterial({
-    color: 0xf0f0f0, transparent: true, opacity: 0.13,
-    side: THREE.DoubleSide, depthWrite: false
-  });
-  allTyphoonMats.push(canopyMat);
-  const canopy = new THREE.Mesh(new THREE.RingGeometry(0.3, 2.8, 64), canopyMat);
+  const canopy = new THREE.Mesh(canopyGeom, canopyMat_s);
   canopy.rotation.x = -Math.PI / 2;
   canopy.position.y = -0.28;
   typhoonGroup.add(canopy);
 
   // --- MID CLOUD LAYER (denser inner cloud mass) ---
-  const midCloudMat = new THREE.MeshBasicMaterial({
-    color: 0xfafafa, transparent: true, opacity: 0.18,
-    side: THREE.DoubleSide, depthWrite: false
-  });
-  allTyphoonMats.push(midCloudMat);
-  const midCloud = new THREE.Mesh(new THREE.RingGeometry(0.25, 2.2, 56), midCloudMat);
+  const midCloud = new THREE.Mesh(midCloudGeom, midCloudMat_s);
   midCloud.rotation.x = -Math.PI / 2;
   midCloud.position.y = -0.06;
   typhoonGroup.add(midCloud);
@@ -114,7 +132,7 @@ export function spawnEnemy() {
     side: THREE.DoubleSide, depthWrite: false
   });
   allTyphoonMats.push(eyewallMat);
-  const eyewall = new THREE.Mesh(new THREE.RingGeometry(0.19, 0.36, 48), eyewallMat);
+  const eyewall = new THREE.Mesh(eyewallGeom, eyewallMat);
   eyewall.rotation.x = -Math.PI / 2;
   eyewall.position.y = 0.02;
   typhoonGroup.add(eyewall);
@@ -125,7 +143,7 @@ export function spawnEnemy() {
     side: THREE.DoubleSide, depthWrite: false
   });
   allTyphoonMats.push(innerWallMat);
-  const innerWall = new THREE.Mesh(new THREE.RingGeometry(0.21, 0.28, 40), innerWallMat);
+  const innerWall = new THREE.Mesh(innerWallGeom, innerWallMat);
   innerWall.rotation.x = -Math.PI / 2;
   innerWall.position.y = 0.03;
   typhoonGroup.add(innerWall);
@@ -176,12 +194,7 @@ export function spawnEnemy() {
   }
 
   // --- TEXTURE PLANE (satellite overlay for extra visual richness) ---
-  const planeMat = new THREE.MeshBasicMaterial({
-    map: typhoonSpriteTexture, transparent: true, opacity: 0.14,
-    side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending
-  });
-  allTyphoonMats.push(planeMat);
-  const texPlane = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 3.4), planeMat);
+  const texPlane = new THREE.Mesh(texPlaneGeom, planeMat_s);
   texPlane.rotation.x = -Math.PI / 2;
   texPlane.position.y = 0.04;
   typhoonGroup.add(texPlane);
@@ -197,9 +210,8 @@ export function spawnEnemy() {
       opacity: 0.14 + Math.random() * 0.22, depthWrite: false
     });
     allTyphoonMats.push(pMat);
-    const pMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.02 + Math.random() * 0.03, 4, 4), pMat
-    );
+    const pMesh = new THREE.Mesh(windPartGeom, pMat);
+    pMesh.scale.setScalar(1 + Math.random() * 1.5);
     pMesh.position.set(Math.cos(a) * r, (Math.random() - 0.5) * 0.25, Math.sin(a) * r);
     typhoonGroup.add(pMesh);
     particleData.push({ mesh: pMesh, angle: a, radius: r, speed: 0.8 + Math.random() * 1.4, type: 'wind' });
@@ -213,9 +225,8 @@ export function spawnEnemy() {
       opacity: 0.06 + Math.random() * 0.10, depthWrite: false
     });
     allTyphoonMats.push(pMat);
-    const pMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.04 + Math.random() * 0.06, 4, 4), pMat
-    );
+    const pMesh = new THREE.Mesh(wispPartGeom, pMat);
+    pMesh.scale.setScalar(1 + Math.random() * 1.5);
     pMesh.position.set(Math.cos(a) * r, (Math.random() - 0.5) * 0.12, Math.sin(a) * r);
     typhoonGroup.add(pMesh);
     particleData.push({ mesh: pMesh, angle: a, radius: r, speed: 0.25 + Math.random() * 0.4, type: 'wisp' });
@@ -229,9 +240,8 @@ export function spawnEnemy() {
       opacity: 0.10 + Math.random() * 0.14, depthWrite: false
     });
     allTyphoonMats.push(pMat);
-    const pMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.012 + Math.random() * 0.016, 3, 3), pMat
-    );
+    const pMesh = new THREE.Mesh(rainPartGeom, pMat);
+    pMesh.scale.setScalar(1 + Math.random() * 1.33);
     pMesh.position.set(Math.cos(a) * r, -0.35 - Math.random() * 0.5, Math.sin(a) * r);
     typhoonGroup.add(pMesh);
     particleData.push({ mesh: pMesh, angle: a, radius: r, speed: 1.2 + Math.random() * 1.8, type: 'rain' });
@@ -271,6 +281,8 @@ export function spawnEnemy() {
     innerWallMat,
     armMats,
     allTyphoonMats,
+    _sharedMats: sharedEnemyMats,
+    _sharedGeoms: sharedEnemyGeoms,
     hpBar: { group: hpBarGroup, bg: hpBg, fill: hpFill },
     x, z,
     hp,
@@ -459,10 +471,13 @@ export function removeEnemy(index) {
   scene.remove(e.mesh);
   e.mesh.traverse(child => {
     if (child.material) {
-      if (Array.isArray(child.material)) child.material.forEach(m => { m.dispose(); });
-      else child.material.dispose();
+      if (Array.isArray(child.material)) {
+        child.material.forEach(m => { if (!sharedEnemyMats.has(m)) m.dispose(); });
+      } else if (!sharedEnemyMats.has(child.material)) {
+        child.material.dispose();
+      }
     }
-    if (child.geometry) child.geometry.dispose();
+    if (child.geometry && !sharedEnemyGeoms.has(child.geometry)) child.geometry.dispose();
   });
   if (e.hpBar) {
     scene.remove(e.hpBar.group);
