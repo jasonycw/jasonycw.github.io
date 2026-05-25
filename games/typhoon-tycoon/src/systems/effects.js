@@ -4,6 +4,7 @@ import { scene } from '../core/three-setup.js';
 // ==================== VISUAL EFFECTS ====================
 const effectGeom = new THREE.SphereGeometry(1, 6, 6);
 const burstGeom = new THREE.SphereGeometry(1, 4, 4);
+const laserGlowGeom = new THREE.CylinderGeometry(0.045, 0.045, 1, 10, 1, true);
 
 export const effects = [];
 
@@ -61,7 +62,6 @@ export function spawnLaserBeam(x1, y1, z1, x2, y2, z2, color) {
   effects.push({ mesh: line, mat: lineMat, life: 0.2, maxLife: 0.2, geom: lineGeom, _laserBeam: true, _baseOpacity: 0.95 });
 
   // Soft beam glow — no dots along the laser.
-  const glowGeom = new THREE.CylinderGeometry(0.045, 0.045, len, 10, 1, true);
   const glowMat = new THREE.MeshBasicMaterial({
     color: cols,
     transparent: true,
@@ -70,11 +70,12 @@ export function spawnLaserBeam(x1, y1, z1, x2, y2, z2, color) {
     depthWrite: false,
     depthTest: false
   });
-  const glow = new THREE.Mesh(glowGeom, glowMat);
+  const glow = new THREE.Mesh(laserGlowGeom, glowMat);
+  glow.scale.set(1, len, 1);
   glow.position.copy(start).add(dir.clone().multiplyScalar(0.5));
   glow.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
   scene.add(glow);
-  effects.push({ mesh: glow, mat: glowMat, life: 0.2, maxLife: 0.2, geom: glowGeom, _laserBeam: true, _baseOpacity: 0.28 });
+  effects.push({ mesh: glow, mat: glowMat, life: 0.2, maxLife: 0.2, geom: laserGlowGeom, _laserBeam: true, _baseOpacity: 0.28 });
 }
 
 /** Spawn muzzle flash at the computed barrel tip position */
@@ -98,7 +99,7 @@ export function updateEffects(dt) {
     if (e.life <= 0) {
       scene.remove(e.mesh);
       e.mat.dispose();
-      if (e.geom && e.geom !== effectGeom && e.geom !== burstGeom) e.geom.dispose();
+      if (e.geom && e.geom !== effectGeom && e.geom !== burstGeom && e.geom !== laserGlowGeom) e.geom.dispose();
       effects.splice(i, 1);
       continue;
     }
