@@ -533,7 +533,8 @@ body {
 }
 
 /* Earthquake countdown label (on screen, positioned over 3D circle) */
-#quakeCountdown {
+#quakeCountdown,
+.quake-countdown {
   position: fixed;
   font-size: 2rem;
   font-weight: 900;

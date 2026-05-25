@@ -109,9 +109,15 @@ function worldToScreen(wx, wy, wz) {
   };
 }
 
+function createCountdownLabel() {
+  const el = document.createElement('div');
+  el.className = 'quake-countdown hidden';
+  document.body.appendChild(el);
+  return el;
+}
+
 /** Show countdown label at a position */
-function showCountdownLabel(id, x, z, text) {
-  const el = document.getElementById(id);
+function showCountdownLabel(el, x, z, text) {
   if (!el) return;
   if (text === null) {
     el.classList.add('hidden');
@@ -261,7 +267,7 @@ export function updateEarthquakes(dt) {
       if (q.countdown < 2) {
         q.meshes.innerMat.opacity *= 0.5 + Math.sin(q.elapsed * 20) * 0.5;
       }
-      showCountdownLabel('quakeCountdown', q.x, q.z, displayText);
+      showCountdownLabel(q.label, q.x, q.z, displayText);
     }
 
     if (q.countdown <= 0 && !q.fired) {
@@ -292,7 +298,8 @@ export function updateEarthquakes(dt) {
 
     // Clean up quake after delay
     if (q.countdown < -1.5) {
-      showCountdownLabel('quakeCountdown', q.x, q.z, null);
+      showCountdownLabel(q.label, q.x, q.z, null);
+      removeCountdownLabel(q);
       scene.remove(q.meshes.inner);
       q.meshes.innerMat.dispose();
       q.meshes.inner.geometry.dispose();
@@ -331,14 +338,23 @@ function spawnEarthquake(year) {
     maxCountdown: countdown,
     elapsed: 0,
     fired: false,
+    label: createCountdownLabel(),
     meshes
   });
+}
+
+function removeCountdownLabel(q) {
+  if (q.label) {
+    q.label.remove();
+    q.label = null;
+  }
 }
 
 /** Clean up all quakes */
 function cleanupAllQuakes() {
   for (const q of activeQuakes) {
-    showCountdownLabel('quakeCountdown', q.x, q.z, null);
+    showCountdownLabel(q.label, q.x, q.z, null);
+    removeCountdownLabel(q);
     scene.remove(q.meshes.inner);
     q.meshes.innerMat.dispose();
     q.meshes.inner.geometry.dispose();
