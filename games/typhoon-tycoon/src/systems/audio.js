@@ -535,6 +535,14 @@ export function startBGM() {
   if (btn) btn.textContent = '\u{1F50A} BGM';
 }
 
+export function stopBGM() {
+  bgm.pause();
+  bgm.currentTime = 0;
+  bgmPlaying = false;
+  const btn = document.getElementById('musicBtn');
+  if (btn) btn.textContent = '\u{1F3B5} BGM';
+}
+
 export function toggleBGM() {
   const btn = document.getElementById('musicBtn');
   if (bgmPlaying) {
