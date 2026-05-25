@@ -724,7 +724,7 @@ export function updatePower() {
     playPowerDownSound();
   } else if (!isOverload && state.powerOutage) {
     state.powerOutage = false;
-    for (const t of towers) t.online = true;
+    for (const t of towers) t.online = !t.constructing;
     setStatus('Power restored!', '#69f0ae');
     document.getElementById('powerOverlay').classList.remove('active');
     document.getElementById('powerOverlay').classList.add('hidden');
