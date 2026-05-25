@@ -32,7 +32,7 @@ export function updateYears(dt) {
 
     state.year++;
     state.enemiesSpawnedInYear = 0;
-    state.enemiesPerYear = Math.min(3 + state.year * 2, 30);
+    state.enemiesPerYear = Math.min(3 + Math.max(0, state.year - 1) * 2, 30);
     state.spawnTimer = 0;
     state.yearTimer = getYearDuration(state.year, state.enemiesPerYear);
 
