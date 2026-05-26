@@ -163,8 +163,9 @@ node server.js
 
 ## Credits
 
-- **Original game:** [Typhoon Tycoon](https://github.com/jasonycw/TyphoonTycoon) by Alexander Cheung, Dickson Chui, Eric Li, and Jason Yu
+- **Original game:** [Typhoon Tycoon](https://github.com/jasonycw/TyphoonTycoon) by @ericksli, @jasonycw, @shinypichu88, and @vicksonzero
 - **Map assets:** Original `map.png`, `typhoon.png`, and supporting assets from the classic 2D version
 - **Background music:** *Typhoon Tycoon (Final)* by [Michael Clark](https://michaelclarkmusic.wordpress.com/)
 - **Three.js:** https://threejs.org/
-- LLM by @deepseek-ai
+- LLM by @deepseek-ai and @openai
+- Co-authored-by: OpenCode by @anomalyco
