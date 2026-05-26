@@ -108,11 +108,22 @@ function gameLoop() {
     }
     updateEarthquakes(dt);
     updatePower();
-    updateEnemies(dt);
     updateConstruction();
+    updatePower();
+    updateEnemies(dt);
+    if (state.phase !== 'playing') {
+      updateEffects(dt);
+      renderer.render(scene, camera);
+      return;
+    }
     updateTowers(dt);
     updateBuildings(dt);
     updateHSI(dt);
+    if (state.phase !== 'playing') {
+      updateEffects(dt);
+      renderer.render(scene, camera);
+      return;
+    }
     updateEffects(dt);
     updatePower();
     updateTreeRegrowth(dt);
