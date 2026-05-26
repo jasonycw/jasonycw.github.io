@@ -696,7 +696,7 @@ function spawnFreezeAfterimage(start, end) {
 
   const tube = makeBeamTube(start, end, 0.04, 0x00e5ff, 0.24);
   scene.add(tube);
-  effects.push({ mesh: tube, mat: tube.material, life: 0.75, maxLife: 0.75, geom: tube.geometry, _laserBeam: true, _baseOpacity: 0.24 });
+  effects.push({ mesh: tube, mat: tube.material, life: 0.75, maxLife: 0.75, geom: null, _laserBeam: true, _baseOpacity: 0.24 });
 }
 
 function updateRepelPulse(tower, target, dt) {
