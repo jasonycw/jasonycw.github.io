@@ -27,7 +27,10 @@ const towerGeoms = {
   freezeRing: new THREE.TorusGeometry(0.35, 0.04, 8, 16),
   // RepelTower
   repelBase: new THREE.CylinderGeometry(0.6, 0.65, 0.3, 8),
-  repelDome: new THREE.SphereGeometry(0.4, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+  repelFieldRing0: new THREE.RingGeometry(0.34, 0.37, 8),
+  repelFieldRing1: new THREE.RingGeometry(0.47, 0.50, 8),
+  repelFieldRing2: new THREE.RingGeometry(0.60, 0.63, 8),
+  repelFieldRing3: new THREE.RingGeometry(0.73, 0.77, 8),
   repelRing0: new THREE.TorusGeometry(0.25, 0.03, 8, 16),
   repelRing1: new THREE.TorusGeometry(0.40, 0.03, 8, 16),
 };
@@ -91,12 +94,31 @@ export function createTowerMesh(type) {
     );
     base.position.y = 0.15;
     group.add(base);
-    const dome = new THREE.Mesh(
-      towerGeoms.repelDome,
-      new THREE.MeshStandardMaterial({ color: 0xff8a65, emissive: 0xff6d00, emissiveIntensity: 0.3, roughness: 0.3, metalness: 0.4 })
-    );
-    dome.position.y = 0.4;
-    group.add(dome);
+    const fieldHead = new THREE.Group();
+    fieldHead.position.y = 0.78;
+    const fieldLayers = [
+      { geom: towerGeoms.repelFieldRing0, color: 0xfff176, opacity: 0.95, z: 0.000 },
+      { geom: towerGeoms.repelFieldRing1, color: 0xffd54f, opacity: 0.85, z: 0.012 },
+      { geom: towerGeoms.repelFieldRing2, color: 0xffa000, opacity: 0.72, z: 0.024 },
+      { geom: towerGeoms.repelFieldRing3, color: 0xff6d00, opacity: 0.58, z: 0.036 }
+    ];
+    for (const layer of fieldLayers) {
+      const octagon = new THREE.Mesh(
+        layer.geom,
+        new THREE.MeshBasicMaterial({
+          color: layer.color,
+          transparent: true,
+          opacity: layer.opacity,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending
+        })
+      );
+      octagon.position.z = layer.z;
+      fieldHead.add(octagon);
+    }
+    group.add(fieldHead);
+    group.userData.atField = fieldHead;
     for (let i = 0; i < 2; i++) {
       const r = new THREE.Mesh(
         i === 0 ? towerGeoms.repelRing0 : towerGeoms.repelRing1,
@@ -555,6 +577,9 @@ export function updateTowers(dt) {
         if (!t._hadRepelTarget) { t._hadRepelTarget = true; playRepelSound(); }
         const dx = nearest.x - t.wx;
         const dz = nearest.z - t.wz;
+        if (t.mesh.userData.atField) {
+          t.mesh.userData.atField.rotation.y = Math.atan2(dx, dz);
+        }
         const dist = Math.sqrt(dx * dx + dz * dz);
         if (dist > 0) {
           const repelConfig = getStructConfig('RepelTower');
