@@ -39,3 +39,4 @@ Testing changes
 
 Notes
 - Do not assume any CI will run — include explicit publish instructions here when adding build steps.
+- Commit work iteratively in logical slices. Do not accumulate unrelated gameplay, UI, screenshot, and documentation changes into one large commit. Commit after each completed logical change set, and continue remaining work in later commits.

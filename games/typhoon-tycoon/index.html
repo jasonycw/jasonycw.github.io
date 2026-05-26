@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Typhoon Tycoon</title>
+  <link rel="icon" type="image/x-icon" href="../../img/favicon.ico" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <!-- Start overlay -->
+  <div id="overlay">
+    <div class="card">
+      <h1>Typhoon Tycoon</h1>
+      <p>Build your own Li's Field to safeguard Hong Kong from incoming typhoons!</p>
+      <div class="controls-info">
+        <p><strong>Controls:</strong></p>
+        <p>Click a tower/building button, then click on the map to build.</p>
+        <p>1-4: Select structures · Q/W/E/R: Select special buildings</p>
+        <p>Towers build on <span class="sea-text">sea</span> · Buildings build on <span class="land-text">land</span></p>
+        <p>Keep HSI above 0. Build power plants to power your towers!</p>
+      </div>
+      <button id="startBtn" type="button">Start Game</button>
+    </div>
+  </div>
+
+  <!-- Game over overlay -->
+  <div id="gameover" class="hidden">
+    <div class="card">
+      <h1>Game Over</h1>
+      <p>The economy of Hong Kong has collapsed!</p>
+      <p id="gameoverStat"></p>
+      <button id="restartBtn" type="button">Play Again</button>
+    </div>
+  </div>
+
+  <!-- Win overlay -->
+  <div id="winoverlay" class="hidden">
+    <div class="card">
+      <h1>Victory!</h1>
+      <p>Hong Kong is safe... for now.</p>
+      <p id="winStat"></p>
+      <button id="winRestartBtn" type="button">Play Again</button>
+    </div>
+  </div>
+
+  <!-- HK danger flash overlay -->
+  <div id="dangerOverlay" class="hidden">
+    <div id="dangerTint"></div>
+  </div>
+
+  <!-- Earthquake shockwave overlay -->
+  <div id="shockwave" class="hidden"></div>
+
+  <!-- Power outage dim overlay -->
+  <div id="powerOverlay" class="hidden"></div>
+  <div id="powerTip" class="hidden">⚡ POWER OUTAGE — BUILD MORE POWER PLANTS ⚡</div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="hud-top">
+      <div id="hud-left">
+        <div class="hud-box year-box">
+          <div class="hud-box-label">Year</div>
+          <div class="hud-box-value" id="yearDisplay">1</div>
+          <div class="hud-box-sub" id="countdownLabel">Next Year</div>
+          <div class="hud-box-sub-value" id="yearCountdown"><span id="yearCountdownValue">--.-</span><span class="sub-unit">s</span></div>
+        </div>
+        <div class="hud-box hsi-box">
+          <div class="hud-box-label">HSI</div>
+          <div class="hud-box-value hsi-value" id="hsiDisplay">5000</div>
+        </div>
+        <div class="hud-box enemy-box">
+          <div class="hud-box-label">TYPHOON#</div>
+          <div class="hud-box-value enemy-value" id="enemyCount">0</div>
+        </div>
+      </div>
+      <div id="hud-right">
+        <div id="powerDisplay">
+          <div class="hud-box-label">Power</div>
+          <div id="batteryBody">
+            <div id="batteryFill" style="width: 0%"></div>
+          </div>
+          <div id="powerText">0 / 0</div>
+        </div>
+      </div>
+    </div>
+    <div id="toolbar" class="no-selection">
+      <div id="toolbar-row">
+        <div id="toolbar-grid">
+        <button type="button" class="build-btn" data-type="PowerPlant" data-cost="1000" data-power="+10" data-req="none" data-desc="Generates power quota to keep towers operational.">
+          <span class="btn-icon">🔋</span>
+          <span class="btn-label">Plant</span>
+          <span class="btn-hotkey">1</span>
+        </button>
+        <button type="button" class="build-btn" data-type="LaserTower" data-cost="500" data-power="-3" data-req="none" data-desc="Shoots laser at typhoon, disrupting local temperature and reducing typhoon strength.">
+          <span class="btn-icon">⚡</span>
+          <span class="btn-label">Laser</span>
+          <span class="btn-hotkey">2</span>
+        </button>
+        <button type="button" class="build-btn disabled" data-type="FreezeTower" data-cost="700" data-power="-6" data-req="University" data-desc="Shoots cold air at typhoon, reducing its movement speed. Requires University.">
+          <span class="btn-icon">❄️</span>
+          <span class="btn-label">Freeze</span>
+          <span class="btn-hotkey">3</span>
+        </button>
+        <button type="button" class="build-btn disabled" data-type="RepelTower" data-cost="2500" data-power="-10" data-req="ResearchCenter" data-desc="Exerts a repel force on nearby typhoons, pushing them away. Requires Research Center.">
+          <span class="btn-icon">🌀</span>
+          <span class="btn-label">Repel</span>
+          <span class="btn-hotkey">4</span>
+        </button>
+        <button type="button" class="build-btn disabled" data-type="NuclearPlant" data-cost="5000" data-power="+40" data-req="ResearchCenter" data-desc="High-output power plant. Generates much more power than a standard plant. Requires Research Center.">
+          <span class="btn-icon">☢️</span>
+          <span class="btn-label">Nuclear</span>
+          <span class="btn-hotkey">Q</span>
+        </button>
+        <button type="button" class="build-btn disabled" data-type="University" data-cost="2500" data-power="-20" data-req="none" data-desc="Unlocks Freeze Tower. Upgrades Laser Tower range and damage.">
+          <span class="btn-icon">🎓</span>
+          <span class="btn-label">Uni</span>
+          <span class="btn-hotkey">W</span>
+        </button>
+        <button type="button" class="build-btn disabled" data-type="ResearchCenter" data-cost="4000" data-power="-30" data-req="University" data-desc="Unlocks Repel Tower &amp; Nuclear Plant. Further upgrades Laser and Freeze Towers. Requires University.">
+          <span class="btn-icon">🔬</span>
+          <span class="btn-label">Research</span>
+          <span class="btn-hotkey">E</span>
+        </button>
+        <button type="button" class="build-btn disabled" data-type="CheungKong" data-cost="7000" data-power="-50" data-req="ResearchCenter" data-desc="Upgrades Repel Tower range and force. Doubles HSI passive income rate. Requires Research Center.">
+          <span class="btn-icon">🏢</span>
+          <span class="btn-label">C.K.H.</span>
+          <span class="btn-hotkey">R</span>
+        </button>
+      </div>
+      <button type="button" id="cancelBtn" class="build-btn cancel-btn hidden" title="Cancel current selection">
+        <span class="btn-icon">✕</span>
+        <span class="btn-label">Cancel</span>
+        <span class="btn-hotkey">Esc</span>
+      </button>
+      </div>
+    </div>
+    <div id="tooltip" class="hidden">
+      <div id="tooltip-title"></div>
+      <div id="tooltip-desc"></div>
+      <div id="tooltip-stats"></div>
+    </div>
+    <div id="statusMsg" class="status-msg">Click a structure to build, then click on the map.</div>
+    <button id="musicBtn" type="button" class="music-btn" title="Toggle background music">🎵 BGM</button>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.165.0/build/three.module.js"
+    }
+  }
+  </script>
+  <script type="module" src="./src/main.js?v=18"></script>
+</body>
+</html>
