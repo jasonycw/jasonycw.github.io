@@ -711,7 +711,6 @@ function updateRepelPulse(tower, target, dt) {
   if (len < 0.1) return;
   const dirNorm = dir.normalize();
   const life = 0.42;
-  const geom = new THREE.TorusGeometry(0.16, 0.018, 8, 32);
   const mat = new THREE.MeshBasicMaterial({
     color: 0xff8a00,
     transparent: true,
@@ -720,13 +719,13 @@ function updateRepelPulse(tower, target, dt) {
     depthWrite: false,
     depthTest: false
   });
-  const ring = new THREE.Mesh(geom, mat);
+  const ring = new THREE.Mesh(repelPulseGeom, mat);
   ring.position.copy(start).add(dirNorm.clone().multiplyScalar(0.35));
   ring.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dirNorm);
   scene.add(ring);
   const speed = len / life;
   effects.push({
-    mesh: ring, mat, geom,
+    mesh: ring, mat, geom: null,
     life, maxLife: life,
     _repelRing: true,
     _baseOpacity: 0.82,
