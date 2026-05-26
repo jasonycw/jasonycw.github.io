@@ -34,7 +34,9 @@ const towerGeoms = {
   repelRing0: new THREE.TorusGeometry(0.25, 0.03, 8, 16),
   repelRing1: new THREE.TorusGeometry(0.40, 0.03, 8, 16),
 };
-export const sharedTowerGeoms = new Set(Object.values(towerGeoms));
+const unitCylinderGeom = new THREE.CylinderGeometry(1, 1, 1, 10, 1, true);
+const repelPulseGeom = new THREE.TorusGeometry(0.16, 0.018, 8, 32);
+export const sharedTowerGeoms = new Set([...Object.values(towerGeoms), unitCylinderGeom, repelPulseGeom]);
 
 // ==================== TOWER MESHES ====================
 export function createTowerMesh(type) {
