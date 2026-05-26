@@ -438,22 +438,12 @@ document.addEventListener('keydown', (e) => {
 /** Position tooltip near cursor, keeping it on-screen */
 function positionTooltip(cx, cy) {
   const tip = document.getElementById('tooltip');
-  const isHidden = tip.classList.contains('hidden');
   const offsetX = 16;
-  let left, top;
-
-  if (isHidden) {
-    // First time — position above cursor (toolbar is at bottom, so tooltip goes up)
-    left = cx + offsetX;
-    top = cy - 120; // Estimated tooltip height ~120px
-  } else {
-    // Already visible — use actual dimensions for clamping
-    const rect = tip.getBoundingClientRect();
-    left = Math.min(cx + offsetX, window.innerWidth - rect.width - 8);
-    left = Math.max(8, left);
-    top = cy - rect.height - 8;
-    if (top < 8) top = cy + 24; // Below cursor if not enough room above
-  }
+  const rect = tip.getBoundingClientRect();
+  let left = Math.min(cx + offsetX, window.innerWidth - rect.width - 8);
+  left = Math.max(8, left);
+  let top = cy - rect.height - 8;
+  if (top < 8) top = cy + 24; // Below cursor if not enough room above
 
   tip.style.left = left + 'px';
   tip.style.top = top + 'px';
