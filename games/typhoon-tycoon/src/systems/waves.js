@@ -2,7 +2,7 @@ import { CONFIG, WIN_YEAR } from '../core/config.js';
 import { state } from '../core/state.js';
 import { enemies } from './enemies.js';
 import { spawnEnemy } from './enemies.js';
-import { setStatus } from './ui.js';
+import { setStatus, winGame } from './ui.js';
 
 function getSpawnInterval(year) {
   return Math.max(0.3, 0.8 - year * 0.03) + Math.random() * 0.3;
@@ -24,7 +24,7 @@ export function updateYears(dt) {
     // Win after surviving year WIN_YEAR (timer expires → current year is done)
     if (state.year >= WIN_YEAR) {
       state.phase = 'win'; // block the game loop immediately
-      import('./ui.js').then(m => m.winGame()).catch(e => console.error('Failed to import winGame:', e));
+      winGame();
       return;
     }
 
