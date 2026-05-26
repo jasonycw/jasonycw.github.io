@@ -1,6 +1,8 @@
 import { state } from '../core/state.js';
 import { getStructConfig, isStructureUnlocked } from '../core/state.js';
 import { resetEarthquakes } from './earthquake.js';
+import { clearTreeRegrowth } from './scenery.js';
+import { clearSmokeParticles } from './towers.js';
 
 // ==================== UI ====================
 let buildButtons = null;
@@ -10,6 +12,20 @@ function stopActiveRoundAudio() {
   import('./towers.js').then(m => {
     for (const tower of m.towers) m.removeTowerBeam(tower);
   }).catch(() => {});
+}
+
+function stopStatusTimer() {
+  const el = document.getElementById('statusMsg');
+  clearTimeout(el._timeout);
+  el._timeout = null;
+}
+
+function cleanupEndStateResources() {
+  resetEarthquakes();
+  clearSmokeParticles();
+  clearTreeRegrowth();
+  stopActiveRoundAudio();
+  stopStatusTimer();
 }
 
 export function setStatus(msg, color) {
@@ -50,8 +66,7 @@ export function updateBuildButtonStates() {
 }
 
 export function gameOver() {
-  resetEarthquakes();
-  stopActiveRoundAudio();
+  cleanupEndStateResources();
   state.phase = 'gameover';
   document.getElementById('gameover').classList.remove('hidden');
   document.getElementById('gameoverStat').textContent =
@@ -61,8 +76,7 @@ export function gameOver() {
 }
 
 export function winGame() {
-  resetEarthquakes();
-  stopActiveRoundAudio();
+  cleanupEndStateResources();
   state.phase = 'win';
   document.getElementById('winoverlay').classList.remove('hidden');
   document.getElementById('winStat').textContent =

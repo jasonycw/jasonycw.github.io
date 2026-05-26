@@ -372,6 +372,17 @@ export function updateTreeRegrowth(dt) {
   updateGrowingTrees(dt);
 }
 
+export function clearTreeRegrowth() {
+  destroyedSpots.length = 0;
+  for (const gt of growingTrees) {
+    for (const part of gt.parts) {
+      sceneryGroup.remove(part);
+      scene.remove(part);
+    }
+  }
+  growingTrees.length = 0;
+}
+
 /** Destroy and burst scenery within a radius of a world position */
 export function destroySceneryNear(wx, wz, radius) {
   const radiusSq = radius * radius;
