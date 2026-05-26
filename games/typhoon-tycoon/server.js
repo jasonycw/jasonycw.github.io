@@ -9,7 +9,7 @@ const MAX_RETRIES = 5;
 const types = {
   '.js': 'text/javascript', '.html': 'text/html', '.css': 'text/css',
   '.png': 'image/png', '.ico': 'image/x-icon', '.svg': 'image/svg+xml',
-  '.json': 'application/json'
+  '.json': 'application/json', '.mp3': 'audio/mpeg'
 };
 
 const root = path.resolve(__dirname, '..', '..');
