@@ -26,10 +26,10 @@ function updateHSI(dt) {
   if (state.phase !== 'playing') return;
 
   let change = CONFIG.hsiPassiveRate * dt;
+  // CheungKong bonus doubles passive income only.
+  if (state.hasCheungKong) change *= 2;
   // Random fluctuation
   change += (Math.random() * (CONFIG.hsiRandomMax - CONFIG.hsiRandomMin) + CONFIG.hsiRandomMin) * dt;
-  // CheungKong bonus
-  if (state.hasCheungKong) change *= 1.5;
 
   // HSI loss from nearby typhoons
   for (const e of enemies) {

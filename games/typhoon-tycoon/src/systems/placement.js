@@ -173,7 +173,7 @@ export function placeStructure(wx, wz, type) {
       for (const t of towers) {
         if (t.type === 'RepelTower') t.range += 1.5;
       }
-      setStatus('CheungKong HQ built! Repel Tower upgraded, HSI boosted!', '#69f0ae');
+      setStatus('CheungKong HQ built! Repel Tower upgraded, HSI income doubled!', '#69f0ae');
     }
   }
 

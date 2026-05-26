@@ -62,7 +62,7 @@ export const CONFIG = {
       builtOn: 'land', color: 0xab47bc, radius: 1.0
     },
     CheungKong: {
-      title: "Li's Enterprise HQ", power: -50, cost: 7000, req: 'ResearchCenter',
+      title: 'CheungKong HQ', power: -50, cost: 7000, req: 'ResearchCenter',
       builtOn: 'land', color: 0xffd54f, radius: 1.2
     }
   }

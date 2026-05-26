@@ -9,7 +9,7 @@ A 2.5D browser-based tower defense game rebuilt in Three.js, inspired by the ori
 | Menu | In-Game Action |
 |------|----------------|
 | ![Game Menu](assets/screenshots/menu.png) | ![In-Game Action](assets/screenshots/action.png) |
-| Start screen with the Hong Kong / South China Sea map and concentric danger zone rings. | All 8 structure types deployed at real in-game placement scale/rules (Laser/Freeze/Repel Towers, Power/University/Research/Nuclear Plants, Li's Enterprise HQ) defending against realistic 3D typhoons with empty eyes, bright eyewalls, asymmetric spiral rainbands, camera-facing HP bars, and multi-layer particle systems. |
+| Start screen with the Hong Kong / South China Sea map and concentric danger zone rings. | All 8 structure types deployed at real in-game placement scale/rules (Laser/Freeze/Repel Towers, Power/University/Research/Nuclear Plants, CheungKong HQ) defending against realistic 3D typhoons with empty eyes, bright eyewalls, asymmetric spiral rainbands, camera-facing HP bars, and multi-layer particle systems. |
 
 | Game Over | Victory |
 |-----------|---------|
@@ -84,7 +84,7 @@ In the year 21XX, the Li's field (李氏力場) becomes reality in the form of a
 | `Q` | Select Nuclear Power Plant |
 | `W` | Select University |
 | `E` | Select Research Center |
-| `R` | Select Li's Enterprise HQ |
+| `R` | Select CheungKong HQ |
 | `Esc` | Cancel selection |
 | Click on map | Place selected structure |
 | Hold right mouse + drag | Orbit camera around Hong Kong |
@@ -132,7 +132,7 @@ Each year intensifies as the typhoons grow stronger:
 | **University** | 2500 HSI | -20 | Unlocks Freeze Tower, boosts tower damage |
 | **Research Center** | 4000 HSI | -30 | Unlocks Repel Tower & Nuclear Plant, further damage boost (requires University) |
 | **Nuclear Power Plant** | 5000 HSI | +40 | Thin curved cooling-tower cylinder with a large open through-hole and heavier smoke (requires Research Center) |
-| **Li's Enterprise HQ** | 7000 HSI | -50 | 1.5x HSI passive income (requires Research Center) |
+| **CheungKong HQ** | 7000 HSI | -50 | Doubles HSI passive income (requires Research Center) |
 
 ### Power Management
 
@@ -143,7 +143,7 @@ All structures consume or generate power. If total power consumption exceeds gen
 | Freeze Tower | University built |
 | Repel Tower | Research Center built |
 | Nuclear Power Plant | Research Center built |
-| Li's Enterprise HQ | Research Center built |
+| CheungKong HQ | Research Center built |
 
 ## Tech Stack
 
