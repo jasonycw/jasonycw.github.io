@@ -664,7 +664,6 @@ function makeBeamLine(start, end, color, opacity, lineWidth = 1) {
 }
 
 function makeBeamTube(start, end, radius, color, opacity) {
-  const geom = new THREE.CylinderGeometry(radius, radius, 1, 10, 1, true);
   const mat = new THREE.MeshBasicMaterial({
     color,
     transparent: true,
@@ -673,8 +672,9 @@ function makeBeamTube(start, end, radius, color, opacity) {
     depthWrite: false,
     depthTest: false
   });
-  const mesh = new THREE.Mesh(geom, mat);
+  const mesh = new THREE.Mesh(unitCylinderGeom, mat);
   mesh.userData.freezeTube = true;
+  mesh.userData.radius = radius;
   updateBeamTube(mesh, start, end);
   return mesh;
 }
@@ -684,8 +684,9 @@ function updateBeamTube(mesh, start, end) {
   const len = dir.length();
   if (len < 0.1) return;
   mesh.position.copy(start).add(dir.clone().multiplyScalar(0.5));
-  mesh.scale.set(1, len, 1);
-  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+  const radius = mesh.userData.radius ?? 1;
+  mesh.scale.set(radius, len, radius);
+  mesh.quaternion.setFromUnitVectors(towerUpVector, dir.normalize());
 }
 
 function spawnFreezeAfterimage(start, end) {
