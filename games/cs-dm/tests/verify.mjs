@@ -104,6 +104,7 @@ const run = async () => {
   await import(pathToFileURL(path.join(gameRoot, 'src', 'network', 'protocol.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'network', 'slots.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'network', 'failure.test.mjs')).href);
+  await import(pathToFileURL(path.join(gameRoot, 'tests', 'smoke.mjs')).href);
 
   assertExists('games/cs-dm/index.html');
   assertExists('games/cs-dm/styles.css');
