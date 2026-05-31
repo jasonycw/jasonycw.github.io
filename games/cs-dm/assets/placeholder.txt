@@ -1,0 +1,3 @@
+# CS DM asset placeholders
+
+This file exists so future tasks can swap in generated assets without changing the folder convention.

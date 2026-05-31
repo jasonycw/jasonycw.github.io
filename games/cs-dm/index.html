@@ -1,0 +1,207 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CS DM</title>
+    <link rel="icon" type="image/x-icon" href="../../img/favicon.ico" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.165.0/build/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="menu-card panel" data-shell-panel="menu" aria-labelledby="game-title">
+        <p class="eyebrow">Static prototype</p>
+        <h1 id="game-title">CS DM</h1>
+        <p class="subtitle">A lightweight deathmatch menu scaffold for the full game.</p>
+
+        <label class="field" for="player-name">
+          <span>Player name</span>
+          <input id="player-name" type="text" maxlength="20" autocomplete="nickname" placeholder="Enter a name" />
+        </label>
+        <p id="name-error" class="name-error" role="status" aria-live="polite"></p>
+
+        <div class="actions">
+          <button id="offline-start" type="button">Start Offline Match</button>
+          <button id="host-game" type="button">Host Game</button>
+          <button id="join-game" type="button">Join Game</button>
+          <button id="open-settings" type="button" class="secondary">Settings</button>
+        </div>
+
+        <p class="hint">Use a name to enable offline play or best-effort manual P2P. Online play depends on browser WebRTC, NAT, and firewall behavior.</p>
+      </section>
+
+      <section class="menu-card panel settings-menu" id="settings-menu" data-shell-panel="settings" hidden aria-labelledby="settings-title" aria-hidden="true">
+        <div class="settings-menu__header">
+          <div>
+            <p class="eyebrow">Input settings</p>
+            <h2 id="settings-title">Controls</h2>
+          </div>
+          <button id="settings-close" type="button" class="secondary">Close</button>
+        </div>
+
+        <p id="binding-conflict" class="settings-menu__warning" role="status" aria-live="polite"></p>
+
+        <section class="audio-settings" aria-labelledby="audio-settings-title">
+          <div>
+            <p class="eyebrow">Generated sound</p>
+            <h3 id="audio-settings-title">Audio feedback</h3>
+          </div>
+          <button id="audio-mute-toggle" type="button" class="secondary">Audio: On</button>
+          <label class="field audio-settings__volume" for="audio-volume">
+            <span>Volume</span>
+            <input id="audio-volume" type="range" min="0" max="1" step="0.05" value="0.55" />
+          </label>
+          <p id="audio-status" class="audio-settings__status" role="status" aria-live="polite">Audio unlocks after your first click or key press.</p>
+        </section>
+
+        <div id="binding-list" class="settings-menu__bindings" aria-label="Keybindings"></div>
+
+        <label class="field" for="settings-player-name">
+          <span>Player name</span>
+          <input id="settings-player-name" type="text" maxlength="20" autocomplete="nickname" placeholder="Enter a name" />
+        </label>
+        <p id="settings-name-error" class="name-error" role="status" aria-live="polite"></p>
+
+        <div class="actions actions--compact">
+          <button id="settings-reset-defaults" type="button">Reset Defaults</button>
+          <button id="settings-apply-name" type="button" class="secondary">Apply Name</button>
+        </div>
+      </section>
+
+      <section class="menu-card panel" id="host-panel" data-shell-panel="host" hidden aria-labelledby="host-title" aria-hidden="true">
+        <p class="eyebrow">Manual-code host</p>
+        <h2 id="host-title">Host lobby</h2>
+        <p class="subtitle">Create an offer locally, hand it to a friend, and paste the answer back here. No TURN relay or signaling broker is included.</p>
+
+        <label class="field" for="host-offer-code">
+          <span>Host offer code</span>
+          <textarea id="host-offer-code" rows="4" readonly spellcheck="false"></textarea>
+        </label>
+
+        <div class="actions actions--compact">
+          <button id="host-create-offer" type="button">Generate Offer</button>
+          <button id="host-back" type="button" class="secondary">Back</button>
+        </div>
+
+        <label class="field" for="host-answer-input">
+          <span>Join answer code</span>
+          <textarea id="host-answer-input" rows="4" spellcheck="false" placeholder="Paste the join answer here"></textarea>
+        </label>
+
+        <button id="accept-answer" type="button" class="secondary">Accept Answer</button>
+      </section>
+
+      <section class="network-panel" id="network-panel" hidden aria-label="Network connection status">
+        <p class="network-status">Connection state: <strong data-network-state>idle</strong></p>
+        <p id="network-error" class="network-error" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="menu-card panel" id="join-panel" data-shell-panel="join" hidden aria-labelledby="join-title" aria-hidden="true">
+        <p class="eyebrow">Manual-code join</p>
+        <h2 id="join-title">Join lobby</h2>
+        <p class="subtitle">Paste the host offer, generate a local answer, then send that answer back. If P2P fails, offline bots remain the reliable fallback.</p>
+
+        <label class="field" for="join-offer-input">
+          <span>Host offer code</span>
+          <textarea id="join-offer-input" rows="4" spellcheck="false" placeholder="Paste the host offer here"></textarea>
+        </label>
+
+        <div class="actions actions--compact">
+          <button id="create-answer" type="button">Generate Answer</button>
+          <button id="join-back" type="button" class="secondary">Back</button>
+        </div>
+
+        <label class="field" for="join-answer-code">
+          <span>Join answer code</span>
+          <textarea id="join-answer-code" rows="4" readonly spellcheck="false"></textarea>
+        </label>
+      </section>
+
+      <section class="menu-card panel match-panel" id="match-panel" data-shell-panel="match" hidden aria-labelledby="match-title" aria-hidden="true" tabindex="-1">
+        <p class="eyebrow">Offline free-for-all</p>
+        <h2 id="match-title">Match shell</h2>
+        <p class="subtitle">Roundless 16-slot deathmatch runs locally with bots; no P2P connection is required.</p>
+
+        <div class="match-hud" aria-label="Match status">
+          <p class="match-hud__label">Current weapon</p>
+          <p id="hud-weapon" class="match-hud__weapon" aria-live="polite">AK-47</p>
+          <p class="match-hud__stat">Health <strong id="hud-health">100</strong></p>
+          <p class="match-hud__stat">Armor <strong id="hud-armor">0</strong></p>
+          <p class="match-hud__stat">Phase <strong id="hud-phase">running/free-play</strong></p>
+          <button id="open-buy-menu" type="button" class="secondary match-hud__buy">Buy menu (B)</button>
+          <button id="match-audio-toggle" type="button" class="secondary match-hud__audio">Audio: On</button>
+          <p id="perf-summary" class="match-hud__stat" aria-live="polite">ticks=0 simMs=0 players=16 botShots=0 kills=0</p>
+        </div>
+
+        <section class="scoreboard" aria-labelledby="scoreboard-title">
+          <h3 id="scoreboard-title">FFA Scoreboard</h3>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Name</th>
+                <th scope="col">Slot</th>
+                <th scope="col">Life</th>
+                <th scope="col">K</th>
+                <th scope="col">D</th>
+              </tr>
+            </thead>
+            <tbody id="scoreboard-body"></tbody>
+          </table>
+        </section>
+
+        <div class="match-stage" aria-hidden="true">
+          <div class="match-stage__grid"></div>
+          <div id="game-canvas" class="match-stage__viewport" hidden></div>
+          <p id="pointer-lock-help" class="match-stage__label" hidden>
+            Pointer lock was not granted. Click the canvas to try again.
+          </p>
+          <p id="webgl-error" class="match-stage__label match-stage__label--error" hidden>
+            WebGL is unavailable in this browser.
+          </p>
+        </div>
+
+        <section id="buy-menu" class="buy-menu" hidden aria-hidden="true" aria-labelledby="buy-menu-title">
+          <div class="buy-menu__header">
+            <div>
+              <p class="eyebrow">Deathmatch free-buy</p>
+              <h3 id="buy-menu-title">Buy menu</h3>
+            </div>
+            <button id="buy-close" type="button" class="secondary">Close</button>
+          </div>
+          <p id="buy-error" class="buy-menu__error" role="status" aria-live="polite"></p>
+          <div class="buy-menu__layout">
+            <div id="buy-categories" class="buy-menu__categories" aria-label="Buy categories"></div>
+            <div id="buy-weapons" class="buy-menu__weapons" aria-label="Buy weapons"></div>
+          </div>
+        </section>
+
+        <div class="overlay-card" aria-labelledby="rename-title">
+          <p id="rename-title" class="overlay-title">Rename in game</p>
+          <p class="overlay-copy">Safe plain-text validation is shared with the menu name field.</p>
+
+          <label class="field" for="match-player-name">
+            <span>Current player name</span>
+            <input id="match-player-name" type="text" maxlength="20" autocomplete="nickname" />
+          </label>
+          <p id="match-name-error" class="name-error" role="status" aria-live="polite"></p>
+
+          <div class="actions actions--compact">
+            <button id="match-apply-name" type="button">Apply Name</button>
+            <button id="match-back" type="button" class="secondary">Return to Menu</button>
+            <button id="match-open-settings" type="button" class="secondary">Settings</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
