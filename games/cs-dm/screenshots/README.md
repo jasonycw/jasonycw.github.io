@@ -1,8 +1,11 @@
 # Screenshots
 
-The files in this folder are placeholder diagrams for now. They exist so README image links resolve on disk before final gameplay captures land in T36.
+Final T36 screenshots captured from the locally served static site.
 
-- `menu-placeholder.svg`
-- `match-placeholder.svg`
+- menu.png - main menu before starting a match
+- offline-gameplay.png - running offline 16-slot FFA match
+- buy-menu.png - deathmatch free-buy overlay
+- scoreboard.png - FFA scoreboard table
+- p2p-ui.png - manual-code P2P host UI
 
-Both images are local, relative, and labeled as placeholders until final screenshots are captured.
+The older *-placeholder.svg diagrams are retained only as historical placeholder assets; README links now target the PNG captures above.

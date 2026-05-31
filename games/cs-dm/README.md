@@ -1,4 +1,4 @@
-﻿# CS DM
+# CS DM
 
 Static GitHub Pages deathmatch prototype for CS DM.
 
@@ -38,11 +38,17 @@ python -m http.server 8080
 
 ## Screenshots
 
-These are placeholder diagrams for now. Final gameplay captures will replace them in T36.
+These PNGs were captured from the locally served static site during T36 browser QA.
 
-![Main menu placeholder diagram](./screenshots/menu-placeholder.svg)
+![Main menu](./screenshots/menu.png)
 
-![Match HUD placeholder diagram](./screenshots/match-placeholder.svg)
+![Offline gameplay](./screenshots/offline-gameplay.png)
+
+![Buy menu](./screenshots/buy-menu.png)
+
+![Scoreboard](./screenshots/scoreboard.png)
+
+![Manual P2P UI](./screenshots/p2p-ui.png)
 
 ## Manual P2P
 
@@ -69,5 +75,5 @@ CS DM is not affiliated with Valve, Counter-Strike, or Steam. It does not ship c
 
 - P2P is best-effort and can fail behind some NAT or firewall setups. Offline bots remain the reliable fallback.
 - T35 P2P QA currently proves deterministic local-context behavior; real local tabs and internet peers remain browser/network dependent.
-- Final screenshot captures are still pending and the current images are labeled placeholder diagrams.
+- T36 final screenshots are real local-browser captures from `http://localhost:8080/games/cs-dm/`.
 

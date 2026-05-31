@@ -226,8 +226,13 @@ const run = async () => {
   const p2pE2eTest = readText('games/cs-dm/src/network/p2p-e2e.test.mjs');
   const readme = readText('games/cs-dm/README.md');
   const screenshotsReadme = readText('games/cs-dm/screenshots/README.md');
-  const screenshotMenu = readText('games/cs-dm/screenshots/menu-placeholder.svg');
-  const screenshotMatch = readText('games/cs-dm/screenshots/match-placeholder.svg');
+  const requiredScreenshotPaths = [
+    'games/cs-dm/screenshots/menu.png',
+    'games/cs-dm/screenshots/offline-gameplay.png',
+    'games/cs-dm/screenshots/buy-menu.png',
+    'games/cs-dm/screenshots/scoreboard.png',
+    'games/cs-dm/screenshots/p2p-ui.png',
+  ];
   assert.equal(mainJs.includes("import { validatePlayerName } from './core/index.js';"), true, 'main.js must import the core validator');
   assert.equal(mainJs.includes("import { InputAction, createDefaultBindingMap, getLiveBindingCandidates, readStoredKeybindings, readStoredPlayerName, writeStoredKeybindings, writeStoredPlayerName } from './input/index.js';"), true, 'main.js must import input storage and binding helpers');
   assert.equal(mainJs.includes("import { createRendererShell } from './render/index.js';"), true, 'main.js must import the renderer shell');
@@ -315,24 +320,32 @@ const run = async () => {
   assert.equal(readme.includes('P2P is best-effort and can fail behind some NAT or firewall setups.'), true, 'README must include the NAT limitation note');
   assert.equal(readme.includes('local tabs') && readme.includes('deterministic local-context'), true, 'README must document T35 local-tab/deterministic QA scope');
   assert.equal(readme.includes('manual code') && readme.includes('best-effort') && readme.includes('NAT') && readme.includes('firewall'), true, 'README must include T35 limitation concepts');
-  assert.equal(readme.includes('![Main menu placeholder diagram](./screenshots/menu-placeholder.svg)'), true, 'README must include the menu screenshot link');
-  assert.equal(readme.includes('![Match HUD placeholder diagram](./screenshots/match-placeholder.svg)'), true, 'README must include the match screenshot link');
-  assert.equal(screenshotsReadme.includes('placeholder diagrams'), true, 'screenshots README must label placeholder diagrams');
-  assert.equal(screenshotsReadme.includes('menu-placeholder.svg') && screenshotsReadme.includes('match-placeholder.svg'), true, 'screenshots README must list placeholder files');
-  assert.equal(screenshotMenu.includes('<svg'), true, 'menu placeholder screenshot must be an SVG');
-  assert.equal(screenshotMenu.includes('placeholder'), true, 'menu placeholder screenshot must label itself as a placeholder');
-  assert.equal(screenshotMatch.includes('<svg'), true, 'match placeholder screenshot must be an SVG');
-  assert.equal(screenshotMatch.includes('placeholder'), true, 'match placeholder screenshot must label itself as a placeholder');
+  assert.equal(readme.includes('T36 final screenshots are real local-browser captures'), true, 'README must document T36 capture provenance');
+  const requiredReadmeImageLinks = [
+    '![Main menu](./screenshots/menu.png)',
+    '![Offline gameplay](./screenshots/offline-gameplay.png)',
+    '![Buy menu](./screenshots/buy-menu.png)',
+    '![Scoreboard](./screenshots/scoreboard.png)',
+    '![Manual P2P UI](./screenshots/p2p-ui.png)',
+  ];
+  for (const link of requiredReadmeImageLinks) {
+    assert.equal(readme.includes(link), true, `README must include final screenshot link: ${link}`);
+  }
+  assert.equal(screenshotsReadme.includes('Final T36 screenshots'), true, 'screenshots README must document final T36 screenshots');
+  for (const screenshotPath of requiredScreenshotPaths) {
+    const fullPath = path.join(repoRoot, screenshotPath);
+    assert.equal(existsSync(fullPath), true, `${screenshotPath} should exist`);
+    assert.equal(statSync(fullPath).size > 0, true, `${screenshotPath} should be non-empty`);
+  }
 
   const evidenceDir = path.join(repoRoot, '.sisyphus', 'evidence');
   mkdirSync(evidenceDir, { recursive: true });
   writeFileSync(path.join(evidenceDir, 'task-32-readme-images.txt'), [
     'T32 README image evidence',
-    'README links:',
-    '- ./screenshots/menu-placeholder.svg',
-    '- ./screenshots/match-placeholder.svg',
+    'README links now resolved by T36 final screenshots:',
+    ...requiredScreenshotPaths.map((screenshotPath) => `- ./screenshots/${path.basename(screenshotPath)}`),
     'Resolved on disk: yes',
-    'Status: placeholder diagrams pending final capture',
+    'Status: final PNG browser captures present and non-empty',
   ].join('\n'));
   writeFileSync(path.join(evidenceDir, 'task-32-p2p-docs.txt'), [
     'T32 P2P docs evidence',
