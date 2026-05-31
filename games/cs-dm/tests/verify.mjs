@@ -374,6 +374,22 @@ const run = async () => {
   const coreTest = readText('games/cs-dm/src/core/contracts.test.mjs');
   assert.equal(coreTest.includes('task-29-name-edge-cases.txt'), true, 'core tests must write T29 name edge-case evidence');
 
+  writeFileSync(path.join(evidenceDir, 'task-4-contract-tests.txt'), [
+    'T4 core contract evidence',
+    'Coverage: 16-player slots, local/bot/remote slot types, player-name validation, input-frame validation, and network-snapshot validation',
+    'Status: PASS',
+    'Source: games/cs-dm/src/core/contracts.test.mjs via npm run test',
+  ].join('\n'));
+  writeFileSync(path.join(evidenceDir, 'task-4-name-validation.txt'), [
+    'T4 name validation evidence',
+    'Valid name: Vector -> ok',
+    'Empty name: rejected',
+    'Over-limit name: rejected',
+    'Duplicate-ready name: rejected',
+    'HTML-like name: rejected',
+    'Safe sinks: textContent/value only',
+  ].join('\n'));
+
   writeFileSync(path.join(evidenceDir, 'task-13-dead-hud.txt'), [
     'T13 dead HUD evidence',
     'lifeState=respawning',

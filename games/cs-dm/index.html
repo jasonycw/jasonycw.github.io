@@ -37,7 +37,7 @@
         <p class="hint">Use a name to enable offline play or best-effort manual P2P. Online play depends on browser WebRTC, NAT, and firewall behavior.</p>
       </section>
 
-      <section class="menu-card panel settings-menu" id="settings-menu" data-shell-panel="settings" hidden aria-labelledby="settings-title" aria-hidden="true">
+      <section class="menu-card panel settings-menu" id="settings-menu" data-shell-panel="settings" hidden aria-labelledby="settings-title" aria-hidden="true" tabindex="-1">
         <div class="settings-menu__header">
           <div>
             <p class="eyebrow">Input settings</p>
@@ -132,25 +132,25 @@
         <div class="match-hud" aria-label="Match status">
           <p class="match-hud__label">Current weapon</p>
           <p id="hud-weapon" class="match-hud__weapon" aria-live="polite">AK-47</p>
-          <p class="match-hud__stat">Health <strong id="hud-health">100</strong></p>
-          <p class="match-hud__stat">Armor <strong id="hud-armor">0</strong></p>
-          <p class="match-hud__stat">Phase <strong id="hud-phase">running/free-play</strong></p>
+          <p class="match-hud__stat match-hud__stat--health">Health <strong id="hud-health">100</strong></p>
+          <p class="match-hud__stat match-hud__stat--armor">Armor <strong id="hud-armor">0</strong></p>
+          <p class="match-hud__stat match-hud__stat--phase">Phase <strong id="hud-phase">running/free-play</strong></p>
           <button id="open-buy-menu" type="button" class="secondary match-hud__buy">Buy menu (B)</button>
           <button id="match-audio-toggle" type="button" class="secondary match-hud__audio">Audio: On</button>
-          <p id="perf-summary" class="match-hud__stat" aria-live="polite">ticks=0 simMs=0 players=16 botShots=0 kills=0</p>
+          <p id="perf-summary" class="match-hud__stat match-hud__stat--perf" aria-live="polite">ticks=0 simMs=0 players=16 botShots=0 kills=0</p>
         </div>
 
         <section class="scoreboard" aria-labelledby="scoreboard-title">
-          <h3 id="scoreboard-title">FFA Scoreboard</h3>
+          <h3 id="scoreboard-title">CS DM Scoreboard</h3>
           <table>
             <thead>
               <tr>
                 <th scope="col">#</th>
                 <th scope="col">Name</th>
-                <th scope="col">Slot</th>
-                <th scope="col">Life</th>
-                <th scope="col">K</th>
-                <th scope="col">D</th>
+                <th scope="col">Money</th>
+                <th scope="col">Score</th>
+                <th scope="col">Deaths</th>
+                <th scope="col">Latency</th>
               </tr>
             </thead>
             <tbody id="scoreboard-body"></tbody>

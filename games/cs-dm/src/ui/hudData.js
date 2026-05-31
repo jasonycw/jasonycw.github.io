@@ -44,7 +44,19 @@ const deriveAmmo = (loadout) => {
   });
 };
 
-const deriveActiveWeapon = (loadout) => deriveWeaponSwitchMetadata(loadout.activeWeaponId);
+const deriveActiveWeapon = (loadout) => {
+  const weapon = resolveWeapon(loadout.activeWeaponId);
+  const metadata = deriveWeaponSwitchMetadata(loadout.activeWeaponId);
+
+  return Object.freeze({
+    ...metadata,
+    hud: Object.freeze({
+      ...metadata.hud,
+      label: weapon.name,
+      weaponId: weapon.id,
+    }),
+  });
+};
 
 const normalizeLifeState = (lifeState) => Object.values(PLAYER_LIFE_STATES).includes(lifeState)
   ? lifeState

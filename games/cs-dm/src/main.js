@@ -60,6 +60,7 @@ const hudHealth = document.getElementById('hud-health');
 const hudArmor = document.getElementById('hud-armor');
 const hudPhase = document.getElementById('hud-phase');
 const hudScoreboardBody = document.getElementById('scoreboard-body');
+const scoreboardPanel = document.querySelector('.scoreboard');
 const openBuyMenuButton = document.getElementById('open-buy-menu');
 const buyCloseButton = document.getElementById('buy-close');
 const perfSummary = document.getElementById('perf-summary');
@@ -77,6 +78,24 @@ const panelMap = {
   match: matchPanel,
 };
 
+const setShellMode = (mode) => {
+  document.body.dataset.gameMode = mode;
+};
+
+const setInGameSettingsOpen = (open) => {
+  document.body.classList.toggle('in-game-settings-open', open);
+  if (open) {
+    settingsPanel.hidden = false;
+    settingsPanel.setAttribute('aria-hidden', 'false');
+    return;
+  }
+
+  if (settingsReturnPanel === 'match') {
+    settingsPanel.hidden = true;
+    settingsPanel.setAttribute('aria-hidden', 'true');
+  }
+};
+
 let rendererShell = null;
 let selectedLoadout = null;
 let offlineMatchState = null;
@@ -87,6 +106,13 @@ let settingsReturnPanel = 'menu';
 let hostNetworkAdapter = createBrowserManualWebRtcAdapter();
 let joinNetworkAdapter = createBrowserManualWebRtcAdapter();
 let lastFootstepAt = 0;
+
+const SCOREBOARD_FACTION_LABELS = Object.freeze({
+  terrorists: 'Terrorists',
+  'counter-terrorists': 'Counter-Terrorists',
+});
+
+const SCOREBOARD_FACTION_ORDER = Object.freeze(['terrorists', 'counter-terrorists']);
 
 const audioController = createAudioController();
 
@@ -122,11 +148,11 @@ const buyMenuController = createBuyMenuController({
   errorElement: buyError,
   hudWeaponElement: hudWeapon,
   closeButton: buyCloseButton,
-  onLoadoutChange(loadout) {
+  onLoadoutChange(loadout, purchaseResult) {
     playAudioEvent(AudioEvent.BUY_SUCCESS, { unlock: true });
     selectedLoadout = loadout;
     if (offlineMatchState) {
-      offlineMatchState = buyOfflineWeapon(offlineMatchState, loadout.activeWeaponId).state;
+      offlineMatchState = buyOfflineWeapon(offlineMatchState, purchaseResult.selectedWeapon.id).state;
       renderOfflineHud();
     }
   },
@@ -260,9 +286,11 @@ const syncMainMenuState = () => {
 };
 
 const showPanel = (panelName) => {
+  setInGameSettingsOpen(false);
   setPanelVisibility(panelMap, panelName);
   networkPanel.hidden = panelName !== 'host' && panelName !== 'join';
   networkPanel.setAttribute('aria-hidden', String(networkPanel.hidden));
+  setShellMode(panelName === 'match' ? 'match' : 'pregame');
 };
 
 const setNetworkStatus = (state, message = '') => {
@@ -292,28 +320,55 @@ const renderOfflineHud = () => {
   renderPerfSummary();
   hudScoreboardBody.replaceChildren();
 
-  hud.scoreboard.forEach((row, index) => {
-    const scoreRow = document.createElement('tr');
-    scoreRow.dataset.scoreboardSlot = String(row.slotIndex);
-    if (row.slotIndex === offlineMatchState.matchState.localSlotIndex) {
-      scoreRow.classList.add('scoreboard__row--local');
-    }
-
-    [
-      String(index + 1),
-      row.name,
-      row.slotType,
-      row.lifeState,
-      String(row.score.kills),
-      String(row.score.deaths),
-    ].forEach((value) => {
-      const cell = document.createElement('td');
-      cell.textContent = value;
-      scoreRow.append(cell);
-    });
-
-    hudScoreboardBody.append(scoreRow);
+  const groupedRows = new Map(SCOREBOARD_FACTION_ORDER.map((faction) => [faction, []]));
+  hud.scoreboard.forEach((row) => {
+    const factionRows = groupedRows.get(row.faction) ?? groupedRows.get('terrorists');
+    factionRows.push(row);
   });
+
+  SCOREBOARD_FACTION_ORDER.forEach((faction) => {
+    const factionRows = groupedRows.get(faction) ?? [];
+
+    factionRows.forEach((row, index) => {
+      const scoreRow = document.createElement('tr');
+      scoreRow.dataset.scoreboardSlot = String(row.slotIndex);
+      scoreRow.classList.add(`scoreboard__row--${faction}`);
+      if (index === 0) {
+        scoreRow.classList.add('scoreboard__row--team-start');
+        scoreRow.dataset.teamLabel = SCOREBOARD_FACTION_LABELS[faction];
+      }
+      if (row.slotIndex === offlineMatchState.matchState.localSlotIndex) {
+        scoreRow.classList.add('scoreboard__row--local');
+      }
+
+      [
+        String(index + 1),
+        row.name,
+        '$16000',
+        String(row.score.kills),
+        String(row.score.deaths),
+        row.latency.ms === null ? 'BOT' : String(row.latency.ms),
+      ].forEach((value, cellIndex) => {
+        const cell = document.createElement('td');
+        if (cellIndex === 0 && index === 0) {
+          cell.dataset.teamLabel = SCOREBOARD_FACTION_LABELS[faction];
+        }
+        cell.textContent = value;
+        scoreRow.append(cell);
+      });
+
+      hudScoreboardBody.append(scoreRow);
+    });
+  });
+};
+
+const setScoreboardOpen = (open) => {
+  if (!scoreboardPanel || matchPanel.hidden) {
+    return;
+  }
+
+  matchPanel.classList.toggle('match-panel--scoreboard-open', open);
+  scoreboardPanel.setAttribute('aria-hidden', String(!open));
 };
 
 const handleOfflineAudioFeedback = (previousState, nextState, { localInput = null } = {}) => {
@@ -364,6 +419,14 @@ const startOfflineLoop = () => {
 const openSettings = () => {
   settingsReturnPanel = matchPanel.hidden ? 'menu' : 'match';
   syncSettingsPanel();
+  if (settingsReturnPanel === 'match') {
+    buyMenuController.close({ playFeedback: false });
+    setScoreboardOpen(false);
+    setInGameSettingsOpen(true);
+    settingsPanel.focus({ preventScroll: true });
+    return;
+  }
+
   showPanel('settings');
 };
 
@@ -461,12 +524,19 @@ const openMenu = () => {
   }
 
   buyMenuController.close({ playFeedback: false });
+  setScoreboardOpen(false);
   activeBindingAction = null;
   showPanel('menu');
 };
 
 const closeSettings = () => {
   activeBindingAction = null;
+  if (settingsReturnPanel === 'match') {
+    setInGameSettingsOpen(false);
+    matchPanel.focus({ preventScroll: true });
+    return;
+  }
+
   showPanel(settingsReturnPanel);
 };
 
@@ -483,14 +553,14 @@ const openOfflineMatch = () => {
   offlineMatchState = createOfflineMatch({ localPlayerName: nameResult.value, localLoadout: selectedLoadout });
   renderOfflineHud();
   startOfflineLoop();
+  showPanel('match');
 
   if (rendererShell === null) {
     rendererShell = createRendererShell({ mount: gameCanvas, pointerLockHelp, webglError });
   }
 
+  rendererShell.resize();
   rendererShell.requestPointerLock();
-
-  showPanel('match');
   matchPanel.focus({ preventScroll: true });
 };
 
@@ -669,6 +739,12 @@ document.addEventListener('keydown', (event) => {
     return;
   }
 
+  if (getLiveBindingCandidates(currentBindings, InputAction.Scoreboard).includes(event.code)) {
+    event.preventDefault();
+    setScoreboardOpen(true);
+    return;
+  }
+
   if (getLiveBindingCandidates(currentBindings, InputAction.Fire).includes(event.code) && offlineMatchState) {
     event.preventDefault();
     advanceOfflineMatchWithFeedback({ localInput: { fire: true } });
@@ -688,6 +764,13 @@ document.addEventListener('keydown', (event) => {
     event.preventDefault();
     playAudioEvent(AudioEvent.MENU_ACTION, { unlock: true });
     openSettings();
+  }
+});
+
+document.addEventListener('keyup', (event) => {
+  if (getLiveBindingCandidates(currentBindings, InputAction.Scoreboard).includes(event.code)) {
+    event.preventDefault();
+    setScoreboardOpen(false);
   }
 });
 

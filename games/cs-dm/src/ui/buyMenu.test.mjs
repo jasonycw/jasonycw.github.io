@@ -75,6 +75,42 @@ const tests = [
     ]);
   }],
 
+  ['selects non-AK primary secondary sniper and equipment purchases', () => {
+    const m4 = selectBuyPurchase(DEFAULT_LOADOUT, WEAPONS.M4A1.id);
+    const awp = selectBuyPurchase(m4.loadout, WEAPONS.AWP.id);
+    const usp = selectBuyPurchase(awp.loadout, WEAPONS.USP.id);
+    const kevlar = selectBuyPurchase(usp.loadout, WEAPONS.KEVLAR.id);
+
+    assert.equal(m4.ok, true);
+    assert.equal(m4.loadout.primaryWeaponId, WEAPONS.M4A1.id);
+    assert.equal(m4.loadout.activeWeaponId, WEAPONS.M4A1.id);
+    assert.equal(getLoadoutWeaponLabel(m4.loadout), 'M4A1');
+
+    assert.equal(awp.ok, true);
+    assert.equal(awp.loadout.primaryWeaponId, WEAPONS.AWP.id);
+    assert.equal(awp.loadout.activeWeaponId, WEAPONS.AWP.id);
+    assert.equal(getLoadoutWeaponLabel(awp.loadout), 'AWP');
+
+    assert.equal(usp.ok, true);
+    assert.equal(usp.loadout.secondaryWeaponId, WEAPONS.USP.id);
+    assert.equal(usp.loadout.activeWeaponId, WEAPONS.USP.id);
+    assert.equal(getLoadoutWeaponLabel(usp.loadout), 'USP');
+
+    assert.equal(kevlar.ok, true);
+    assert.deepEqual(kevlar.loadout.equipmentIds, [WEAPONS.KNIFE.id, WEAPONS.KEVLAR.id]);
+    assert.equal(kevlar.loadout.activeWeaponId, WEAPONS.USP.id);
+
+    writeEvidence('task-19-non-ak-buy.txt', [
+      'T19 non-AK buy evidence',
+      'Scenario: select M4A1, AWP, USP, and Kevlar in deathmatch free-buy mode',
+      `M4A1 primary active: ${m4.loadout.activeWeaponId}`,
+      `AWP primary active: ${awp.loadout.activeWeaponId}`,
+      `USP secondary active: ${usp.loadout.activeWeaponId}`,
+      `Equipment after Kevlar: ${kevlar.loadout.equipmentIds.join(',')}`,
+      `Final HUD label: ${getLoadoutWeaponLabel(kevlar.loadout)}`,
+    ]);
+  }],
+
   ['invalid purchase keeps current loadout unchanged', () => {
     const startingLoadout = Object.freeze({
       primaryWeaponId: WEAPONS.M4A1.id,

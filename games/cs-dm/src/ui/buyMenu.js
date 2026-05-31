@@ -121,7 +121,7 @@ export function createBuyMenuController({
   let activeCategoryId = getBuyCategories()[0]?.id ?? '';
 
   const syncHud = () => {
-    hudWeaponElement.textContent = getLoadoutWeaponSwitchMetadata(loadout).hud.label;
+    hudWeaponElement.textContent = getLoadoutWeaponLabel(loadout);
   };
 
   const setError = (message = '') => {
@@ -131,11 +131,15 @@ export function createBuyMenuController({
   const renderWeapons = () => {
     weaponListElement.replaceChildren();
 
-    getBuyWeaponsForCategory(activeCategoryId).forEach((weapon) => {
+    getBuyWeaponsForCategory(activeCategoryId).forEach((weapon, index) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'buy-menu__weapon';
       button.dataset.buyWeapon = weapon.id;
+
+      const shortcut = document.createElement('span');
+      shortcut.className = 'buy-menu__shortcut';
+      shortcut.textContent = String(index + 1);
 
       const name = document.createElement('span');
       name.className = 'buy-menu__weapon-name';
@@ -145,7 +149,7 @@ export function createBuyMenuController({
       meta.className = 'buy-menu__weapon-meta';
       meta.textContent = `${weapon.ammo.type.toUpperCase()} · free buy`;
 
-      button.append(name, meta);
+      button.append(shortcut, name, meta);
       weaponListElement.append(button);
     });
   };
@@ -153,13 +157,21 @@ export function createBuyMenuController({
   const renderCategories = () => {
     categoryListElement.replaceChildren();
 
-    getBuyCategories().forEach((category) => {
+    getBuyCategories().forEach((category, index) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'buy-menu__category';
       button.dataset.buyCategory = category.id;
       button.setAttribute('aria-pressed', 'false');
-      button.textContent = category.label;
+
+      const shortcut = document.createElement('span');
+      shortcut.className = 'buy-menu__shortcut';
+      shortcut.textContent = String(index + 1);
+
+      const label = document.createElement('span');
+      label.textContent = category.label;
+
+      button.append(shortcut, label);
       categoryListElement.append(button);
     });
 
@@ -190,6 +202,7 @@ export function createBuyMenuController({
     setError('');
     syncHud();
     onLoadoutChange(loadout, result);
+    close({ playFeedback: false });
     return result;
   };
 

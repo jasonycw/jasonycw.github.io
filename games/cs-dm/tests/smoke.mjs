@@ -155,9 +155,9 @@ const run = async () => {
 
   const screenshotFallbackLines = [
     'T30 screenshot evidence fallback',
-    'Screenshot capture: deferred to T36/final static QA.',
+    'Screenshot capture: deferred from T30 to T36/final static QA, and T36 completed the real browser PNG captures.',
     'Reason: this repository has no local browser automation dependency and this T30 suite must remain deterministic without requiring an external browser.',
-    'No screenshots were fabricated.',
+    'No screenshots were fabricated by this suite.',
     'Deterministic evidence generated instead:',
     '- .sisyphus/evidence/task-30-smoke-suite.txt',
     ...coverage.map((line) => `- ${line}`),
