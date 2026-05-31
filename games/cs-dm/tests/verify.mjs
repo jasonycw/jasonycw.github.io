@@ -221,6 +221,9 @@ const run = async () => {
   const networkIndexJs = readText('games/cs-dm/src/network/index.js');
   const protocolJs = readText('games/cs-dm/src/network/protocol.js');
   const readme = readText('games/cs-dm/README.md');
+  const screenshotsReadme = readText('games/cs-dm/screenshots/README.md');
+  const screenshotMenu = readText('games/cs-dm/screenshots/menu-placeholder.svg');
+  const screenshotMatch = readText('games/cs-dm/screenshots/match-placeholder.svg');
   assert.equal(mainJs.includes("import { validatePlayerName } from './core/index.js';"), true, 'main.js must import the core validator');
   assert.equal(mainJs.includes("import { InputAction, createDefaultBindingMap, getLiveBindingCandidates, readStoredKeybindings, readStoredPlayerName, writeStoredKeybindings, writeStoredPlayerName } from './input/index.js';"), true, 'main.js must import input storage and binding helpers');
   assert.equal(mainJs.includes("import { createRendererShell } from './render/index.js';"), true, 'main.js must import the renderer shell');
@@ -286,6 +289,41 @@ const run = async () => {
   assert.equal(readme.includes('best-effort manual WebRTC'), true, 'README must document best-effort manual P2P');
   assert.equal(readme.includes('no third-party relay') && readme.includes('TURN server') && readme.includes('signaling broker'), true, 'README must document no relay/broker');
   assert.equal(readme.includes('NAT') && readme.includes('firewall'), true, 'README must document NAT/firewall limitations');
+  assert.equal(readme.includes('## Controls'), true, 'README must document controls');
+  assert.equal(readme.includes('## Browser Support'), true, 'README must document browser support');
+  assert.equal(readme.includes('## Screenshots'), true, 'README must document screenshots');
+  assert.equal(readme.includes('## Manual P2P'), true, 'README must document manual P2P steps');
+  assert.equal(readme.includes('The host clicks the host flow and generates an offer code.'), true, 'README must describe the host offer step');
+  assert.equal(readme.includes('The joiner pastes that offer code, then generates an answer code.'), true, 'README must describe the joiner answer step');
+  assert.equal(readme.includes('The host pastes the answer code to accept the connection.'), true, 'README must describe the host accept step');
+  assert.equal(readme.includes('CS DM is not affiliated with Valve, Counter-Strike, or Steam.'), true, 'README must include the non-affiliation note');
+  assert.equal(readme.includes('Visuals here are original or generated placeholders only.'), true, 'README must include the original-assets note');
+  assert.equal(readme.includes('P2P is best-effort and can fail behind some NAT or firewall setups.'), true, 'README must include the NAT limitation note');
+  assert.equal(readme.includes('![Main menu placeholder diagram](./screenshots/menu-placeholder.svg)'), true, 'README must include the menu screenshot link');
+  assert.equal(readme.includes('![Match HUD placeholder diagram](./screenshots/match-placeholder.svg)'), true, 'README must include the match screenshot link');
+  assert.equal(screenshotsReadme.includes('placeholder diagrams'), true, 'screenshots README must label placeholder diagrams');
+  assert.equal(screenshotsReadme.includes('menu-placeholder.svg') && screenshotsReadme.includes('match-placeholder.svg'), true, 'screenshots README must list placeholder files');
+  assert.equal(screenshotMenu.includes('<svg'), true, 'menu placeholder screenshot must be an SVG');
+  assert.equal(screenshotMenu.includes('placeholder'), true, 'menu placeholder screenshot must label itself as a placeholder');
+  assert.equal(screenshotMatch.includes('<svg'), true, 'match placeholder screenshot must be an SVG');
+  assert.equal(screenshotMatch.includes('placeholder'), true, 'match placeholder screenshot must label itself as a placeholder');
+
+  const evidenceDir = path.join(repoRoot, '.sisyphus', 'evidence');
+  mkdirSync(evidenceDir, { recursive: true });
+  writeFileSync(path.join(evidenceDir, 'task-32-readme-images.txt'), [
+    'T32 README image evidence',
+    'README links:',
+    '- ./screenshots/menu-placeholder.svg',
+    '- ./screenshots/match-placeholder.svg',
+    'Resolved on disk: yes',
+    'Status: placeholder diagrams pending final capture',
+  ].join('\n'));
+  writeFileSync(path.join(evidenceDir, 'task-32-p2p-docs.txt'), [
+    'T32 P2P docs evidence',
+    'Manual flow: host offer -> join answer -> host accept',
+    'Limitations: best-effort, NAT/firewall dependent, no TURN relay, no signaling broker, no backend',
+    'Fallback: offline bots remain the reliable baseline',
+  ].join('\n'));
 
   const relativeImports = [...mainJs.matchAll(/import\s+(?:[^'\"]+from\s+)?['\"]([^'\"]+)['\"]/g)].map((match) => match[1]);
   for (const specifier of relativeImports) {
@@ -299,9 +337,6 @@ const run = async () => {
   const workflowDir = path.join(repoRoot, '.github', 'workflows');
   assert.equal(existsSync(workflowDir), false, '.github/workflows directory must remain absent');
   assert.equal(readdirSync(path.join(gameRoot)).includes('tests'), true, 'games/cs-dm/tests directory must exist');
-
-  const evidenceDir = path.join(repoRoot, '.sisyphus', 'evidence');
-  mkdirSync(evidenceDir, { recursive: true });
   writeFileSync(path.join(evidenceDir, 'task-13-score-sort.txt'), [
     'T13 score sort evidence',
     'Order: Bravo, Charlie, Alpha',
