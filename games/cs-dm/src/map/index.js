@@ -123,22 +123,22 @@ export const MAP_GEOMETRY_PRIMITIVES = Object.freeze([
 
 export const MAP_SPAWN_POINTS = Object.freeze(SPAWN_REFERENCES.map((spawnReference, index) => {
   const positions = [
-    { x: 10, y: 0, z: 88 },
-    { x: 16, y: 0, z: 84 },
-    { x: 22, y: 0, z: 88 },
-    { x: 28, y: 0, z: 80 },
-    { x: 72, y: 0, z: 74 },
-    { x: 68, y: 0, z: 66 },
-    { x: 50, y: 0, z: 54 },
+    { x: 12, y: 0, z: 88 },
+    { x: 14, y: 0, z: 78 },
+    { x: 26, y: 0, z: 88 },
+    { x: 32, y: 0, z: 82 },
+    { x: 72, y: 0, z: 80 },
+    { x: 62, y: 0, z: 70 },
+    { x: 50, y: 0, z: 56 },
     { x: 18, y: 0, z: 70 },
-    { x: 90, y: 0, z: 12 },
+    { x: 88, y: 0, z: 14 },
     { x: 84, y: 0, z: 18 },
-    { x: 88, y: 0, z: 28 },
-    { x: 78, y: 0, z: 22 },
-    { x: 58, y: 0, z: 44 },
-    { x: 22, y: 0, z: 22 },
+    { x: 86, y: 0, z: 30 },
+    { x: 76, y: 0, z: 24 },
+    { x: 58, y: 0, z: 42 },
+    { x: 26, y: 0, z: 24 },
     { x: 46, y: 0, z: 18 },
-    { x: 80, y: 0, z: 84 },
+    { x: 78, y: 0, z: 84 },
   ];
 
   return Object.freeze({

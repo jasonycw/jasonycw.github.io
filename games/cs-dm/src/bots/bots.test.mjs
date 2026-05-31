@@ -162,7 +162,8 @@ const tests = [
       stateEnteredTick: 0,
     }));
     const matchState = createMatchState({ phase: MATCH_PHASES.RUNNING, players });
-    const controller = createPlayerControllerState({ position: MAP_SPAWN_POINTS[1].position });
+    const blockedPosition = { x: 20, y: 0, z: 82 };
+    const controller = createPlayerControllerState({ position: blockedPosition });
     let simulation = createBotAiSimulation({
       matchState,
       controllersBySlotIndex: Object.freeze({ 1: controller }),
@@ -171,7 +172,7 @@ const tests = [
       ...simulation,
       controllersBySlotIndex: Object.freeze({ ...simulation.controllersBySlotIndex, 1: controller }),
     });
-    const blocker = { kind: 'box', center: MAP_SPAWN_POINTS[1].position, size: { width: 8, height: 4, depth: 8 } };
+    const blocker = { kind: 'box', center: blockedPosition, size: { width: 8, height: 4, depth: 8 } };
     for (let index = 0; index < 40; index += 1) {
       simulation = advanceBotAiTick(simulation, { blockers: [blocker] });
     }

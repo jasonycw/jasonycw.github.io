@@ -52,6 +52,15 @@ These are placeholder diagrams for now. Final gameplay captures will replace the
 
 This is best-effort manual WebRTC and copy paste only. There is no third-party relay, TURN server, signaling broker, backend, or matchmaking service. It is best-effort and depends on browser, NAT, and firewall behavior. If a code is malformed, a room is full, the connection times out, a peer disconnects, the host closes, or versions mismatch, the UI shows a recoverable error and offline bots stay available as the fallback.
 
+## Offline Tuning
+
+- Offline matches run at `60` deterministic simulation ticks per second.
+- The reliable baseline is `1` local player plus `15` active bots in a `16` slot free-for-all.
+- Respawn delay is `3000ms`; spawn protection lasts `1500ms` and breaks immediately when the protected player fires.
+- Bot difficulty defaults to normal: `14` reaction ticks, `6` degrees base aim error, `45` tick path replans, and `0.55` aggression.
+- Performance budgets remain `33ms` median frame, `80ms` p95 frame, `500ms` max simulation stall, and `64` post-cleanup transient effects.
+- T34 deterministic QA uses three separate 120-second offline runs and a 112-respawn spawn-validity pass; text evidence is written because browser screenshot QA is deferred to final static verification.
+
 ## IP and Asset Note
 
 CS DM is not affiliated with Valve, Counter-Strike, or Steam. It does not ship copied Counter-Strike assets, audio, sprites, screenshots, maps, or exported meshes. Visuals here are original or generated placeholders only.

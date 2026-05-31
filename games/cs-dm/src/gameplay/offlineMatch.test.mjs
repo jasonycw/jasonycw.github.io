@@ -4,6 +4,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { COMBAT_DEFAULTS, LOCAL_PLAYER_SLOT_INDEX, MATCH_PHASES, PLAYER_LIFE_STATES, SLOT_TYPES, WEAPONS } from '../config/index.js';
+import { MAP_COLLISION_VOLUMES, MAP_SPAWN_POINTS, SPAWN_CLEARANCE_RADIUS, getSpawnCollisionOverlaps } from '../map/index.js';
+import { PLAYER_MOVEMENT_DEFAULTS } from '../player/index.js';
 import { selectBuyPurchase } from '../ui/buyMenu.js';
 import { startReload } from '../weapons/index.js';
 import {
@@ -28,6 +30,24 @@ const writeEvidence = (fileName, lines) => {
 };
 
 let localLoadoutPersistenceEvidence = 'localLoadoutPersistence=not-run';
+
+const distance2d = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+
+const pointOverlapsBox2d = (point, radius, box) => {
+  const halfWidth = box.size.width / 2;
+  const halfDepth = box.size.depth / 2;
+  const closestX = Math.max(box.center.x - halfWidth, Math.min(point.x, box.center.x + halfWidth));
+  const closestZ = Math.max(box.center.z - halfDepth, Math.min(point.z, box.center.z + halfDepth));
+  return Math.hypot(point.x - closestX, point.z - closestZ) < radius;
+};
+
+const clearInitialSpawnProtection = (state) => Object.freeze({
+  ...state,
+  matchState: Object.freeze({
+    ...state.matchState,
+    players: Object.freeze(state.matchState.players.map((player) => Object.freeze({ ...player, spawnProtectionUntilMs: 0 }))),
+  }),
+});
 
 const advanceUntil = (state, predicate, maxTicks = 600) => {
   let nextState = state;
@@ -173,6 +193,100 @@ const tests = [
     assert.equal(state.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].isReloading, false);
     assert.equal(state.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].activeWeaponId ?? state.matchState.players[LOCAL_PLAYER_SLOT_INDEX].loadout.activeWeaponId, WEAPONS.AWP.id);
   }],
+
+  ['runs three deterministic T34 two-minute offline QA passes with active bots and local respawns', () => {
+    const runConfigs = [
+      Object.freeze({ label: 'seed-1-ak47-forward', name: 'T34 Alpha', weaponId: WEAPONS.AK47.id, yawDelta: 0, button: 'forward', seedOffset: 1000 }),
+      Object.freeze({ label: 'seed-2-m4a1-strafe', name: 'T34 Bravo', weaponId: WEAPONS.M4A1.id, yawDelta: 140, button: 'right', seedOffset: 2000 }),
+      Object.freeze({ label: 'seed-3-awp-hold', name: 'T34 Charlie', weaponId: WEAPONS.AWP.id, yawDelta: -120, button: null, seedOffset: 3000 }),
+    ];
+    const evidence = ['PASS T34 deterministic offline tuning QA', 'durationSeconds=120', 'tickRate=60', `respawnDelayMs=${COMBAT_DEFAULTS.respawnDelayMs}`, `spawnProtectionMs=${COMBAT_DEFAULTS.spawnProtectionMs}`];
+
+    for (const config of runConfigs) {
+      let state = createOfflineMatch({ localPlayerName: config.name });
+      state = clearInitialSpawnProtection(buyOfflineWeapon(state, config.weaponId).state);
+      const localInputs = Array.from({ length: 120 * 60 }, (_, tickIndex) => (tickIndex % 30 === 0 ? Object.freeze({
+        buttons: config.button ? [config.button] : [],
+        fire: true,
+        seed: config.seedOffset + tickIndex,
+        look: { yawDelta: config.yawDelta, pitchDelta: 0 },
+      }) : null));
+      let forcedLocalRespawns = 0;
+      for (let tickIndex = 0; tickIndex < 120 * 60; tickIndex += 1) {
+        if (tickIndex === 1200 || tickIndex === 3600) {
+          state = forceOfflineKill(state, { killerSlotIndex: 1, victimSlotIndex: LOCAL_PLAYER_SLOT_INDEX });
+          forcedLocalRespawns += 1;
+        }
+        state = advanceOfflineMatchTick(state, { localInput: localInputs[tickIndex] ?? null });
+      }
+      const finalState = state;
+      const summary = summarizeOfflineMatch(finalState);
+      const localPlayer = finalState.matchState.players[LOCAL_PLAYER_SLOT_INDEX];
+      const botPlayers = finalState.matchState.players.filter((player) => player.slotType === SLOT_TYPES.BOT);
+      const scoringRows = finalState.matchState.players.filter((player) => player.score.kills > 0 || player.score.deaths > 0).length;
+
+      assert.equal(finalState.tick, 7200, `${config.label} should complete exactly 120 seconds`);
+      assert.equal(summary.phase, MATCH_PHASES.RUNNING);
+      assert.equal(summary.mode, OFFLINE_MATCH_PHASE);
+      assert.equal(summary.botShotsFired > 10, true, `${config.label} should produce bot shooting`);
+      assert.equal(summary.totalKills > 0, true, `${config.label} should produce kills`);
+      assert.equal(summary.totalDeaths > 0, true, `${config.label} should produce deaths`);
+      assert.equal(summary.botRespawns > 0, true, `${config.label} should produce respawns`);
+      assert.equal(scoringRows > 1, true, `${config.label} should change the scoreboard`);
+      assert.equal(botPlayers.some((player) => player.score.kills > 0), true, `${config.label} should have bot kills`);
+      assert.equal(botPlayers.some((player) => player.score.deaths > 0), true, `${config.label} should have bot deaths`);
+      assert.equal(forcedLocalRespawns, 2, `${config.label} should exercise repeated local respawns`);
+      assert.equal(localPlayer.score.deaths >= forcedLocalRespawns, true, `${config.label} should record repeated local deaths`);
+      assert.equal(localPlayer.lifeState, PLAYER_LIFE_STATES.ALIVE, `${config.label} should finish with local player playable`);
+
+      evidence.push(`${config.label}: ticks=${finalState.tick} botShotsFired=${summary.botShotsFired} kills=${summary.totalKills} deaths=${summary.totalDeaths} botRespawns=${summary.botRespawns} localDeaths=${localPlayer.score.deaths} forcedLocalRespawns=${forcedLocalRespawns} scoringRows=${scoringRows} finalLocalState=${localPlayer.lifeState} activeWeapon=${localPlayer.loadout.activeWeaponId}`);
+    }
+
+    evidence.push('Browser Playwright PNG evidence was not used for T34 because deterministic Node runs are the accepted QA surface for this task.');
+    writeEvidence('task-34-offline-tuning.txt', evidence);
+  }],
+
+  ['validates T34 respawns across all spawn points without wall or occupied-slot overlap', () => {
+    const spawnOverlaps = getSpawnCollisionOverlaps();
+    assert.deepEqual(spawnOverlaps, []);
+
+    const minimumAllowedSpawnDistance = (SPAWN_CLEARANCE_RADIUS * 2) + PLAYER_MOVEMENT_DEFAULTS.collisionRadius;
+    let minimumObservedDistance = Number.POSITIVE_INFINITY;
+    for (let first = 0; first < MAP_SPAWN_POINTS.length; first += 1) {
+      for (let second = first + 1; second < MAP_SPAWN_POINTS.length; second += 1) {
+        minimumObservedDistance = Math.min(minimumObservedDistance, distance2d(MAP_SPAWN_POINTS[first].position, MAP_SPAWN_POINTS[second].position));
+      }
+    }
+    assert.equal(minimumObservedDistance > minimumAllowedSpawnDistance, true);
+
+    const respawnChecks = [];
+    for (let cycle = 0; cycle < 7; cycle += 1) {
+      for (const spawnPoint of MAP_SPAWN_POINTS) {
+        const slotIndex = Number(spawnPoint.id.slice(-2));
+        let state = createOfflineMatch({ localPlayerName: `Spawn${cycle}` });
+        state = forceOfflineKill(state, { killerSlotIndex: slotIndex === LOCAL_PLAYER_SLOT_INDEX ? 1 : LOCAL_PLAYER_SLOT_INDEX, victimSlotIndex: slotIndex });
+        state = advanceUntil(state, (nextState) => nextState.matchState.players[slotIndex].lifeState === PLAYER_LIFE_STATES.ALIVE && nextState.nowMs >= COMBAT_DEFAULTS.respawnDelayMs, 360);
+        const wallOverlap = MAP_COLLISION_VOLUMES.some((volume) => pointOverlapsBox2d(spawnPoint.position, PLAYER_MOVEMENT_DEFAULTS.collisionRadius, volume));
+
+        assert.equal(state.matchState.players[slotIndex].lifeState, PLAYER_LIFE_STATES.ALIVE);
+        assert.equal(state.matchState.players[slotIndex].spawnId, spawnPoint.id);
+        assert.equal(wallOverlap, false, `${spawnPoint.id} should not overlap collision volumes`);
+        respawnChecks.push(`${spawnPoint.id}@${spawnPoint.position.x},${spawnPoint.position.z}`);
+      }
+    }
+
+    assert.equal(respawnChecks.length >= 100, true);
+    writeEvidence('task-34-spawn-validity.txt', [
+      'PASS T34 spawn validity simulation',
+      `respawnChecks=${respawnChecks.length}`,
+      `spawnPoints=${MAP_SPAWN_POINTS.length}`,
+      `wallCollisionOverlaps=${spawnOverlaps.length}`,
+      `minimumSpawnDistance=${minimumObservedDistance.toFixed(3)}`,
+      `minimumAllowedDistance=${minimumAllowedSpawnDistance.toFixed(3)}`,
+      `sample=${respawnChecks.slice(0, 16).join(' | ')}`,
+    ]);
+  }],
+
   ['stays running free-play with no team winner after many kills', () => {
     let state = createOfflineMatch({ localPlayerName: 'Roundless' });
     for (let index = 0; index < 50; index += 1) {

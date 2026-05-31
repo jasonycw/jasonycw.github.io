@@ -503,7 +503,7 @@ export function advanceBotAiTick(state, { blockers = [] } = {}) {
     const beforePlayer = previousPlayers[player.slotIndex];
     if (beforePlayer?.lifeState === PLAYER_LIFE_STATES.RESPAWNING && player.lifeState === PLAYER_LIFE_STATES.ALIVE) {
       metrics = addMetric(metrics, 'respawns');
-      const spawnPosition = WAYPOINTS_BY_ID[player.bot?.currentWaypointId]?.position ?? controllersBySlotIndex[player.slotIndex]?.position;
+      const spawnPosition = MAP_SPAWN_POINTS[player.slotIndex]?.position ?? WAYPOINTS_BY_ID[player.bot?.currentWaypointId]?.position ?? controllersBySlotIndex[player.slotIndex]?.position;
       controllersBySlotIndex[player.slotIndex] = createPlayerControllerState({ position: spawnPosition, activeWeaponId: player.loadout.activeWeaponId });
       weaponStatesBySlotIndex[player.slotIndex] = createWeaponState(player.loadout.activeWeaponId);
       if (player.bot) {

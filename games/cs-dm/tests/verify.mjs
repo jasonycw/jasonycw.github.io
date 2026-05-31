@@ -218,6 +218,7 @@ const run = async () => {
   const renderStateJs = readText('games/cs-dm/src/render/state.js');
   const renderTest = readText('games/cs-dm/src/render/render.test.mjs');
   const offlineMatchTest = readText('games/cs-dm/src/gameplay/offlineMatch.test.mjs');
+  const botIndexJs = readText('games/cs-dm/src/bots/index.js');
   const networkIndexJs = readText('games/cs-dm/src/network/index.js');
   const protocolJs = readText('games/cs-dm/src/network/protocol.js');
   const readme = readText('games/cs-dm/README.md');
@@ -274,6 +275,9 @@ const run = async () => {
   assert.equal(renderStateJs.includes('createRendererFallbackState'), true, 'renderer state must expose deterministic WebGL fallback state');
   assert.equal(renderTest.includes('task-29-resize.txt'), true, 'render tests must write T29 resize evidence');
   assert.equal(offlineMatchTest.includes('task-29-menu-death-respawn.txt'), true, 'offline match tests must write T29 menu/death/respawn evidence');
+  assert.equal(offlineMatchTest.includes('task-34-offline-tuning.txt'), true, 'offline match tests must write T34 offline tuning evidence');
+  assert.equal(offlineMatchTest.includes('task-34-spawn-validity.txt'), true, 'offline match tests must write T34 spawn validity evidence');
+  assert.equal(botIndexJs.includes('MAP_SPAWN_POINTS[player.slotIndex]?.position'), true, 'bot respawns must use configured slot spawn points');
   assert.equal(networkIndexJs.includes("export * from './protocol.js';"), true, 'network index must export protocol helpers');
   assert.equal(networkIndexJs.includes("export * from './slots.js';"), true, 'network index must export slot hot-swap helpers');
   assert.equal(networkIndexJs.includes('createFullRoomJoinRejection'), true, 'network index must expose full-room join rejection helper');
@@ -293,6 +297,10 @@ const run = async () => {
   assert.equal(readme.includes('## Browser Support'), true, 'README must document browser support');
   assert.equal(readme.includes('## Screenshots'), true, 'README must document screenshots');
   assert.equal(readme.includes('## Manual P2P'), true, 'README must document manual P2P steps');
+  assert.equal(readme.includes('## Offline Tuning'), true, 'README must document offline tuning values');
+  assert.equal(readme.includes('Respawn delay is `3000ms`') && readme.includes('spawn protection lasts `1500ms`'), true, 'README must document respawn timing tuning values');
+  assert.equal(readme.includes('14` reaction ticks') && readme.includes('6` degrees base aim error'), true, 'README must document bot difficulty tuning values');
+  assert.equal(readme.includes('33ms` median frame') && readme.includes('64` post-cleanup transient effects'), true, 'README must document performance budgets');
   assert.equal(readme.includes('The host clicks the host flow and generates an offer code.'), true, 'README must describe the host offer step');
   assert.equal(readme.includes('The joiner pastes that offer code, then generates an answer code.'), true, 'README must describe the joiner answer step');
   assert.equal(readme.includes('The host pastes the answer code to accept the connection.'), true, 'README must describe the host accept step');
