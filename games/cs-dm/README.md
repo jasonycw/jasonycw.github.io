@@ -1,4 +1,4 @@
-# CS DM
+﻿# CS DM
 
 Static GitHub Pages deathmatch prototype for CS DM.
 
@@ -50,7 +50,7 @@ These are placeholder diagrams for now. Final gameplay captures will replace the
 2. The joiner pastes that offer code, then generates an answer code.
 3. The host pastes the answer code to accept the connection.
 
-This is best-effort manual WebRTC and copy paste only. There is no third-party relay, TURN server, signaling broker, backend, or matchmaking service. It is best-effort and depends on browser, NAT, and firewall behavior. If a code is malformed, a room is full, the connection times out, a peer disconnects, the host closes, or versions mismatch, the UI shows a recoverable error and offline bots stay available as the fallback.
+This is best-effort manual WebRTC and manual code copy paste only. There is no third-party relay, TURN server, signaling broker, backend, or matchmaking service. It is best-effort and depends on browser, NAT, and firewall behavior. T35 QA verified the manual-code exchange, remote slot hot-swap, name/input protocol reduction, host snapshot display reduction, disconnect bot fallback, and malformed-code recovery in deterministic local-context tests; real local tabs remain best-effort browser QA and do not prove internet-wide reliability. If a code is malformed, a room is full, the connection times out, a peer disconnects, the host closes, or versions mismatch, the UI shows a recoverable error and offline bots stay available as the fallback.
 
 ## Offline Tuning
 
@@ -68,5 +68,6 @@ CS DM is not affiliated with Valve, Counter-Strike, or Steam. It does not ship c
 ## Known Limitations
 
 - P2P is best-effort and can fail behind some NAT or firewall setups. Offline bots remain the reliable fallback.
-- Offline bots are the reliable fallback.
+- T35 P2P QA currently proves deterministic local-context behavior; real local tabs and internet peers remain browser/network dependent.
 - Final screenshot captures are still pending and the current images are labeled placeholder diagrams.
+

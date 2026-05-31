@@ -104,6 +104,7 @@ const run = async () => {
   await import(pathToFileURL(path.join(gameRoot, 'src', 'network', 'protocol.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'network', 'slots.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'network', 'failure.test.mjs')).href);
+  await import(pathToFileURL(path.join(gameRoot, 'src', 'network', 'p2p-e2e.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'tests', 'smoke.mjs')).href);
 
   assertExists('games/cs-dm/index.html');
@@ -146,6 +147,7 @@ const run = async () => {
   assertExists('games/cs-dm/src/network/slots.js');
   assertExists('games/cs-dm/src/network/slots.test.mjs');
   assertExists('games/cs-dm/src/network/failure.test.mjs');
+  assertExists('games/cs-dm/src/network/p2p-e2e.test.mjs');
   assertExists('games/cs-dm/assets');
   assertExists('games/cs-dm/screenshots');
 
@@ -221,6 +223,7 @@ const run = async () => {
   const botIndexJs = readText('games/cs-dm/src/bots/index.js');
   const networkIndexJs = readText('games/cs-dm/src/network/index.js');
   const protocolJs = readText('games/cs-dm/src/network/protocol.js');
+  const p2pE2eTest = readText('games/cs-dm/src/network/p2p-e2e.test.mjs');
   const readme = readText('games/cs-dm/README.md');
   const screenshotsReadme = readText('games/cs-dm/screenshots/README.md');
   const screenshotMenu = readText('games/cs-dm/screenshots/menu-placeholder.svg');
@@ -286,6 +289,9 @@ const run = async () => {
   assert.equal(protocolJs.includes('NETWORK_PROTOCOL_VERSION'), true, 'protocol must centralize its version');
   assert.equal(protocolJs.includes('Remote clients cannot set health, kills, positions, snapshots, or world state.'), true, 'protocol must reject client state mutation');
   assert.equal(protocolJs.includes('createSnapshotDisplayBuffer'), true, 'protocol must expose interpolation display helper');
+  assert.equal(p2pE2eTest.includes('task-35-p2p-state.txt'), true, 'T35 P2P test must write state evidence');
+  assert.equal(p2pE2eTest.includes('createRemoteDisconnectFallback'), true, 'T35 P2P test must cover disconnect bot fallback');
+  assert.equal(p2pE2eTest.includes('createManualCodeFailureState'), true, 'T35 P2P test must cover invalid manual-code recovery');
   assert.equal(indexHtml.includes('best-effort manual P2P'), true, 'UI must say manual P2P is best-effort');
   assert.equal(indexHtml.includes('NAT') && indexHtml.includes('firewall'), true, 'UI must mention NAT/firewall dependency');
   assert.equal(indexHtml.includes('No TURN relay or signaling broker'), true, 'UI must say no relay/signaling broker exists');
@@ -307,6 +313,8 @@ const run = async () => {
   assert.equal(readme.includes('CS DM is not affiliated with Valve, Counter-Strike, or Steam.'), true, 'README must include the non-affiliation note');
   assert.equal(readme.includes('Visuals here are original or generated placeholders only.'), true, 'README must include the original-assets note');
   assert.equal(readme.includes('P2P is best-effort and can fail behind some NAT or firewall setups.'), true, 'README must include the NAT limitation note');
+  assert.equal(readme.includes('local tabs') && readme.includes('deterministic local-context'), true, 'README must document T35 local-tab/deterministic QA scope');
+  assert.equal(readme.includes('manual code') && readme.includes('best-effort') && readme.includes('NAT') && readme.includes('firewall'), true, 'README must include T35 limitation concepts');
   assert.equal(readme.includes('![Main menu placeholder diagram](./screenshots/menu-placeholder.svg)'), true, 'README must include the menu screenshot link');
   assert.equal(readme.includes('![Match HUD placeholder diagram](./screenshots/match-placeholder.svg)'), true, 'README must include the match screenshot link');
   assert.equal(screenshotsReadme.includes('placeholder diagrams'), true, 'screenshots README must label placeholder diagrams');
@@ -410,3 +418,4 @@ run().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+
