@@ -5,15 +5,18 @@ import { fileURLToPath } from 'node:url';
 
 import { COMBAT_DEFAULTS, LOCAL_PLAYER_SLOT_INDEX, MATCH_PHASES, PLAYER_LIFE_STATES, SLOT_TYPES, WEAPONS } from '../config/index.js';
 import { selectBuyPurchase } from '../ui/buyMenu.js';
+import { startReload } from '../weapons/index.js';
 import {
   advanceOfflineMatchTick,
   buyOfflineWeapon,
   createOfflineMatch,
   deriveOfflineMatchHud,
   forceOfflineKill,
+  MATCH_OVERLAY_STATES,
   OFFLINE_MATCH_PHASE,
   runOfflineSmokeSimulation,
   summarizeOfflineMatch,
+  summarizeOfflineMenuConsistency,
 } from './offlineMatch.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -121,6 +124,55 @@ const tests = [
     localLoadoutPersistenceEvidence = `localLoadoutPersistence=${state.matchState.players[0].lifeState}/${state.matchState.players[0].loadout.primaryWeaponId}/${state.matchState.players[0].loadout.secondaryWeaponId}/${state.matchState.players[0].loadout.activeWeaponId}`;
   }],
 
+  ['keeps HUD and overlay state consistent when local death happens with menus open', () => {
+    let state = createOfflineMatch({ localPlayerName: 'MenuDeath' });
+    const beforeDeath = summarizeOfflineMenuConsistency(state, { overlayState: MATCH_OVERLAY_STATES.BUY });
+    state = forceOfflineKill(state, { killerSlotIndex: 1, victimSlotIndex: LOCAL_PLAYER_SLOT_INDEX });
+    const duringRespawn = summarizeOfflineMenuConsistency(state, { overlayState: MATCH_OVERLAY_STATES.SETTINGS });
+    state = advanceUntil(state, (nextState) => nextState.matchState.players[LOCAL_PLAYER_SLOT_INDEX].lifeState === PLAYER_LIFE_STATES.ALIVE && nextState.nowMs >= COMBAT_DEFAULTS.respawnDelayMs);
+    const afterRespawn = summarizeOfflineMenuConsistency(state, { overlayState: MATCH_OVERLAY_STATES.SCOREBOARD });
+
+    assert.equal(beforeDeath.consistent, true);
+    assert.equal(duringRespawn.consistent, true);
+    assert.equal(duringRespawn.localLifeState, PLAYER_LIFE_STATES.RESPAWNING);
+    assert.equal(duringRespawn.hudHealth, 0);
+    assert.equal(afterRespawn.consistent, true);
+    assert.equal(afterRespawn.localLifeState, PLAYER_LIFE_STATES.ALIVE);
+    assert.equal(afterRespawn.scoreboardRows, 16);
+
+    writeEvidence('task-29-menu-death-respawn.txt', [
+      'T29 menu/death/respawn consistency evidence',
+      'before=' + beforeDeath.overlayState + '/' + beforeDeath.localLifeState + '/consistent:' + beforeDeath.consistent + '/rows:' + beforeDeath.scoreboardRows,
+      'during=' + duringRespawn.overlayState + '/' + duringRespawn.localLifeState + '/hudHealth:' + duringRespawn.hudHealth + '/consistent:' + duringRespawn.consistent + '/rows:' + duringRespawn.scoreboardRows,
+      'after=' + afterRespawn.overlayState + '/' + afterRespawn.localLifeState + '/hudHealth:' + afterRespawn.hudHealth + '/consistent:' + afterRespawn.consistent + '/rows:' + afterRespawn.scoreboardRows,
+      'HUD derives from match state while overlays are open; respawn restores alive local state and exact 16 scoreboard rows.',
+    ]);
+  }],
+
+  ['allows buy weapon switch during reload by resetting local weapon state deterministically', () => {
+    let state = createOfflineMatch({ localPlayerName: 'ReloadBuyer' });
+    const firstShotState = Object.freeze({
+      ...state.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX],
+      ammoInMagazine: state.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].ammoInMagazine - 1,
+    });
+    const reload = startReload(firstShotState, state.nowMs);
+    assert.equal(reload.ok, true);
+
+    state = Object.freeze({
+      ...state,
+      weaponStatesBySlotIndex: Object.freeze({
+        ...state.weaponStatesBySlotIndex,
+        [LOCAL_PLAYER_SLOT_INDEX]: reload.state,
+      }),
+    });
+    assert.equal(state.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].isReloading, true);
+
+    state = buyOfflineWeapon(state, WEAPONS.AWP.id).state;
+    assert.equal(state.matchState.players[LOCAL_PLAYER_SLOT_INDEX].loadout.activeWeaponId, WEAPONS.AWP.id);
+    assert.equal(state.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].weaponId, WEAPONS.AWP.id);
+    assert.equal(state.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].isReloading, false);
+    assert.equal(state.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].activeWeaponId ?? state.matchState.players[LOCAL_PLAYER_SLOT_INDEX].loadout.activeWeaponId, WEAPONS.AWP.id);
+  }],
   ['stays running free-play with no team winner after many kills', () => {
     let state = createOfflineMatch({ localPlayerName: 'Roundless' });
     for (let index = 0; index < 50; index += 1) {

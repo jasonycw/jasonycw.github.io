@@ -88,6 +88,7 @@ const run = async () => {
   await import(pathToFileURL(path.join(gameRoot, 'src', 'core', 'contracts.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'weapons', 'weapons.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'render', 'weaponModels.test.mjs')).href);
+  await import(pathToFileURL(path.join(gameRoot, 'src', 'render', 'render.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'ui', 'hudData.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'ui', 'buyMenu.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'ui', 'settings.test.mjs')).href);
@@ -112,7 +113,9 @@ const run = async () => {
   assertExists('games/cs-dm/src/weapons/index.js');
   assertExists('games/cs-dm/src/weapons/weapons.test.mjs');
   assertExists('games/cs-dm/src/render/weaponModels.js');
+  assertExists('games/cs-dm/src/render/state.js');
   assertExists('games/cs-dm/src/render/weaponModels.test.mjs');
+  assertExists('games/cs-dm/src/render/render.test.mjs');
   assertExists('games/cs-dm/src/ui/index.js');
   assertExists('games/cs-dm/src/ui/hudData.js');
   assertExists('games/cs-dm/src/ui/hudData.test.mjs');
@@ -210,6 +213,10 @@ const run = async () => {
   const settingsJs = readText('games/cs-dm/src/ui/settings.js');
   const settingsTest = readText('games/cs-dm/src/ui/settings.test.mjs');
   const weaponModelsJs = readText('games/cs-dm/src/render/weaponModels.js');
+  const renderIndexJs = readText('games/cs-dm/src/render/index.js');
+  const renderStateJs = readText('games/cs-dm/src/render/state.js');
+  const renderTest = readText('games/cs-dm/src/render/render.test.mjs');
+  const offlineMatchTest = readText('games/cs-dm/src/gameplay/offlineMatch.test.mjs');
   const networkIndexJs = readText('games/cs-dm/src/network/index.js');
   const protocolJs = readText('games/cs-dm/src/network/protocol.js');
   const readme = readText('games/cs-dm/README.md');
@@ -258,6 +265,11 @@ const run = async () => {
   assert.equal(weaponModelsJs.includes('Original generated low-poly primitive metadata'), true, 'weapon models must document original generated primitive metadata');
   assert.equal(weaponModelsJs.includes('weapon-model-missing'), true, 'weapon models must expose missing-model warning data');
   assert.equal(weaponModelsJs.includes('deriveWeaponSwitchMetadata'), true, 'weapon models must expose switch metadata');
+  assert.equal(renderIndexJs.includes("export * from './state.js';"), true, 'renderer must re-export deterministic render state helpers');
+  assert.equal(renderStateJs.includes('getSafeViewportSize'), true, 'renderer state must expose deterministic safe viewport sizing');
+  assert.equal(renderStateJs.includes('createRendererFallbackState'), true, 'renderer state must expose deterministic WebGL fallback state');
+  assert.equal(renderTest.includes('task-29-resize.txt'), true, 'render tests must write T29 resize evidence');
+  assert.equal(offlineMatchTest.includes('task-29-menu-death-respawn.txt'), true, 'offline match tests must write T29 menu/death/respawn evidence');
   assert.equal(networkIndexJs.includes("export * from './protocol.js';"), true, 'network index must export protocol helpers');
   assert.equal(networkIndexJs.includes("export * from './slots.js';"), true, 'network index must export slot hot-swap helpers');
   assert.equal(networkIndexJs.includes('createFullRoomJoinRejection'), true, 'network index must expose full-room join rejection helper');

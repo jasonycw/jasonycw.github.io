@@ -17,6 +17,12 @@ import { createWeaponState } from '../weapons/index.js';
 
 export const OFFLINE_MATCH_PHASE = 'running/free-play';
 export const OFFLINE_TICK_RATE = 60;
+export const MATCH_OVERLAY_STATES = Object.freeze({
+  NONE: 'none',
+  BUY: 'buy',
+  SETTINGS: 'settings',
+  SCOREBOARD: 'scoreboard',
+});
 
 const cloneLoadout = (loadout = DEFAULT_LOADOUT) => Object.freeze({
   primaryWeaponId: loadout.primaryWeaponId ?? DEFAULT_LOADOUT.primaryWeaponId,
@@ -244,6 +250,32 @@ export function summarizeOfflineMatch(state) {
     botShotsFired: state.metrics.botShotsFired ?? state.metrics.shotsFired ?? 0,
     botRespawns: state.metrics.botRespawns ?? state.metrics.respawns ?? 0,
     hasRoundWinner: Boolean(state.matchState.roundWinner || state.matchState.winningTeam || state.matchState.teamWinner),
+  });
+}
+
+export function summarizeOfflineMenuConsistency(state, { overlayState = MATCH_OVERLAY_STATES.NONE } = {}) {
+  const hud = deriveOfflineMatchHud(state);
+  const localPlayer = state.matchState.players[LOCAL_PLAYER_SLOT_INDEX];
+  const controller = state.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX];
+
+  return Object.freeze({
+    overlayState,
+    phase: state.matchState.phase,
+    mode: state.matchState.mode,
+    localLifeState: localPlayer.lifeState,
+    localHealth: localPlayer.health,
+    localArmor: localPlayer.armor,
+    localWeaponId: localPlayer.loadout.activeWeaponId,
+    controllerWeaponId: controller?.activeWeaponId ?? controller?.weapon?.activeWeaponId ?? localPlayer.loadout.activeWeaponId,
+    scoreboardRows: hud.scoreboard.length,
+    hudLifeState: hud.localPlayer.lifeState,
+    hudHealth: hud.localPlayer.health,
+    respawnAtMs: localPlayer.respawnAtMs,
+    consistent: state.matchState.phase === MATCH_PHASES.RUNNING
+      && state.matchState.mode === OFFLINE_MATCH_PHASE
+      && hud.scoreboard.length === 16
+      && hud.localPlayer.lifeState === localPlayer.lifeState
+      && hud.localPlayer.health === (localPlayer.lifeState === PLAYER_LIFE_STATES.ALIVE ? localPlayer.health : 0),
   });
 }
 

@@ -1,21 +1,22 @@
 import * as THREE from 'three';
 
-export * from './weaponModels.js';
+import { createRendererFallbackState, getSafeViewportSize, hasUsableWebGL } from './state.js';
 
-const hasWebGL = () => {
-  const canvas = document.createElement('canvas');
-  return Boolean(window.WebGLRenderingContext && (canvas.getContext('webgl2') || canvas.getContext('webgl')));
-};
+export * from './state.js';
+export * from './weaponModels.js';
 
 const setVisible = (element, visible) => {
   element.hidden = !visible;
 };
 
 export function createRendererShell({ mount, pointerLockHelp, webglError }) {
-  if (!hasWebGL()) {
+  if (!hasUsableWebGL(window)) {
     setVisible(webglError, true);
+    const fallbackState = createRendererFallbackState({ mount });
     return {
+      state: fallbackState,
       requestPointerLock() {},
+      resize: () => fallbackState,
       destroy() {},
     };
   }
@@ -54,11 +55,11 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
   scene.add(sun);
 
   const onResize = () => {
-    const width = mount.clientWidth || 1;
-    const height = mount.clientHeight || 1;
+    const { width, height } = getSafeViewportSize(mount);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height, false);
+    return Object.freeze({ ok: true, width, height, aspect: camera.aspect });
   };
 
   const onPointerLockChange = () => {
@@ -95,7 +96,9 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
   onResize();
 
   return {
+    state: Object.freeze({ ok: true, reason: 'webgl-ready', viewport: getSafeViewportSize(mount), recoverable: true }),
     requestPointerLock,
+    resize: onResize,
     destroy() {
       window.cancelAnimationFrame(animationFrame);
       renderer.domElement.removeEventListener('click', requestPointerLock);

@@ -17,10 +17,12 @@ export {
   createOfflineMatch,
   deriveOfflineMatchHud,
   forceOfflineKill,
+  MATCH_OVERLAY_STATES,
   OFFLINE_MATCH_PHASE,
   OFFLINE_TICK_RATE,
   runOfflineSmokeSimulation,
   summarizeOfflineMatch,
+  summarizeOfflineMenuConsistency,
   summarizeOfflinePerformance,
 } from './offlineMatch.js';
 
