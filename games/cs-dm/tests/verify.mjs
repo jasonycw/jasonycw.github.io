@@ -248,10 +248,12 @@ const run = async () => {
   assert.equal(settingsJs.includes('./settings.js'), false, 'settings ui export should remain a thin re-export');
   assert.equal(settingsTest.includes('task-20-rebind-persist.txt'), true, 'settings tests must write rebind persistence evidence');
   assert.equal(settingsTest.includes('task-20-binding-conflict.txt'), true, 'settings tests must write binding conflict evidence');
+  assert.equal(settingsTest.includes('task-29-storage-recovery.txt'), true, 'settings tests must write T29 storage recovery evidence');
   assert.equal(audioJs.includes('GENERATED_AUDIO_PROVENANCE'), true, 'audio module must document generated sound provenance');
   assert.equal(audioJs.includes('silent-noop'), true, 'audio module must expose a silent fallback state');
   assert.equal(audioTest.includes('task-28-audio-unlock.txt'), true, 'audio tests must write unlock evidence');
   assert.equal(audioTest.includes('task-28-audio-fallback.txt'), true, 'audio tests must write fallback evidence');
+  assert.equal(audioTest.includes('task-29-audio-storage-recovery.txt'), true, 'audio tests must write T29 audio storage recovery evidence');
   assert.equal(audioTest.includes('programmatic startup menu close does not unlock or create AudioContext'), true, 'audio tests must cover startup menu close lock behavior');
   assert.equal(weaponModelsJs.includes('Original generated low-poly primitive metadata'), true, 'weapon models must document original generated primitive metadata');
   assert.equal(weaponModelsJs.includes('weapon-model-missing'), true, 'weapon models must expose missing-model warning data');
@@ -292,6 +294,9 @@ const run = async () => {
     'Order: Bravo, Charlie, Alpha',
     'Rule: kills desc, deaths asc, name asc, slotIndex asc',
   ].join('\n'));
+  const coreTest = readText('games/cs-dm/src/core/contracts.test.mjs');
+  assert.equal(coreTest.includes('task-29-name-edge-cases.txt'), true, 'core tests must write T29 name edge-case evidence');
+
   writeFileSync(path.join(evidenceDir, 'task-13-dead-hud.txt'), [
     'T13 dead HUD evidence',
     'lifeState=respawning',

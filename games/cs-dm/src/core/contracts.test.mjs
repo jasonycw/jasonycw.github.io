@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
   createMatchState,
@@ -15,6 +18,14 @@ import {
   validatePlayerName,
   WEAPONS,
 } from './index.js';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const evidenceRoot = path.resolve(here, '..', '..', '..', '..', '.sisyphus', 'evidence');
+
+const writeEvidence = (fileName, lines) => {
+  mkdirSync(evidenceRoot, { recursive: true });
+  writeFileSync(path.join(evidenceRoot, fileName), `${lines.join('\n')}\n`, 'utf8');
+};
 
 const validInputFrame = Object.freeze({
   frame: 42,
@@ -63,6 +74,29 @@ const tests = [
     const htmlLikeName = validatePlayerName('<script>alert(1)</script>');
     assert.equal(htmlLikeName.ok, false);
     assert.equal(htmlLikeName.value.includes('<'), true);
+  }],
+
+  ['documents T29 duplicate long and HTML-like name hardening', () => {
+    const duplicate = validatePlayerName(' Agent ', ['agent']);
+    const longName = validatePlayerName('abcdefghijklmnopqrstu');
+    const htmlLike = validatePlayerName('<b>Agent</b>');
+    const normalized = validatePlayerName('  Safe   Agent  ');
+
+    assert.equal(duplicate.ok, false);
+    assert.equal(duplicate.errors.includes('Player name is already in use.'), true);
+    assert.equal(longName.ok, false);
+    assert.equal(htmlLike.ok, false);
+    assert.equal(normalized.ok, true);
+    assert.equal(normalized.value, 'Safe Agent');
+
+    writeEvidence('task-29-name-edge-cases.txt', [
+      'T29 name edge-case evidence',
+      `Duplicate accepted: ${duplicate.ok}`,
+      `Long accepted: ${longName.ok}`,
+      `HTML-like accepted: ${htmlLike.ok}`,
+      `Whitespace normalized: ${normalized.value}`,
+      'Scoreboard/render path uses textContent sinks, so accepted names render as plain text.',
+    ]);
   }],
 
   ['validates input frames', () => {

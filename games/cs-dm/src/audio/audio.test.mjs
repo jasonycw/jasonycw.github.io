@@ -183,6 +183,14 @@ const tests = [
     assert.equal(recovered.value.muted, false);
     assert.equal(recovered.value.volume, 0.55);
     assert.equal(recovered.warning, 'audio-storage-corrupt');
+
+    writeEvidence('task-29-audio-storage-recovery.txt', [
+      'T29 malformed audio localStorage recovery evidence',
+      `Audio storage warning: ${recovered.warning}`,
+      `Recovered muted: ${recovered.value.muted}`,
+      `Recovered volume: ${recovered.value.volume}`,
+      'Corrupt audio JSON falls back to safe unlocked-on-gesture defaults.',
+    ]);
   }],
 ];
 
