@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 import { createRendererFallbackState, getSafeViewportSize, hasUsableWebGL } from './state.js';
 
+const rendererSource = await import('node:fs').then(({ readFileSync }) => readFileSync(new URL('./index.js', import.meta.url), 'utf8'));
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 const evidenceRoot = path.resolve(here, '..', '..', '..', '..', '.sisyphus', 'evidence');
 
@@ -31,6 +33,13 @@ const tests = [
     assert.equal(fallback.reason, 'webgl-unavailable');
     assert.equal(fallback.recoverable, true);
     assert.deepEqual(fallback.viewport, { width: 1, height: 1 });
+  }],
+
+  ['exposes live match state update hooks for browser gameplay', () => {
+    assert.equal(rendererSource.includes('updateMatchState'), true);
+    assert.equal(rendererSource.includes('controllersBySlotIndex'), true);
+    assert.equal(rendererSource.includes('muzzleFlash'), true);
+    assert.equal(rendererSource.includes('player.visible = slot.lifeState === \'alive\''), true);
   }],
 
   ['normalizes resize dimensions for zero hidden and fullscreen-like mounts', () => {

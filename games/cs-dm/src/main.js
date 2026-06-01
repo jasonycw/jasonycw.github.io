@@ -1,7 +1,8 @@
-﻿import { validatePlayerName } from './core/index.js';
+﻿import { INPUT_BUTTONS, validatePlayerName } from './core/index.js';
 import { AudioEvent, createAudioController } from './audio/index.js';
 import { advanceOfflineMatchTick, buyOfflineWeapon, createOfflineMatch, deriveOfflineMatchHud, summarizeOfflinePerformance } from './gameplay/index.js';
 import { InputAction, createDefaultBindingMap, getLiveBindingCandidates, readStoredKeybindings, readStoredPlayerName, writeStoredKeybindings, writeStoredPlayerName } from './input/index.js';
+import { isTextEntryElement } from './input/domGuards.js';
 import { getBindingChangeResult, getBindingLabel, hasBindingConflict } from './input/settings.js';
 import { NETWORK_STATES, createBrowserManualWebRtcAdapter, createManualCodeFailureState } from './network/index.js';
 import { createRendererShell } from './render/index.js';
@@ -106,6 +107,9 @@ let settingsReturnPanel = 'menu';
 let hostNetworkAdapter = createBrowserManualWebRtcAdapter();
 let joinNetworkAdapter = createBrowserManualWebRtcAdapter();
 let lastFootstepAt = 0;
+let pressedMovementButtons = new Set();
+let pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
+let localFireQueued = false;
 
 const SCOREBOARD_FACTION_LABELS = Object.freeze({
   terrorists: 'Terrorists',
@@ -114,7 +118,22 @@ const SCOREBOARD_FACTION_LABELS = Object.freeze({
 
 const SCOREBOARD_FACTION_ORDER = Object.freeze(['terrorists', 'counter-terrorists']);
 
+const MOVEMENT_ACTION_BUTTONS = Object.freeze({
+  [InputAction.MoveForward]: INPUT_BUTTONS.FORWARD,
+  [InputAction.MoveBack]: INPUT_BUTTONS.BACK,
+  [InputAction.MoveLeft]: INPUT_BUTTONS.LEFT,
+  [InputAction.MoveRight]: INPUT_BUTTONS.RIGHT,
+  [InputAction.Jump]: INPUT_BUTTONS.JUMP,
+  [InputAction.Crouch]: INPUT_BUTTONS.CROUCH,
+});
+
+
 const audioController = createAudioController();
+
+const isBindingEventForAction = (event, action) => getLiveBindingCandidates(currentBindings, action).includes(event.code);
+
+const getMovementButtonForEvent = (event) => Object.entries(MOVEMENT_ACTION_BUTTONS)
+  .find(([action]) => isBindingEventForAction(event, action))?.[1] ?? null;
 
 const syncAudioControls = () => {
   const state = audioController.getState();
@@ -154,6 +173,7 @@ const buyMenuController = createBuyMenuController({
     if (offlineMatchState) {
       offlineMatchState = buyOfflineWeapon(offlineMatchState, purchaseResult.selectedWeapon.id).state;
       renderOfflineHud();
+      syncRendererState();
     }
   },
   onPurchaseFailure() {
@@ -163,7 +183,11 @@ const buyMenuController = createBuyMenuController({
     if (options.playFeedback !== false) {
       playAudioEvent(AudioEvent.MENU_ACTION, { unlock: true });
     }
+    document.body.classList.remove('buy-menu-open');
     matchPanel.focus({ preventScroll: true });
+    if (options.restorePointerLock !== false && !matchPanel.hidden && document.body.dataset.gameMode === 'match') {
+      rendererShell?.requestPointerLock?.();
+    }
   },
 });
 selectedLoadout = buyMenuController.getLoadout();
@@ -344,7 +368,7 @@ const renderOfflineHud = () => {
       [
         String(index + 1),
         row.name,
-        '$16000',
+        `$${offlineMatchState.matchState.players[row.slotIndex]?.money ?? 16000} / ${row.activeWeapon.hud.label}`,
         String(row.score.kills),
         String(row.score.deaths),
         row.latency.ms === null ? 'BOT' : String(row.latency.ms),
@@ -395,11 +419,29 @@ const handleOfflineAudioFeedback = (previousState, nextState, { localInput = nul
   }
 };
 
+const syncRendererState = () => {
+  if (!rendererShell || !offlineMatchState) {
+    return;
+  }
+
+  const localController = offlineMatchState.controllersBySlotIndex?.[offlineMatchState.matchState.localSlotIndex];
+  if (localController) {
+    gameCanvas.dataset.localX = String(localController.position.x);
+    gameCanvas.dataset.localZ = String(localController.position.z);
+    gameCanvas.dataset.localYaw = String(localController.view.yaw);
+  }
+  if (offlineMatchState.lastLocalShot) {
+    gameCanvas.dataset.lastLocalShot = 'true';
+  }
+  rendererShell.updateMatchState?.(offlineMatchState);
+};
+
 const advanceOfflineMatchWithFeedback = (options = {}) => {
   const previousState = offlineMatchState;
   offlineMatchState = advanceOfflineMatchTick(offlineMatchState, options);
   handleOfflineAudioFeedback(previousState, offlineMatchState, options);
   renderOfflineHud();
+  syncRendererState();
 };
 
 const stopOfflineLoop = () => {
@@ -412,7 +454,12 @@ const stopOfflineLoop = () => {
 const startOfflineLoop = () => {
   stopOfflineLoop();
   offlineMatchTimer = window.setInterval(() => {
-    advanceOfflineMatchWithFeedback();
+    const localInput = (pressedMovementButtons.size > 0 || pendingLookDelta.yawDelta !== 0 || pendingLookDelta.pitchDelta !== 0 || localFireQueued)
+      ? { buttons: [...pressedMovementButtons], look: pendingLookDelta, fire: localFireQueued }
+      : null;
+    pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
+    localFireQueued = false;
+    advanceOfflineMatchWithFeedback({ localInput });
   }, 1000 / 30);
 };
 
@@ -420,7 +467,8 @@ const openSettings = () => {
   settingsReturnPanel = matchPanel.hidden ? 'menu' : 'match';
   syncSettingsPanel();
   if (settingsReturnPanel === 'match') {
-    buyMenuController.close({ playFeedback: false });
+    buyMenuController.close({ playFeedback: false, restorePointerLock: false });
+    document.body.classList.remove('buy-menu-open');
     setScoreboardOpen(false);
     setInGameSettingsOpen(true);
     settingsPanel.focus({ preventScroll: true });
@@ -523,7 +571,8 @@ const openMenu = () => {
     pointerLockHelp.hidden = true;
   }
 
-  buyMenuController.close({ playFeedback: false });
+  buyMenuController.close({ playFeedback: false, restorePointerLock: false });
+  document.body.classList.remove('buy-menu-open');
   setScoreboardOpen(false);
   activeBindingAction = null;
   showPanel('menu');
@@ -551,6 +600,10 @@ const openOfflineMatch = () => {
   setInputValue(matchPlayerNameInput, nameResult.value);
   gameCanvas.hidden = false;
   offlineMatchState = createOfflineMatch({ localPlayerName: nameResult.value, localLoadout: selectedLoadout });
+  pressedMovementButtons = new Set();
+  pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
+  localFireQueued = false;
+  gameCanvas.dataset.lastLocalShot = 'false';
   renderOfflineHud();
   startOfflineLoop();
   showPanel('match');
@@ -560,6 +613,7 @@ const openOfflineMatch = () => {
   }
 
   rendererShell.resize();
+  syncRendererState();
   rendererShell.requestPointerLock();
   matchPanel.focus({ preventScroll: true });
 };
@@ -601,6 +655,8 @@ const openBuyMenu = () => {
     return;
   }
 
+  document.exitPointerLock?.();
+  document.body.classList.add('buy-menu-open');
   playAudioEvent(AudioEvent.MENU_ACTION, { unlock: true });
   buyMenuController.open();
 };
@@ -610,7 +666,12 @@ const toggleBuyMenu = () => {
     return;
   }
 
-  buyMenuController.toggle();
+  if (buyMenu.hidden) {
+    openBuyMenu();
+    return;
+  }
+
+  buyMenuController.close();
 };
 
 const storedNameResult = readStoredPlayerName();
@@ -726,6 +787,10 @@ joinOfferInput.addEventListener('input', () => {
   setNetworkStatus(NETWORK_STATES.IDLE);
 });
 document.addEventListener('keydown', (event) => {
+  if (isTextEntryElement(event.target) && !activeBindingAction) {
+    return;
+  }
+
   if (activeBindingAction) {
     event.preventDefault();
     finishRebind(event.code);
@@ -747,17 +812,24 @@ document.addEventListener('keydown', (event) => {
 
   if (getLiveBindingCandidates(currentBindings, InputAction.Fire).includes(event.code) && offlineMatchState) {
     event.preventDefault();
-    advanceOfflineMatchWithFeedback({ localInput: { fire: true } });
+    localFireQueued = false;
+    advanceOfflineMatchWithFeedback({ localInput: { buttons: [...pressedMovementButtons], look: pendingLookDelta, fire: true } });
+    pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
     return;
   }
 
-  const movementActions = [InputAction.MoveForward, InputAction.MoveBack, InputAction.MoveLeft, InputAction.MoveRight];
-  if (offlineMatchState && movementActions.some((action) => getLiveBindingCandidates(currentBindings, action).includes(event.code))) {
+  const movementButton = getMovementButtonForEvent(event);
+  if (offlineMatchState && movementButton) {
+    event.preventDefault();
+    pressedMovementButtons = new Set([...pressedMovementButtons, movementButton]);
     const now = Date.now();
     if (now - lastFootstepAt > 260) {
       lastFootstepAt = now;
       playAudioEvent(AudioEvent.FOOTSTEP, { unlock: true });
     }
+    advanceOfflineMatchWithFeedback({ localInput: { buttons: [...pressedMovementButtons], look: pendingLookDelta, fire: false } });
+    pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
+    return;
   }
 
   if (getLiveBindingCandidates(currentBindings, InputAction.Settings).includes(event.code)) {
@@ -768,6 +840,17 @@ document.addEventListener('keydown', (event) => {
 });
 
 document.addEventListener('keyup', (event) => {
+  if (isTextEntryElement(event.target) && !activeBindingAction) {
+    return;
+  }
+
+  const movementButton = getMovementButtonForEvent(event);
+  if (movementButton) {
+    pressedMovementButtons = new Set([...pressedMovementButtons].filter((button) => button !== movementButton));
+    event.preventDefault();
+    return;
+  }
+
   if (getLiveBindingCandidates(currentBindings, InputAction.Scoreboard).includes(event.code)) {
     event.preventDefault();
     setScoreboardOpen(false);
@@ -779,7 +862,20 @@ gameCanvas.addEventListener('mousedown', (event) => {
     return;
   }
 
-  advanceOfflineMatchWithFeedback({ localInput: { fire: true } });
+  localFireQueued = false;
+  advanceOfflineMatchWithFeedback({ localInput: { buttons: [...pressedMovementButtons], look: pendingLookDelta, fire: true } });
+  pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
+});
+
+gameCanvas.addEventListener('mousemove', (event) => {
+  if (!offlineMatchState || document.pointerLockElement === null) {
+    return;
+  }
+
+  pendingLookDelta = {
+    yawDelta: pendingLookDelta.yawDelta + event.movementX,
+    pitchDelta: pendingLookDelta.pitchDelta + event.movementY,
+  };
 });
 
 syncMainMenuState();

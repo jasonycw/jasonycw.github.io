@@ -83,7 +83,8 @@ textarea {
   min-height: 100vh;
   display: block;
   padding: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background:
     radial-gradient(circle at 68% 28%, rgba(214, 164, 74, 0.16), transparent 22%),
     linear-gradient(90deg, rgba(8, 9, 7, 0.98) 0 34%, rgba(8, 9, 7, 0.68) 52%, rgba(8, 9, 7, 0.9) 100%),
@@ -459,14 +460,13 @@ button:disabled {
 }
 
 [data-shell-panel="menu"] {
-  min-height: 100vh;
-  height: 100vh;
+  min-height: 100svh;
   width: min(100%, 1180px);
   display: grid;
   grid-template-columns: minmax(260px, 420px) minmax(0, 1fr);
   align-content: center;
-  gap: clamp(32px, 8vw, 112px);
-  padding: clamp(42px, 8vw, 92px);
+  gap: clamp(24px, 6vw, 88px);
+  padding: clamp(28px, 6vw, 72px);
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -481,10 +481,10 @@ button:disabled {
 }
 
 [data-shell-panel="menu"] h1 {
-  max-width: 6ch;
+  max-width: 9ch;
   color: rgba(245, 235, 205, 0.96);
   font-family: Impact, "Arial Black", sans-serif;
-  font-size: clamp(4.8rem, 12vw, 8.8rem);
+  font-size: clamp(3rem, 8vw, 6.4rem);
   letter-spacing: 0.03em;
   text-shadow: 0 7px 0 rgba(0, 0, 0, 0.55), 0 0 34px rgba(214, 164, 74, 0.18);
 }
@@ -502,13 +502,13 @@ button:disabled {
 }
 
 [data-shell-panel="menu"] .field {
-  width: min(100%, 340px);
+  width: min(100%, 380px);
   margin-top: var(--space-7);
 }
 
 [data-shell-panel="menu"] .actions {
   grid-column: 1;
-  width: min(100%, 360px);
+  width: min(100%, 380px);
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-2);
@@ -959,6 +959,21 @@ button:disabled {
   color: rgba(255, 232, 180, 0.92);
   font-family: "Lucida Console", "Courier New", monospace;
   text-shadow: 0 2px 2px #000;
+  pointer-events: auto;
+}
+
+body.buy-menu-open {
+  cursor: auto;
+}
+
+body.buy-menu-open .match-stage__viewport canvas {
+  cursor: auto;
+}
+
+body.buy-menu-open .buy-menu,
+body.buy-menu-open .buy-menu * {
+  cursor: auto;
+  pointer-events: auto;
 }
 
 .buy-menu[hidden] {
@@ -1076,6 +1091,39 @@ body.in-game-settings-open .overlay-card {
   margin: 0;
   font-weight: 700;
   letter-spacing: 0.03em;
+}
+
+@media (max-width: 900px) {
+  [data-shell-panel=menu] {
+    min-height: 100svh;
+    width: 100%;
+    grid-template-columns: 1fr;
+    align-content: start;
+    gap: var(--space-7);
+    padding: clamp(22px, 5vw, 42px);
+  }
+
+  [data-shell-panel=menu] h1 {
+    max-width: 12ch;
+    font-size: clamp(2.75rem, 11vw, 5rem);
+    line-height: 0.98;
+  }
+
+  [data-shell-panel=menu] .subtitle,
+  [data-shell-panel=menu] .hint,
+  [data-shell-panel=menu] .field,
+  [data-shell-panel=menu] .actions {
+    width: min(100%, 420px);
+    max-width: 100%;
+  }
+
+  body:not(.in-game-settings-open) #settings-menu,
+  #host-panel,
+  #join-panel {
+    width: min(calc(100vw - 32px), 760px);
+    margin: var(--space-6) auto;
+    max-height: calc(100svh - var(--space-13));
+  }
 }
 
 @media (max-width: 620px) {

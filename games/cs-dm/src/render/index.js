@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 
+import { LOCAL_PLAYER_SLOT_INDEX } from '../config/index.js';
 import { PLAYER_MODEL_IDS, buildPlayerModel } from './playerModels.js';
 import { createRendererFallbackState, getSafeViewportSize, hasUsableWebGL } from './state.js';
 
@@ -66,6 +67,8 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
       state: fallbackState,
       requestPointerLock() {},
       resize: () => fallbackState,
+      updateMatchState() {},
+      triggerFireFeedback() {},
       destroy() {},
     };
   }
@@ -149,13 +152,7 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
   siteMark.position.set(0.6, 0.035, -5.8);
   scene.add(siteMark);
 
-  const players = [
-    createPlayerWithWeapon(THREE, PLAYER_MODEL_IDS.T_RAIDER, { x: -2.25, y: 0, z: -5.7 }, 0.92),
-    createPlayerWithWeapon(THREE, PLAYER_MODEL_IDS.CT_RANGER, { x: 2.1, y: 0, z: -7.6 }, 0.88),
-    createPlayerWithWeapon(THREE, PLAYER_MODEL_IDS.T_RAIDER, { x: -4.7, y: 2.72, z: -10.3 }, 0.72),
-    createPlayerWithWeapon(THREE, PLAYER_MODEL_IDS.CT_RANGER, { x: 4.9, y: 0, z: -11.4 }, 0.7),
-    createPlayerWithWeapon(THREE, PLAYER_MODEL_IDS.T_RAIDER, { x: 0.25, y: 0, z: -12.7 }, 0.66),
-  ];
+  const players = Array.from({ length: 15 }, (_, index) => createPlayerWithWeapon(THREE, index % 2 === 0 ? PLAYER_MODEL_IDS.T_RAIDER : PLAYER_MODEL_IDS.CT_RANGER, { x: -2.25 + (index % 5) * 1.25, y: 0, z: -5.7 - Math.floor(index / 5) * 2.2 }, 0.72));
   players.forEach((player, index) => {
     player.rotation.y = index % 2 === 0 ? 0.08 : -0.12;
     scene.add(player);
@@ -194,7 +191,13 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
   rightForearm.rotation.z = 0.28;
   const rightGlove = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.22, 0.26), gloveMaterial);
   rightGlove.position.set(0.2, -0.66, -0.9);
-  viewModel.add(receiver, dustCover, barrel, muzzle, handguard, stock, magazine, leftForearm, leftGlove, rightForearm, rightGlove);
+  const muzzleFlash = new THREE.Mesh(
+    new THREE.ConeGeometry(0.18, 0.58, 14),
+    new THREE.MeshBasicMaterial({ color: '#ffd45d', transparent: true, opacity: 0 }),
+  );
+  muzzleFlash.rotation.z = -Math.PI / 2;
+  muzzleFlash.position.set(2.14, -0.27, -1.02);
+  viewModel.add(receiver, dustCover, barrel, muzzle, muzzleFlash, handguard, stock, magazine, leftForearm, leftGlove, rightForearm, rightGlove);
   viewModel.rotation.set(-0.05, -0.28, 0.02);
   viewModel.scale.setScalar(1.16);
   camera.add(viewModel);
@@ -207,6 +210,46 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
   sun.position.set(4, 8, 3);
   sun.castShadow = false;
   scene.add(sun);
+
+  let latestMatchState = null;
+  let fireFeedbackUntil = 0;
+
+  const mapToScenePosition = (position) => ({
+    x: ((position?.x ?? 12) - 50) / 4.5,
+    y: (position?.y ?? 0),
+    z: ((position?.z ?? 88) - 50) / 4.5,
+  });
+
+  const updateMatchState = (matchState) => {
+    latestMatchState = matchState;
+    const localController = matchState.controllersBySlotIndex?.[LOCAL_PLAYER_SLOT_INDEX];
+    if (localController) {
+      const mapped = mapToScenePosition(localController.position);
+      camera.position.set(mapped.x, 1.62 + mapped.y, mapped.z);
+      camera.rotation.order = 'YXZ';
+      camera.rotation.y = localController.view?.yaw ?? 0;
+      camera.rotation.x = localController.view?.pitch ?? 0;
+    }
+
+    players.forEach((player, index) => {
+      const slotIndex = index + 1;
+      const controller = matchState.controllersBySlotIndex?.[slotIndex];
+      const slot = matchState.matchState?.players?.[slotIndex];
+      if (!controller || !slot) return;
+      const mapped = mapToScenePosition(controller.position);
+      player.position.set(mapped.x, mapped.y, mapped.z);
+      player.rotation.y = controller.view?.yaw ?? player.rotation.y;
+      player.visible = slot.lifeState === 'alive';
+    });
+
+    if (matchState.lastLocalShot) {
+      fireFeedbackUntil = performance.now() + 95;
+    }
+  };
+
+  const triggerFireFeedback = () => {
+    fireFeedbackUntil = performance.now() + 95;
+  };
 
   const onResize = () => {
     const { width, height } = getSafeViewportSize(mount);
@@ -241,8 +284,12 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
   document.addEventListener('pointerlockerror', onPointerLockError);
 
   let animationFrame = window.requestAnimationFrame(function tick(time) {
-    const bob = Math.sin(time * 0.004) * 0.018;
-    viewModel.position.set(0.25, bob, 0);
+    const localController = latestMatchState?.controllersBySlotIndex?.[LOCAL_PLAYER_SLOT_INDEX];
+    const moving = localController ? Math.hypot(localController.velocity.x, localController.velocity.z) > 0.05 : false;
+    const bob = Math.sin(time * 0.008) * (moving ? 0.035 : 0.014);
+    const recoil = time < fireFeedbackUntil ? -0.08 : 0;
+    viewModel.position.set(0.25 + recoil, bob, 0);
+    muzzleFlash.material.opacity = time < fireFeedbackUntil ? 0.86 : 0;
     crate.rotation.y = time * 0.00022;
     farCrate.rotation.y = -time * 0.00018;
     renderer.render(scene, camera);
@@ -255,6 +302,8 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
     state: Object.freeze({ ok: true, reason: 'webgl-ready', viewport: getSafeViewportSize(mount), recoverable: true }),
     requestPointerLock,
     resize: onResize,
+    updateMatchState,
+    triggerFireFeedback,
     destroy() {
       window.cancelAnimationFrame(animationFrame);
       renderer.domElement.removeEventListener('click', requestPointerLock);

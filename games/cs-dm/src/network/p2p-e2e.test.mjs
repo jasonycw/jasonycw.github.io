@@ -175,19 +175,19 @@ writeFileSync(path.join(evidenceDir, 'task-35-p2p-state.txt'), [
 const readme = readRepoText('games/cs-dm/README.md');
 const indexHtml = readRepoText('games/cs-dm/index.html');
 const limitationChecks = Object.freeze({
-  manualCode: readme.includes('manual code') && indexHtml.includes('manual P2P'),
-  bestEffort: readme.includes('best-effort') && indexHtml.includes('best-effort'),
+  manualCode: readme.includes('manual code') && indexHtml.includes('room code'),
+  bestEffort: readme.includes('best-effort') && indexHtml.includes('Private lobby'),
   localTabs: readme.includes('local tabs') && readme.includes('deterministic local-context'),
-  natFirewall: readme.includes('NAT') && readme.includes('firewall') && indexHtml.includes('NAT') && indexHtml.includes('firewall'),
-  noRelay: readme.includes('TURN server') && readme.includes('signaling broker') && indexHtml.includes('No TURN relay or signaling broker'),
+  natFirewall: readme.includes('NAT') && readme.includes('firewall') && !indexHtml.includes('NAT') && !indexHtml.includes('firewall'),
+  noRelay: readme.includes('TURN server') && readme.includes('signaling broker') && !indexHtml.includes('No TURN relay or signaling broker'),
 });
 assert.deepEqual(Object.values(limitationChecks), [true, true, true, true, true]);
 writeFileSync(path.join(evidenceDir, 'task-35-p2p-limitations.txt'), [
   'T35 P2P limitation documentation evidence',
   `README manual-code concept present: ${limitationChecks.manualCode}`,
-  `README/UI best-effort concept present: ${limitationChecks.bestEffort}`,
+  `README limitation retained and UI uses player-friendly lobby copy: ${limitationChecks.bestEffort}`,
   `README local-tabs/deterministic-context scope present: ${limitationChecks.localTabs}`,
-  `README/UI NAT and firewall dependency present: ${limitationChecks.natFirewall}`,
-  `README/UI no relay/signaling broker wording present: ${limitationChecks.noRelay}`,
+  `README NAT/firewall limitation retained and removed from main UI: ${limitationChecks.natFirewall}`,
+  `README no relay/signaling broker limitation retained and removed from main UI: ${limitationChecks.noRelay}`,
   'Reliability claim: deterministic local-context QA only in this test; no internet-wide P2P reliability claimed.',
 ].join('\n'));

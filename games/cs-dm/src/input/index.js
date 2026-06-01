@@ -12,3 +12,4 @@ export {
   writeStoredKeybindings,
   writeStoredPlayerName,
 } from './storage.js';
+export { isTextEntryElement, TEXT_ENTRY_SELECTOR } from './domGuards.js';

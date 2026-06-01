@@ -92,6 +92,7 @@ const run = async () => {
   await import(pathToFileURL(path.join(gameRoot, 'src', 'ui', 'hudData.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'ui', 'buyMenu.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'ui', 'settings.test.mjs')).href);
+  await import(pathToFileURL(path.join(gameRoot, 'src', 'input', 'domGuards.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'map', 'map.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'bots', 'bots.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'player', 'movement.test.mjs')).href);
@@ -233,7 +234,7 @@ const run = async () => {
     'games/cs-dm/screenshots/scoreboard.png',
     'games/cs-dm/screenshots/p2p-ui.png',
   ];
-  assert.equal(mainJs.includes("import { validatePlayerName } from './core/index.js';"), true, 'main.js must import the core validator');
+  assert.equal(mainJs.includes("import { INPUT_BUTTONS, validatePlayerName } from './core/index.js';"), true, 'main.js must import the core validator and gameplay input buttons');
   assert.equal(mainJs.includes("import { InputAction, createDefaultBindingMap, getLiveBindingCandidates, readStoredKeybindings, readStoredPlayerName, writeStoredKeybindings, writeStoredPlayerName } from './input/index.js';"), true, 'main.js must import input storage and binding helpers');
   assert.equal(mainJs.includes("import { createRendererShell } from './render/index.js';"), true, 'main.js must import the renderer shell');
   assert.equal(mainJs.includes("import { AudioEvent, createAudioController } from './audio/index.js';"), true, 'main.js must import audio controller helpers');
@@ -245,7 +246,7 @@ const run = async () => {
   assert.equal(mainJs.includes('AudioEvent.DEATH'), true, 'main.js must trigger death feedback');
   assert.equal(mainJs.includes('AudioEvent.RESPAWN'), true, 'main.js must trigger respawn feedback');
   assert.equal(mainJs.includes('AudioEvent.FOOTSTEP'), true, 'main.js must trigger footstep feedback');
-  assert.equal(mainJs.includes('buyMenuController.close({ playFeedback: false });'), true, 'startup openMenu must close buy menu without audio feedback');
+  assert.equal(mainJs.includes('buyMenuController.close({ playFeedback: false, restorePointerLock: false });'), true, 'startup openMenu must close buy menu without audio feedback or pointer-lock restore');
   assert.equal(mainJs.includes('options.playFeedback !== false'), true, 'buy menu close feedback must be gated by explicit options');
   assert.equal(mainJs.includes("offlineStartButton.addEventListener('click', openOfflineMatch);"), true, 'offline start button must route to openOfflineMatch');
   assert.equal(mainJs.includes('createOfflineMatch'), true, 'offline start must create a deterministic offline match');
@@ -297,10 +298,10 @@ const run = async () => {
   assert.equal(p2pE2eTest.includes('task-35-p2p-state.txt'), true, 'T35 P2P test must write state evidence');
   assert.equal(p2pE2eTest.includes('createRemoteDisconnectFallback'), true, 'T35 P2P test must cover disconnect bot fallback');
   assert.equal(p2pE2eTest.includes('createManualCodeFailureState'), true, 'T35 P2P test must cover invalid manual-code recovery');
-  assert.equal(indexHtml.includes('best-effort manual P2P'), true, 'UI must say manual P2P is best-effort');
-  assert.equal(indexHtml.includes('NAT') && indexHtml.includes('firewall'), true, 'UI must mention NAT/firewall dependency');
-  assert.equal(indexHtml.includes('No TURN relay or signaling broker'), true, 'UI must say no relay/signaling broker exists');
-  assert.equal(indexHtml.includes('offline bots remain the reliable fallback'), true, 'UI must mention offline bot fallback');
+  assert.equal(indexHtml.includes('Counter Strike - Deathmatch'), true, 'UI must use the PR-ready full game title');
+  assert.equal(indexHtml.includes('Static prototype'), false, 'main menu must not expose prototype copy');
+  assert.equal(indexHtml.includes('best-effort manual P2P'), false, 'main menu must not expose developer P2P wording');
+  assert.equal(indexHtml.includes('NAT') || indexHtml.includes('firewall'), false, 'main menu must not expose NAT/firewall wording');
   assert.equal(readme.includes('best-effort manual WebRTC'), true, 'README must document best-effort manual P2P');
   assert.equal(readme.includes('no third-party relay') && readme.includes('TURN server') && readme.includes('signaling broker'), true, 'README must document no relay/broker');
   assert.equal(readme.includes('NAT') && readme.includes('firewall'), true, 'README must document NAT/firewall limitations');
