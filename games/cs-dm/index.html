@@ -48,6 +48,22 @@
 
         <p id="binding-conflict" class="settings-menu__warning" role="status" aria-live="polite"></p>
 
+        <section class="mouse-settings" aria-labelledby="mouse-settings-title">
+          <div>
+            <p class="eyebrow">Mouse look</p>
+            <h3 id="mouse-settings-title">Aim tuning</h3>
+          </div>
+          <label class="field mouse-settings__sensitivity" for="mouse-sensitivity">
+            <span>Mouse sensitivity <strong id="mouse-sensitivity-value">100%</strong></span>
+            <input id="mouse-sensitivity" type="range" min="0.25" max="3" step="0.05" value="1" />
+          </label>
+          <label class="mouse-settings__invert" for="mouse-invert-y">
+            <input id="mouse-invert-y" type="checkbox" checked />
+            <span>Invert mouse Y</span>
+          </label>
+          <p id="mouse-status" class="mouse-settings__status" role="status" aria-live="polite">Mouse Y is inverted by default.</p>
+        </section>
+
         <section class="audio-settings" aria-labelledby="audio-settings-title">
           <div>
             <p class="eyebrow">Generated sound</p>
@@ -130,8 +146,10 @@
         <p class="subtitle">Roundless 16-player deathmatch is live. Move, aim, buy, fight, and climb the scoreboard.</p>
 
         <div class="match-hud" aria-label="Match status">
+          <div id="hud-radar" class="match-hud__radar" aria-label="Radar" data-radar-kind="map-radar"></div>
           <p class="match-hud__label">Current weapon</p>
           <p id="hud-weapon" class="match-hud__weapon" aria-live="polite">AK-47</p>
+          <ol id="hud-killfeed" class="match-hud__killfeed" aria-label="Kill feed" aria-live="polite" hidden></ol>
           <p class="match-hud__stat match-hud__stat--health">Health <strong id="hud-health">100</strong></p>
           <p class="match-hud__stat match-hud__stat--armor">Armor <strong id="hud-armor">0</strong></p>
           <p class="match-hud__stat match-hud__stat--phase">Phase <strong id="hud-phase">running/free-play</strong></p>

@@ -347,6 +347,7 @@ body.in-game-settings-open #settings-menu .settings-menu__header {
   gap: var(--space-3);
 }
 
+.mouse-settings,
 .audio-settings {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -360,9 +361,34 @@ body.in-game-settings-open #settings-menu .settings-menu__header {
     var(--color-bg-panel-soft);
 }
 
+.mouse-settings__sensitivity,
 .audio-settings__volume {
   grid-column: 1 / -1;
   margin-top: 0;
+}
+
+.mouse-settings__sensitivity strong {
+  color: var(--color-warning);
+  font-size: 0.95em;
+}
+
+.mouse-settings__status {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-ink-muted);
+  font-size: 0.92rem;
+}
+
+.mouse-settings__invert {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-ink-soft);
+}
+
+.mouse-settings__invert input {
+  width: auto;
 }
 
 .audio-settings__status {
@@ -605,8 +631,7 @@ button:disabled {
   text-shadow: 2px 2px 0 #000, 0 0 8px rgba(0, 0, 0, 0.85);
 }
 
-.match-hud::before {
-  content: "";
+.match-hud__radar {
   position: absolute;
   top: var(--space-6);
   left: var(--space-6);
@@ -622,20 +647,61 @@ button:disabled {
     linear-gradient(0deg, transparent 49%, rgba(130, 220, 112, 0.28) 50%, transparent 51%),
     radial-gradient(circle, rgba(17, 35, 18, 0.82) 0 58%, rgba(0, 0, 0, 0.72) 59% 100%);
   box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.84), 0 2px 12px rgba(0, 0, 0, 0.72);
+  overflow: hidden;
 }
 
-.match-hud::after {
-  content: "BOT Sand Raider  AK-47  Harbor Ranger\A Vector  AK-47  Mid Bot\A CT Guard  M4A1  Long Bot";
-  white-space: pre-line;
+.match-hud__radar-block,
+.match-hud__radar-blip {
+  position: absolute;
+  display: block;
+  transform: translate(-50%, -50%);
+}
+
+.match-hud__radar-block {
+  border: 1px solid rgba(130, 220, 112, 0.2);
+  background: rgba(48, 126, 54, 0.24);
+  transform: none;
+}
+
+.match-hud__radar-blip {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: rgba(130, 255, 112, 0.86);
+  box-shadow: 0 0 7px rgba(130, 255, 112, 0.78);
+}
+
+.match-hud__radar-blip--local {
+  width: var(--space-3);
+  height: var(--space-3);
+  background: var(--color-game-amber-strong);
+  box-shadow: 0 0 8px rgba(241, 195, 109, 0.86);
+}
+
+.match-hud__killfeed {
   position: absolute;
   top: var(--space-6);
   right: var(--space-7);
   width: min(360px, 40vw);
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
   color: rgba(245, 203, 92, 0.92);
   font-size: 0.78rem;
-  line-height: 1.65;
+  line-height: 1.45;
+  list-style: none;
   text-align: right;
   text-transform: uppercase;
+}
+
+.match-hud__killfeed:empty,
+.match-hud__killfeed[hidden] {
+  display: none;
+}
+
+.match-hud__killfeed-entry {
+  margin: 0;
 }
 
 .match-hud__label {
@@ -670,7 +736,7 @@ button:disabled {
 }
 
 .match-hud__weapon::after {
-  content: "30 | 90";
+  content: attr(data-clip) " | " attr(data-reserve);
   display: block;
   margin-top: var(--space-1);
   color: #f1c36d;
@@ -905,21 +971,6 @@ button:disabled {
   display: block;
 }
 
-.match-stage__viewport::after {
-  content: "";
-  position: absolute;
-  right: 8%;
-  bottom: -5%;
-  width: 38%;
-  height: 33%;
-  border-radius: 46% 18% 0 0;
-  background:
-    linear-gradient(16deg, rgba(16, 17, 14, 0.96) 0 48%, rgba(104, 62, 31, 0.98) 49% 62%, rgba(18, 20, 17, 0.98) 63% 100%);
-  filter: drop-shadow(-16px 18px 24px rgba(0, 0, 0, 0.68));
-  clip-path: polygon(8% 70%, 26% 38%, 62% 18%, 100% 30%, 88% 62%, 58% 74%, 44% 100%, 15% 100%);
-  pointer-events: none;
-}
-
 .match-stage__viewport canvas {
   display: block;
   width: 100%;
@@ -1151,6 +1202,7 @@ body.in-game-settings-open .overlay-card {
     grid-template-columns: 1fr;
   }
 
+  .mouse-settings,
   .audio-settings {
     grid-template-columns: 1fr;
   }

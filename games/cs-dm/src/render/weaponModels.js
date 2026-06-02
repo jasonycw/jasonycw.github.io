@@ -7,6 +7,7 @@ export const WEAPON_MODEL_ROLES = Object.freeze({
   SMG: 'smg',
   SHOTGUN: 'shotgun',
   MACHINE_GUN: 'machine-gun',
+  MELEE: 'melee',
 });
 
 export const WEAPON_MODEL_LAYERS = Object.freeze({
@@ -24,6 +25,13 @@ const freezeDeep = (value) => {
 };
 
 const vector = (x = 0, y = 0, z = 0) => Object.freeze({ x, y, z });
+
+export const VIEWMODEL_CAMERA_ALIGNMENT = freezeDeep({
+  rotation: vector(0, 0, 0),
+  scale: 1.24,
+  camera: Object.freeze({ fovDegrees: 68, aspect: 16 / 9, near: 0.1 }),
+  orthographic: Object.freeze({ left: -1.6, right: 1.6, top: 0.9, bottom: -0.9 }),
+});
 
 const part = ({ id, shape, material, size, position, rotation = vector(), detail = '' }) => freezeDeep({
   id,
@@ -113,6 +121,26 @@ const fallbackPose = createPose({
 
 const modelDefinitions = Object.freeze([
   createModel({
+    weaponId: 'knife',
+    role: WEAPON_MODEL_ROLES.MELEE,
+    silhouette: 'short tactical knife with blocky dark handle, bright clipped blade, and knuckle guard',
+    worldParts: [
+      { id: 'knife-handle', shape: 'box', material: 'ribbed-black', size: vector(0.36, 0.1, 0.14), position: vector(-0.16, -0.02, 0) },
+      { id: 'knife-guard', shape: 'box', material: 'dark-bore', size: vector(0.08, 0.26, 0.18), position: vector(0.05, -0.02, 0) },
+      { id: 'knife-blade', shape: 'box', material: 'warning-matte-gray', size: vector(0.58, 0.08, 0.08), position: vector(0.38, 0.02, 0), rotation: vector(0, 0, 0.06) },
+      { id: 'knife-tip', shape: 'box', material: 'blued-steel', size: vector(0.18, 0.06, 0.06), position: vector(0.74, 0.04, 0), rotation: vector(0, 0, 0.18) },
+    ],
+    viewmodelParts: [
+      { id: 'vm-knife-handle', shape: 'box', material: 'ribbed-black', size: vector(0.54, 0.16, 0.22), position: vector(0.04, -0.48, 0.22), rotation: vector(0, 0, -0.42) },
+      { id: 'vm-knife-pommel', shape: 'box', material: 'dark-bore', size: vector(0.16, 0.2, 0.24), position: vector(-0.2, -0.56, 0.2), rotation: vector(0, 0, -0.42) },
+      { id: 'vm-knife-guard', shape: 'box', material: 'dark-bore', size: vector(0.1, 0.34, 0.26), position: vector(0.3, -0.34, 0.24), rotation: vector(0, 0, -0.22) },
+      { id: 'vm-knife-blade', shape: 'box', material: 'warning-matte-gray', size: vector(0.92, 0.1, 0.1), position: vector(0.78, -0.18, 0.28), rotation: vector(0, 0, 0.08) },
+      { id: 'vm-knife-clipped-tip', shape: 'box', material: 'blued-steel', size: vector(0.24, 0.08, 0.08), position: vector(1.34, -0.14, 0.28), rotation: vector(0, 0, 0.32) },
+    ],
+    hooks: createHooks({ muzzle: vector(1.5, -0.14, 0.28), shellEject: vector(0.3, -0.34, 0.24), leftHand: vector(0.3, -0.54, 0.24), rightHand: vector(-0.08, -0.66, 0.12), magazine: vector(0.04, -0.48, 0.22), reloadPath: sharedReloadPath }),
+    pose: createPose({ origin: vector(-0.24, -0.05, -1.2), switchRaiseMs: 130, fireKick: vector(0.024, 0.012, -0.034), recoil: { pitch: 0.18, yaw: 0.12, settleMs: 80 }, bob: { amplitude: 0.032, frequency: 9.4, sprintMultiplier: 1.8 }, muzzleFlashScale: 0.18 }),
+  }),
+  createModel({
     weaponId: 'glock18',
     role: WEAPON_MODEL_ROLES.PISTOL,
     silhouette: 'compact rectangular slide with short barrel and angled grip',
@@ -129,7 +157,7 @@ const modelDefinitions = Object.freeze([
       { id: 'vm-grip', shape: 'box', material: 'ribbed-black', size: vector(0.22, 0.48, 0.2), position: vector(-0.04, -0.56, 0.22), rotation: vector(0, 0, -0.16) },
     ],
     hooks: createHooks({ muzzle: vector(0.92, -0.12, 0.46), shellEject: vector(0.46, 0, 0.32), leftHand: vector(-0.18, -0.56, 0.18), rightHand: vector(0.1, -0.62, 0.08), magazine: vector(-0.02, -0.62, 0.18), reloadPath: sharedReloadPath }),
-    pose: createPose({ origin: vector(0.34, -0.42, -0.68), switchRaiseMs: 180, fireKick: vector(0, 0.018, -0.044), recoil: { pitch: 0.75, yaw: 0.24, settleMs: 105 }, bob: { amplitude: 0.018, frequency: 8.5, sprintMultiplier: 1.35 }, muzzleFlashScale: 0.58 }),
+    pose: createPose({ origin: vector(-0.22, 0.02, -1.25), switchRaiseMs: 180, fireKick: vector(0, 0.018, -0.044), recoil: { pitch: 0.75, yaw: 0.24, settleMs: 105 }, bob: { amplitude: 0.018, frequency: 8.5, sprintMultiplier: 1.35 }, muzzleFlashScale: 0.58 }),
   }),
   createModel({
     weaponId: 'ak47',
@@ -147,10 +175,10 @@ const modelDefinitions = Object.freeze([
       { id: 'vm-barrel', shape: 'cylinder', material: 'dark-bore', size: vector(0.1, 0.1, 0.92), position: vector(1.18, -0.18, 0.42), rotation: vector(0, 1.5708, 0) },
       { id: 'vm-handguard', shape: 'box', material: 'warm-wood', size: vector(0.56, 0.2, 0.3), position: vector(0.78, -0.24, 0.42) },
       { id: 'vm-stock-tail', shape: 'box', material: 'warm-wood', size: vector(0.36, 0.2, 0.24), position: vector(-0.34, -0.2, 0.38), rotation: vector(0, 0, -0.08) },
-      { id: 'vm-curved-magazine', shape: 'box', material: 'oiled-black-steel', size: vector(0.2, 0.62, 0.22), position: vector(0.26, -0.66, 0.3), rotation: vector(0, 0, 0.22) },
+      { id: 'vm-curved-magazine', shape: 'box', material: 'oiled-black-steel', size: vector(0.2, 0.54, 0.22), position: vector(0.26, -0.42, 0.3), rotation: vector(0, 0, 0.22) },
     ],
     hooks: createHooks({ muzzle: vector(1.68, -0.18, 0.42), shellEject: vector(0.48, -0.02, 0.22), leftHand: vector(0.72, -0.52, 0.36), rightHand: vector(0.02, -0.58, 0.12), magazine: vector(0.26, -0.74, 0.24), reloadPath: sharedReloadPath }),
-    pose: createPose({ origin: vector(0.52, -0.46, -0.88), switchRaiseMs: 270, fireKick: vector(-0.006, 0.032, -0.082), recoil: { pitch: 1.25, yaw: 0.42, settleMs: 155 }, bob: { amplitude: 0.024, frequency: 7.2, sprintMultiplier: 1.5 }, muzzleFlashScale: 0.92 }),
+    pose: createPose({ origin: vector(-0.32, 0.02, -1.4), switchRaiseMs: 270, fireKick: vector(-0.006, 0.032, -0.082), recoil: { pitch: 1.25, yaw: 0.42, settleMs: 155 }, bob: { amplitude: 0.024, frequency: 7.2, sprintMultiplier: 1.5 }, muzzleFlashScale: 0.92 }),
   }),
   createModel({
     weaponId: 'awp',
@@ -240,6 +268,15 @@ const modelDefinitions = Object.freeze([
 
 export const WEAPON_MODEL_REGISTRY = freezeDeep(Object.fromEntries(modelDefinitions.map((model) => [model.weaponId, model])));
 
+const CATEGORY_MODEL_FALLBACKS = Object.freeze({
+  [WEAPON_CATEGORIES.PISTOL]: 'glock18',
+  [WEAPON_CATEGORIES.RIFLE]: 'ak47',
+  [WEAPON_CATEGORIES.SNIPER]: 'awp',
+  [WEAPON_CATEGORIES.SMG]: 'mp5',
+  [WEAPON_CATEGORIES.SHOTGUN]: 'm3',
+  [WEAPON_CATEGORIES.MACHINE_GUN]: 'm249',
+});
+
 export const FALLBACK_WEAPON_MODEL = freezeDeep({
   weaponId: 'unknown',
   weaponName: 'Unknown Weapon',
@@ -275,6 +312,22 @@ export const getWeaponModel = (weaponId) => {
     return Object.freeze({ ok: true, model, warning: null });
   }
 
+  const weapon = getWeaponById(weaponId);
+  const roleFallbackId = CATEGORY_MODEL_FALLBACKS[weapon?.category];
+  const roleFallbackModel = WEAPON_MODEL_REGISTRY[roleFallbackId];
+  if (weapon && roleFallbackModel) {
+    return Object.freeze({
+      ok: true,
+      model: roleFallbackModel,
+      warning: Object.freeze({
+        code: 'weapon-model-role-fallback',
+        weaponId: weapon.id,
+        modelWeaponId: roleFallbackModel.weaponId,
+        message: `Using ${roleFallbackModel.weaponName} role silhouette for ${weapon.name}.`,
+      }),
+    });
+  }
+
   return Object.freeze({
     ok: false,
     model: FALLBACK_WEAPON_MODEL,
@@ -302,13 +355,66 @@ export const buildWeaponLayerModel = (weaponId, layer = WEAPON_MODEL_LAYERS.WORL
   });
 };
 
-export const deriveWeaponSwitchMetadata = (weaponId) => {
-  const result = getWeaponModel(weaponId);
+const rotateViewModelPoint = (point, alignment = VIEWMODEL_CAMERA_ALIGNMENT) => {
+  const scaled = {
+    x: point.x * alignment.scale,
+    y: point.y * alignment.scale,
+    z: point.z * alignment.scale,
+  };
+  const cosY = Math.cos(alignment.rotation.y);
+  const sinY = Math.sin(alignment.rotation.y);
+
+  return Object.freeze({
+    x: Number((cosY * scaled.x + sinY * scaled.z).toFixed(6)),
+    y: Number(scaled.y.toFixed(6)),
+    z: Number((-sinY * scaled.x + cosY * scaled.z).toFixed(6)),
+  });
+};
+
+export const summarizeViewModelCameraVisibility = (weaponId) => {
+  const descriptor = buildWeaponLayerModel(weaponId, WEAPON_MODEL_LAYERS.VIEWMODEL);
+  const pose = descriptor.pose.origin;
+  const camera = VIEWMODEL_CAMERA_ALIGNMENT.camera;
+  const orthographic = VIEWMODEL_CAMERA_ALIGNMENT.orthographic;
+  const halfVertical = Math.tan((camera.fovDegrees * Math.PI / 180) / 2);
+  const halfHorizontal = halfVertical * camera.aspect;
+  const parts = descriptor.parts.map((entry) => {
+    const rotated = rotateViewModelPoint(entry.position);
+    const center = Object.freeze({
+      x: Number((pose.x + rotated.x).toFixed(6)),
+      y: Number((pose.y + rotated.y).toFixed(6)),
+      z: Number((pose.z + rotated.z).toFixed(6)),
+    });
+    const depth = -center.z;
+    const perspectiveVisible = depth > camera.near
+      && Math.abs(center.x / depth) <= halfHorizontal
+      && Math.abs(center.y / depth) <= halfVertical;
+    const orthographicVisible = depth > camera.near
+      && center.x >= orthographic.left
+      && center.x <= orthographic.right
+      && center.y >= orthographic.bottom
+      && center.y <= orthographic.top;
+
+    return Object.freeze({ id: entry.id, center, depth: Number(depth.toFixed(6)), visible: orthographicVisible, perspectiveVisible });
+  });
 
   return freezeDeep({
-    weaponId: result.model.weaponId,
+    weaponId: descriptor.weaponId,
     requestedWeaponId: weaponId,
-    hud: result.model.hud,
+    alignment: VIEWMODEL_CAMERA_ALIGNMENT,
+    visiblePartCount: parts.filter((entry) => entry.visible).length,
+    parts,
+  });
+};
+
+export const deriveWeaponSwitchMetadata = (weaponId) => {
+  const result = getWeaponModel(weaponId);
+  const weapon = getWeaponById(weaponId);
+
+  return freezeDeep({
+    weaponId: weapon?.id ?? result.model.weaponId,
+    requestedWeaponId: weaponId,
+    hud: Object.freeze({ ...result.model.hud, label: weapon?.name ?? result.model.hud.label, weaponId: weapon?.id ?? result.model.hud.weaponId }),
     viewmodel: Object.freeze({
       layer: buildWeaponLayerModel(weaponId, WEAPON_MODEL_LAYERS.VIEWMODEL),
       pose: result.model.pose,

@@ -3,6 +3,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { MAP_COLLISION_VOLUMES, MAP_GEOMETRY_PRIMITIVES } from '../map/index.js';
+import { MAP_SCENE_SCALE, buildMapRenderGeometry, mapToScenePosition } from './mapGeometry.js';
 import { createRendererFallbackState, getSafeViewportSize, hasUsableWebGL } from './state.js';
 
 const rendererSource = await import('node:fs').then(({ readFileSync }) => readFileSync(new URL('./index.js', import.meta.url), 'utf8'));
@@ -39,7 +41,54 @@ const tests = [
     assert.equal(rendererSource.includes('updateMatchState'), true);
     assert.equal(rendererSource.includes('controllersBySlotIndex'), true);
     assert.equal(rendererSource.includes('muzzleFlash'), true);
+    assert.equal(rendererSource.includes('buildWeaponLayerModel'), true);
+    assert.equal(rendererSource.includes('buildViewModelGroup'), true);
+    assert.equal(rendererSource.includes('activeViewModelWeaponId'), true);
+    assert.equal(rendererSource.includes('viewModelRenderer'), true);
+    assert.equal(rendererSource.includes('match-stage__viewmodel-canvas'), true);
+    assert.equal(rendererSource.includes('viewModelRenderer.render(viewModelScene, viewModelCamera)'), true);
+    assert.equal(rendererSource.includes('VIEWMODEL_CAMERA_ALIGNMENT'), true);
+    assert.equal(rendererSource.includes('cameraAlignment: VIEWMODEL_CAMERA_ALIGNMENT'), true);
+    assert.equal(rendererSource.includes('child.material.depthTest = false'), true);
+    assert.equal(rendererSource.includes('child.material.depthWrite = false'), true);
     assert.equal(rendererSource.includes('player.visible = slot.lifeState === \'alive\''), true);
+  }],
+
+  ['builds visible map blockers from collision volumes with the shared scene transform', () => {
+    const geometry = buildMapRenderGeometry();
+    const midDoorCollision = MAP_COLLISION_VOLUMES[4];
+    const midDoorBlocker = geometry.blockers.find((blocker) => blocker.collisionVolume === midDoorCollision);
+    const mappedMidDoor = mapToScenePosition(midDoorCollision.center);
+
+    assert.equal(geometry.blockers.length, MAP_COLLISION_VOLUMES.length);
+    assert.equal(geometry.primitives.length, MAP_GEOMETRY_PRIMITIVES.length);
+    assert.equal(Boolean(midDoorBlocker), true, 'mid doors collision volume should have a visible blocker');
+    assert.equal(midDoorBlocker.position.x, mappedMidDoor.x);
+    assert.equal(midDoorBlocker.position.z, mappedMidDoor.z);
+    assert.equal(midDoorBlocker.size.x, Number((midDoorCollision.size.width / MAP_SCENE_SCALE).toFixed(6)));
+    assert.equal(midDoorBlocker.size.z, Number((midDoorCollision.size.depth / MAP_SCENE_SCALE).toFixed(6)));
+    assert.equal(midDoorBlocker.kind, 'blocking-box');
+    assert.equal(midDoorBlocker.visualRole, 'doors');
+
+    writeEvidence('task-map-render-geometry.txt', [
+      'CS DM map/render geometry evidence',
+      `collisionBlockers=${geometry.blockers.length}`,
+      `geometryPrimitives=${geometry.primitives.length}`,
+      `scale=${geometry.scale}`,
+      `midDoorMap=${midDoorCollision.center.x},${midDoorCollision.center.z}`,
+      `midDoorScene=${midDoorBlocker.position.x},${midDoorBlocker.position.z}`,
+    ]);
+  }],
+
+  ['renderer source uses shared map data instead of detached decorative fake walls', () => {
+    assert.equal(rendererSource.includes('MAP_COLLISION_VOLUMES'), true);
+    assert.equal(rendererSource.includes('MAP_GEOMETRY_PRIMITIVES'), true);
+    assert.equal(rendererSource.includes('buildMapRenderGeometry'), true);
+    assert.equal(rendererSource.includes('mapSource: descriptor.kind === \'blocking-box\' ? \'MAP_COLLISION_VOLUMES\' : \'MAP_GEOMETRY_PRIMITIVES\''), true);
+    assert.equal(rendererSource.includes('const leftWall'), false);
+    assert.equal(rendererSource.includes('const rightWall'), false);
+    assert.equal(rendererSource.includes('const farCrate'), false);
+    assert.equal(rendererSource.includes('const archTop'), false);
   }],
 
   ['normalizes resize dimensions for zero hidden and fullscreen-like mounts', () => {

@@ -80,7 +80,9 @@ const tests = [
     assert.notDeepEqual(PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.CT_RANGER].palette, PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.T_RAIDER].palette);
     assert.notEqual(PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.CT_RANGER].silhouette, PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.T_RAIDER].silhouette);
     assert.equal(PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.CT_RANGER].parts.some((part) => part.id === 'ct-radio-mast'), true);
+    assert.equal(PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.CT_RANGER].parts.some((part) => part.id === 'ct-backpack'), true);
     assert.equal(PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.T_RAIDER].parts.some((part) => part.id === 't-scarf-tail'), true);
+    assert.equal(PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.T_RAIDER].parts.some((part) => part.id === 't-soft-pack'), true);
   }],
 
   ['keeps hitbox and collision dimensions identical across variants', () => {
@@ -116,6 +118,7 @@ const tests = [
       assert.equal(descriptors.every((part) => part.color.startsWith('#')), true);
       assert.equal(model.name, variant.id);
       assert.equal(model.children.length, variant.parts.length);
+      assert.equal(model.children.some((child) => child.userData.role === 'silhouette'), true);
       assert.deepEqual(model.userData.states, PLAYER_MODEL_STATE_IDS);
       assert.deepEqual(model.userData.hitbox, PLAYER_MODEL_HITBOX);
     }

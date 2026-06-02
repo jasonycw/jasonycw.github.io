@@ -12,6 +12,7 @@ import {
   deriveWeaponSwitchMetadata,
   getWeaponHudLabel,
   getWeaponModel,
+  summarizeViewModelCameraVisibility,
 } from './weaponModels.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -23,6 +24,7 @@ const writeEvidence = (fileName, lines) => {
 };
 
 const requiredRoleWeapons = Object.freeze({
+  [WEAPON_MODEL_ROLES.MELEE]: 'knife',
   [WEAPON_MODEL_ROLES.PISTOL]: 'glock18',
   [WEAPON_MODEL_ROLES.RIFLE]: 'ak47',
   [WEAPON_MODEL_ROLES.SNIPER]: 'awp',
@@ -110,6 +112,37 @@ const tests = [
     assert.equal(getWeaponHudLabel('mp5'), 'MP5 Navy');
     assert.equal(deriveWeaponSwitchMetadata('m3').hud.weaponId, 'm3');
     assert.equal(deriveWeaponSwitchMetadata('m3').viewmodel.layer.layer, WEAPON_MODEL_LAYERS.VIEWMODEL);
+  }],
+
+  ['known unmodelled weapons reuse role silhouettes while preserving HUD identity', () => {
+    const usp = getWeaponModel('usp');
+    const m4a1 = deriveWeaponSwitchMetadata('m4a1');
+
+    assert.equal(usp.ok, true);
+    assert.equal(usp.warning.code, 'weapon-model-role-fallback');
+    assert.equal(usp.warning.modelWeaponId, 'glock18');
+    assert.equal(m4a1.hud.label, 'M4A1');
+    assert.equal(m4a1.weaponId, 'm4a1');
+    assert.equal(m4a1.warning.code, 'weapon-model-role-fallback');
+    assert.equal(m4a1.viewmodel.layer.weaponId, 'ak47');
+  }],
+
+  ['viewmodel camera alignment keeps AK Glock and knife silhouettes in frustum', () => {
+    const summaries = ['ak47', 'glock18', 'knife'].map((weaponId) => summarizeViewModelCameraVisibility(weaponId));
+
+    summaries.forEach((summary) => {
+      assert.equal(summary.visiblePartCount >= 3, true, `${summary.weaponId} should have multiple visible parts`);
+      assert.equal(summary.parts.some((entry) => entry.depth > summary.alignment.camera.near), true, `${summary.weaponId} should be in front of the near plane`);
+    });
+    assert.equal(summaries[0].parts.some((entry) => entry.id.includes('curved-magazine') && entry.visible), true, 'AK magazine should be visible');
+    assert.equal(summaries[1].parts.some((entry) => entry.id.includes('frame') && entry.visible), true, 'Glock frame should be visible');
+    assert.equal(summaries[2].parts.some((entry) => entry.id.includes('blade') && entry.visible), true, 'Knife blade should be visible');
+
+    writeEvidence('task-viewmodel-camera-visibility.txt', [
+      'PASS CS DM viewmodel camera visibility',
+      ...summaries.map((summary) => `${summary.requestedWeaponId}->${summary.weaponId}: visibleParts=${summary.visiblePartCount} depths=${summary.parts.map((entry) => `${entry.id}:${entry.depth}`).join('|')}`),
+      'Surface: camera-attached Three.js primitive viewmodel, not CSS overlay art',
+    ]);
   }],
 ];
 

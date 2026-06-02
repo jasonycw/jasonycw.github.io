@@ -60,7 +60,7 @@ export const PLAYER_MODEL_VARIANTS = freezeDeep({
     id: PLAYER_MODEL_IDS.CT_RANGER,
     faction: FACTIONS.COUNTER_TERRORISTS,
     displayName: 'Harbor Ranger',
-    silhouette: 'helmeted armor blocks with shoulder radio mast',
+    silhouette: 'helmeted tactical vest blocks with broad shoulders, blue visor, radio mast, and backpack mass',
     hitbox: PLAYER_MODEL_HITBOX,
     palette: {
       visor: '#88d8ff',
@@ -69,6 +69,7 @@ export const PLAYER_MODEL_VARIANTS = freezeDeep({
       fabric: '#43515a',
       accent: '#d6b36a',
       boots: '#151b20',
+      gear: '#202a2f',
     },
     parts: [
       box('ct-boots', 'boots', { x: 0.78, y: 0.16, z: 0.34 }, { x: 0, y: 0.08, z: 0 }, 'boots'),
@@ -79,13 +80,15 @@ export const PLAYER_MODEL_VARIANTS = freezeDeep({
       cylinder('ct-helmet', 'head', 0.28, 0.32, 0.34, { x: 0, y: 1.72, z: 0 }, 'helmet', { segments: 8 }),
       box('ct-visor', 'face', { x: 0.4, y: 0.1, z: 0.04 }, { x: 0, y: 1.75, z: 0.31 }, 'visor'),
       box('ct-radio-mast', 'silhouette', { x: 0.04, y: 0.38, z: 0.04 }, { x: -0.4, y: 1.7, z: -0.12 }, 'accent'),
+      box('ct-backpack', 'silhouette', { x: 0.46, y: 0.58, z: 0.18 }, { x: 0, y: 1.02, z: -0.32 }, 'gear'),
+      box('ct-knee-pads', 'armor-detail', { x: 0.66, y: 0.12, z: 0.36 }, { x: 0, y: 0.66, z: 0.02 }, 'gear'),
     ],
   },
   [PLAYER_MODEL_IDS.T_RAIDER]: {
     id: PLAYER_MODEL_IDS.T_RAIDER,
     faction: FACTIONS.TERRORISTS,
     displayName: 'Sand Raider',
-    silhouette: 'wrapped head, loose jacket, diagonal bandolier',
+    silhouette: 'wrapped head, loose desert jacket, diagonal bandolier, scarf tail, and soft pack silhouette',
     hitbox: PLAYER_MODEL_HITBOX,
     palette: {
       scarf: '#d8b36f',
@@ -94,6 +97,7 @@ export const PLAYER_MODEL_VARIANTS = freezeDeep({
       sash: '#9b2f22',
       pants: '#4a4539',
       boots: '#1d1712',
+      pack: '#5f3f25',
     },
     parts: [
       box('t-boots', 'boots', { x: 0.7, y: 0.16, z: 0.36 }, { x: 0, y: 0.08, z: 0 }, 'boots'),
@@ -104,6 +108,8 @@ export const PLAYER_MODEL_VARIANTS = freezeDeep({
       cylinder('t-neck', 'neck', 0.15, 0.17, 0.16, { x: 0, y: 1.51, z: 0 }, 'scarf', { segments: 8 }),
       cylinder('t-wrapped-head', 'head', 0.27, 0.29, 0.32, { x: 0, y: 1.7, z: 0 }, 'scarf', { segments: 8 }),
       box('t-scarf-tail', 'silhouette', { x: 0.12, y: 0.48, z: 0.12 }, { x: 0.3, y: 1.47, z: -0.18 }, 'scarf'),
+      box('t-soft-pack', 'silhouette', { x: 0.42, y: 0.46, z: 0.18 }, { x: -0.08, y: 0.98, z: -0.33 }, 'pack'),
+      box('t-head-wrap-band', 'headgear', { x: 0.48, y: 0.08, z: 0.08 }, { x: 0, y: 1.82, z: 0.24 }, 'jacket'),
     ],
   },
 });

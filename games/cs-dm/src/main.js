@@ -1,7 +1,7 @@
 ﻿import { INPUT_BUTTONS, validatePlayerName } from './core/index.js';
 import { AudioEvent, createAudioController } from './audio/index.js';
-import { advanceOfflineMatchTick, buyOfflineWeapon, createOfflineMatch, deriveOfflineMatchHud, summarizeOfflinePerformance } from './gameplay/index.js';
-import { InputAction, createDefaultBindingMap, getLiveBindingCandidates, readStoredKeybindings, readStoredPlayerName, writeStoredKeybindings, writeStoredPlayerName } from './input/index.js';
+import { OFFLINE_TICK_RATE, advanceOfflineMatchTick, buyOfflineWeapon, createOfflineMatch, deriveOfflineMatchHud, reloadOfflineWeapon, summarizeOfflinePerformance, switchOfflineWeaponSlot } from './gameplay/index.js';
+import { DEFAULT_MOUSE_SETTINGS, InputAction, createDefaultBindingMap, getConfiguredMouseLookDelta, getLiveBindingCandidates, getMouseSensitivityPercent, normalizeMouseSettings, readStoredKeybindings, readStoredMouseSettings, readStoredPlayerName, writeStoredKeybindings, writeStoredMouseSettings, writeStoredPlayerName } from './input/index.js';
 import { isTextEntryElement } from './input/domGuards.js';
 import { getBindingChangeResult, getBindingLabel, hasBindingConflict } from './input/settings.js';
 import { NETWORK_STATES, createBrowserManualWebRtcAdapter, createManualCodeFailureState } from './network/index.js';
@@ -32,6 +32,10 @@ const settingsPlayerNameInput = document.getElementById('settings-player-name');
 const settingsNameError = document.getElementById('settings-name-error');
 const bindingConflict = document.getElementById('binding-conflict');
 const bindingList = document.getElementById('binding-list');
+const mouseSensitivity = document.getElementById('mouse-sensitivity');
+const mouseSensitivityValue = document.getElementById('mouse-sensitivity-value');
+const mouseInvertY = document.getElementById('mouse-invert-y');
+const mouseStatus = document.getElementById('mouse-status');
 const hostOfferCode = document.getElementById('host-offer-code');
 const hostCreateOfferButton = document.getElementById('host-create-offer');
 const hostBackButton = document.getElementById('host-back');
@@ -60,6 +64,8 @@ const hudWeapon = document.getElementById('hud-weapon');
 const hudHealth = document.getElementById('hud-health');
 const hudArmor = document.getElementById('hud-armor');
 const hudPhase = document.getElementById('hud-phase');
+const hudRadar = document.getElementById('hud-radar');
+const hudKillfeed = document.getElementById('hud-killfeed');
 const hudScoreboardBody = document.getElementById('scoreboard-body');
 const scoreboardPanel = document.querySelector('.scoreboard');
 const openBuyMenuButton = document.getElementById('open-buy-menu');
@@ -102,6 +108,7 @@ let selectedLoadout = null;
 let offlineMatchState = null;
 let offlineMatchTimer = null;
 let currentBindings = createDefaultBindingMap();
+let currentMouseSettings = { ...DEFAULT_MOUSE_SETTINGS };
 let activeBindingAction = null;
 let settingsReturnPanel = 'menu';
 let hostNetworkAdapter = createBrowserManualWebRtcAdapter();
@@ -110,6 +117,11 @@ let lastFootstepAt = 0;
 let pressedMovementButtons = new Set();
 let pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
 let localFireQueued = false;
+let localJumpQueued = false;
+let localReloadQueued = false;
+let lastLocalShotRegistered = false;
+let suppressNextCanvasClick = false;
+let killfeedEntries = [];
 
 const SCOREBOARD_FACTION_LABELS = Object.freeze({
   terrorists: 'Terrorists',
@@ -130,7 +142,19 @@ const MOVEMENT_ACTION_BUTTONS = Object.freeze({
 
 const audioController = createAudioController();
 
-const isBindingEventForAction = (event, action) => getLiveBindingCandidates(currentBindings, action).includes(event.code);
+const getEventCode = (event) => event.code || (typeof event.key === 'string' && event.key.length === 1 ? `Key${event.key.toUpperCase()}` : event.key);
+
+const getDigitSlotIdForEvent = (event) => {
+  const code = getEventCode(event);
+  if (event.code === 'Digit1' || code === 'Digit1' || event.key === '1') return 'primary';
+  if (event.code === 'Digit2' || code === 'Digit2' || event.key === '2') return 'secondary';
+  if (event.code === 'Digit3' || code === 'Digit3' || event.key === '3') return 'knife';
+  return null;
+};
+
+const isReloadEvent = (event) => event.code === 'KeyR' || getEventCode(event) === 'KeyR' || String(event.key ?? '').toLowerCase() === 'r';
+
+const isBindingEventForAction = (event, action) => getLiveBindingCandidates(currentBindings, action).includes(getEventCode(event));
 
 const getMovementButtonForEvent = (event) => Object.entries(MOVEMENT_ACTION_BUTTONS)
   .find(([action]) => isBindingEventForAction(event, action))?.[1] ?? null;
@@ -206,6 +230,21 @@ const syncBindingWarning = () => {
   setTextContent(bindingConflict, getBindingStatusMessage());
 };
 
+const syncMouseSettingsControls = () => {
+  const mouseSettings = normalizeMouseSettings(currentMouseSettings);
+
+  mouseSensitivity.value = String(mouseSettings.sensitivity);
+  mouseInvertY.checked = mouseSettings.invertY;
+  setTextContent(mouseSensitivityValue, getMouseSensitivityPercent(mouseSettings));
+  setTextContent(mouseStatus, mouseSettings.invertY ? 'Mouse Y is inverted.' : 'Mouse Y uses standard vertical look.');
+};
+
+const applyMouseSettings = (settings) => {
+  currentMouseSettings = normalizeMouseSettings(settings);
+  syncMouseSettingsControls();
+  writeStoredMouseSettings(undefined, currentMouseSettings);
+};
+
 const renderBindingRows = () => {
   bindingList.replaceChildren();
 
@@ -263,6 +302,7 @@ const renderBindingRows = () => {
 const syncSettingsPanel = () => {
   setInputValue(settingsPlayerNameInput, playerNameInput.value);
   setFieldError(settingsNameError, '');
+  syncMouseSettingsControls();
   syncBindingWarning();
   renderBindingRows();
 };
@@ -331,16 +371,78 @@ const renderPerfSummary = () => {
   setTextContent(perfSummary, `ticks=${summary.tick} simMs=${summary.nowMs} players=${summary.playerCount} botShots=${summary.botShotsFired} kills=${summary.totalKills}`);
 };
 
+const renderRadar = (radar) => {
+  if (!hudRadar || !radar) {
+    return;
+  }
+
+  hudRadar.replaceChildren();
+  hudRadar.dataset.radarKind = radar.kind;
+  radar.blocks.forEach((block) => {
+    const element = document.createElement('span');
+    element.className = 'match-hud__radar-block';
+    element.style.left = `${block.x}%`;
+    element.style.top = `${block.y}%`;
+    element.style.width = `${block.width}%`;
+    element.style.height = `${block.height}%`;
+    hudRadar.append(element);
+  });
+  radar.blips.forEach((blip) => {
+    const element = document.createElement('span');
+    element.className = `match-hud__radar-blip match-hud__radar-blip--${blip.kind}`;
+    element.style.left = `${blip.point.x}%`;
+    element.style.top = `${blip.point.y}%`;
+    element.dataset.radarSlot = String(blip.slotIndex);
+    hudRadar.append(element);
+  });
+};
+
+const renderKillfeed = () => {
+  if (!hudKillfeed) {
+    return;
+  }
+
+  hudKillfeed.replaceChildren();
+  killfeedEntries.slice(0, 4).forEach((entry) => {
+    const item = document.createElement('li');
+    item.className = 'match-hud__killfeed-entry';
+    item.textContent = `${entry.killer} ${entry.weapon} ${entry.victim}`;
+    hudKillfeed.append(item);
+  });
+  hudKillfeed.hidden = killfeedEntries.length === 0;
+};
+
+const updateKillfeed = (previousState, nextState) => {
+  if (!previousState || !nextState) {
+    return;
+  }
+
+  nextState.matchState.players.forEach((player, slotIndex) => {
+    const previousPlayer = previousState.matchState.players[slotIndex];
+    if (previousPlayer?.lifeState !== 'respawning' && player.lifeState === 'respawning' && player.killedBySlotIndex !== null && player.killedBySlotIndex !== undefined) {
+      const killer = nextState.matchState.players[player.killedBySlotIndex];
+      killfeedEntries = [{ killer: killer?.name ?? 'Player', victim: player.name, weapon: killer?.loadout?.activeWeaponId?.toUpperCase() ?? 'WEAPON' }, ...killfeedEntries].slice(0, 4);
+    }
+  });
+};
+
 const renderOfflineHud = () => {
   if (!offlineMatchState) {
     return;
   }
 
   const hud = deriveOfflineMatchHud(offlineMatchState);
-  setTextContent(hudWeapon, hud.localPlayer.activeWeapon.hud.label);
+  const reloadLabel = hud.localPlayer.ammo.isReloading ? ' · RELOADING' : '';
+  setTextContent(hudWeapon, `${hud.localPlayer.activeWeapon.hud.label}${reloadLabel}`);
+  hudWeapon.dataset.weaponId = hud.localPlayer.ammo.weaponId;
+  hudWeapon.dataset.clip = String(hud.localPlayer.ammo.clip);
+  hudWeapon.dataset.reserve = String(hud.localPlayer.ammo.reserve);
+  hudWeapon.dataset.reloading = String(hud.localPlayer.ammo.isReloading);
   setTextContent(hudHealth, String(hud.localPlayer.health));
   setTextContent(hudArmor, String(hud.localPlayer.armor));
   setTextContent(hudPhase, offlineMatchState.matchState.mode ?? hud.sessionClock.phase);
+  renderRadar(hud.radar);
+  renderKillfeed();
   renderPerfSummary();
   hudScoreboardBody.replaceChildren();
 
@@ -427,19 +529,51 @@ const syncRendererState = () => {
   const localController = offlineMatchState.controllersBySlotIndex?.[offlineMatchState.matchState.localSlotIndex];
   if (localController) {
     gameCanvas.dataset.localX = String(localController.position.x);
+    gameCanvas.dataset.localY = String(localController.position.y);
     gameCanvas.dataset.localZ = String(localController.position.z);
     gameCanvas.dataset.localYaw = String(localController.view.yaw);
+    gameCanvas.dataset.localPitch = String(localController.view.pitch);
   }
-  if (offlineMatchState.lastLocalShot) {
-    gameCanvas.dataset.lastLocalShot = 'true';
-  }
+  gameCanvas.dataset.lastLocalShot = lastLocalShotRegistered ? 'true' : 'false';
   rendererShell.updateMatchState?.(offlineMatchState);
+};
+
+const consumeQueuedJumpInput = (localInput) => {
+  const input = localInput ?? {};
+  const jumpPressed = Boolean(input.jumpPressed) || localJumpQueued;
+
+  if (localJumpQueued) {
+    localJumpQueued = false;
+  }
+
+  if (!localInput && !jumpPressed) {
+    return null;
+  }
+
+  return Object.freeze({
+    ...input,
+    buttons: input.buttons ?? [...pressedMovementButtons],
+    look: input.look ?? pendingLookDelta,
+    fire: input.fire ?? false,
+    reload: input.reload ?? false,
+    jumpPressed,
+  });
 };
 
 const advanceOfflineMatchWithFeedback = (options = {}) => {
   const previousState = offlineMatchState;
-  offlineMatchState = advanceOfflineMatchTick(offlineMatchState, options);
-  handleOfflineAudioFeedback(previousState, offlineMatchState, options);
+  const localInput = consumeQueuedJumpInput(options.localInput ?? null);
+  const tickOptions = Object.freeze({ ...options, localInput });
+  if (localInput?.fire) {
+    lastLocalShotRegistered = false;
+    gameCanvas.dataset.lastLocalShot = 'false';
+  }
+  offlineMatchState = advanceOfflineMatchTick(offlineMatchState, tickOptions);
+  updateKillfeed(previousState, offlineMatchState);
+  if (localInput?.fire && offlineMatchState.lastLocalShot) {
+    lastLocalShotRegistered = true;
+  }
+  handleOfflineAudioFeedback(previousState, offlineMatchState, tickOptions);
   renderOfflineHud();
   syncRendererState();
 };
@@ -454,13 +588,59 @@ const stopOfflineLoop = () => {
 const startOfflineLoop = () => {
   stopOfflineLoop();
   offlineMatchTimer = window.setInterval(() => {
-    const localInput = (pressedMovementButtons.size > 0 || pendingLookDelta.yawDelta !== 0 || pendingLookDelta.pitchDelta !== 0 || localFireQueued)
-      ? { buttons: [...pressedMovementButtons], look: pendingLookDelta, fire: localFireQueued }
+    const localInput = (pressedMovementButtons.size > 0 || pendingLookDelta.yawDelta !== 0 || pendingLookDelta.pitchDelta !== 0 || localFireQueued || localJumpQueued || localReloadQueued)
+      ? { buttons: [...pressedMovementButtons], look: pendingLookDelta, fire: localFireQueued, reload: localReloadQueued }
       : null;
     pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
     localFireQueued = false;
+    localReloadQueued = false;
     advanceOfflineMatchWithFeedback({ localInput });
-  }, 1000 / 30);
+  }, 1000 / OFFLINE_TICK_RATE);
+};
+
+const switchLocalWeaponSlot = (slotId) => {
+  if (!offlineMatchState) {
+    return false;
+  }
+
+  const result = switchOfflineWeaponSlot(offlineMatchState, slotId);
+  if (!result.ok) {
+    return false;
+  }
+
+  offlineMatchState = result.state;
+  selectedLoadout = offlineMatchState.matchState.players[offlineMatchState.matchState.localSlotIndex].loadout;
+  lastLocalShotRegistered = false;
+  gameCanvas.dataset.lastLocalShot = 'false';
+  playAudioEvent(AudioEvent.MENU_ACTION, { unlock: true });
+  renderOfflineHud();
+  syncRendererState();
+  return true;
+};
+
+const reloadLocalWeapon = () => {
+  if (!offlineMatchState) {
+    return false;
+  }
+
+  const result = reloadOfflineWeapon(offlineMatchState);
+  offlineMatchState = result.state;
+  renderOfflineHud();
+  syncRendererState();
+  return result.ok;
+};
+
+const fireLocalWeaponFromPointerEvent = (event) => {
+  if (event.button !== 0 || !offlineMatchState) {
+    return false;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  localFireQueued = false;
+  advanceOfflineMatchWithFeedback({ localInput: { buttons: [...pressedMovementButtons], look: pendingLookDelta, fire: true } });
+  pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
+  return true;
 };
 
 const openSettings = () => {
@@ -603,6 +783,10 @@ const openOfflineMatch = () => {
   pressedMovementButtons = new Set();
   pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
   localFireQueued = false;
+  localJumpQueued = false;
+  localReloadQueued = false;
+  lastLocalShotRegistered = false;
+  killfeedEntries = [];
   gameCanvas.dataset.lastLocalShot = 'false';
   renderOfflineHud();
   startOfflineLoop();
@@ -684,6 +868,9 @@ if (storedNameResult.value) {
 const storedKeybindingsResult = readStoredKeybindings();
 currentBindings = storedKeybindingsResult.value;
 
+const storedMouseSettingsResult = readStoredMouseSettings();
+currentMouseSettings = storedMouseSettingsResult.value;
+
 playerNameInput.addEventListener('input', syncMainMenuState);
 matchPlayerNameInput.addEventListener('input', syncMatchOverlay);
 settingsPlayerNameInput.addEventListener('input', syncSettingsName);
@@ -740,14 +927,25 @@ settingsCloseButton.addEventListener('click', () => {
 settingsResetDefaultsButton.addEventListener('click', () => {
   playAudioEvent(AudioEvent.MENU_ACTION, { unlock: true });
   currentBindings = createDefaultBindingMap();
+  currentMouseSettings = { ...DEFAULT_MOUSE_SETTINGS };
   activeBindingAction = null;
   renderBindingRows();
+  syncMouseSettingsControls();
   syncBindingWarning();
   writeStoredKeybindings(undefined, currentBindings);
+  writeStoredMouseSettings(undefined, currentMouseSettings);
 });
 settingsApplyNameButton.addEventListener('click', () => {
   playAudioEvent(AudioEvent.MENU_ACTION, { unlock: true });
   syncSettingsName();
+});
+
+mouseSensitivity.addEventListener('input', () => {
+  applyMouseSettings({ ...currentMouseSettings, sensitivity: mouseSensitivity.value });
+});
+
+mouseInvertY.addEventListener('change', () => {
+  applyMouseSettings({ ...currentMouseSettings, invertY: mouseInvertY.checked });
 });
 
 audioMuteToggle.addEventListener('click', () => {
@@ -793,7 +991,7 @@ document.addEventListener('keydown', (event) => {
 
   if (activeBindingAction) {
     event.preventDefault();
-    finishRebind(event.code);
+    finishRebind(getEventCode(event));
     return;
   }
 
@@ -818,9 +1016,27 @@ document.addEventListener('keydown', (event) => {
     return;
   }
 
+  const digitSlotId = offlineMatchState ? getDigitSlotIdForEvent(event) : null;
+  if (digitSlotId) {
+    event.preventDefault();
+    switchLocalWeaponSlot(digitSlotId);
+    return;
+  }
+
+  if (offlineMatchState && isReloadEvent(event)) {
+    event.preventDefault();
+    localReloadQueued = false;
+    advanceOfflineMatchWithFeedback({ localInput: { buttons: [...pressedMovementButtons], look: pendingLookDelta, fire: false, reload: true } });
+    pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
+    return;
+  }
+
   const movementButton = getMovementButtonForEvent(event);
   if (offlineMatchState && movementButton) {
     event.preventDefault();
+    if (movementButton === INPUT_BUTTONS.JUMP && !event.repeat) {
+      localJumpQueued = true;
+    }
     pressedMovementButtons = new Set([...pressedMovementButtons, movementButton]);
     const now = Date.now();
     if (now - lastFootstepAt > 260) {
@@ -858,13 +1074,16 @@ document.addEventListener('keyup', (event) => {
 });
 
 gameCanvas.addEventListener('mousedown', (event) => {
-  if (event.button !== 0 || !offlineMatchState) {
+  suppressNextCanvasClick = fireLocalWeaponFromPointerEvent(event);
+});
+
+gameCanvas.addEventListener('click', (event) => {
+  if (suppressNextCanvasClick) {
+    suppressNextCanvasClick = false;
     return;
   }
 
-  localFireQueued = false;
-  advanceOfflineMatchWithFeedback({ localInput: { buttons: [...pressedMovementButtons], look: pendingLookDelta, fire: true } });
-  pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
+  fireLocalWeaponFromPointerEvent(event);
 });
 
 gameCanvas.addEventListener('mousemove', (event) => {
@@ -872,15 +1091,16 @@ gameCanvas.addEventListener('mousemove', (event) => {
     return;
   }
 
+  const configuredDelta = getConfiguredMouseLookDelta({ yawDelta: event.movementX, pitchDelta: event.movementY }, currentMouseSettings);
   pendingLookDelta = {
-    yawDelta: pendingLookDelta.yawDelta + event.movementX,
-    pitchDelta: pendingLookDelta.pitchDelta + event.movementY,
+    yawDelta: pendingLookDelta.yawDelta + configuredDelta.yawDelta,
+    pitchDelta: pendingLookDelta.pitchDelta + configuredDelta.pitchDelta,
   };
 });
 
 syncMainMenuState();
 syncBindingWarning();
+syncMouseSettingsControls();
 syncAudioControls();
 renderBindingRows();
 openMenu();
-
