@@ -65,7 +65,7 @@ const normalizeHorizontal = (vector) => {
 
 const getWishDirection = (buttons, yaw) => {
   const pressed = new Set(buttons);
-  const forward = { x: Math.sin(yaw), z: Math.cos(yaw) };
+  const forward = { x: -Math.sin(yaw), z: -Math.cos(yaw) };
   const right = { x: Math.cos(yaw), z: -Math.sin(yaw) };
   const wish = { x: 0, z: 0 };
 
@@ -156,12 +156,14 @@ const resolveHorizontalCollision = (fromPosition, toPosition, radius, collisionV
 
 export function simulatePlayerMovementStep(state, {
   buttons = [],
+  jumpPressed,
   look = { yawDelta: 0, pitchDelta: 0 },
   activeWeaponId = state.activeWeaponId,
   deltaSeconds = 1 / 60,
   collisionVolumes = MAP_COLLISION_VOLUMES,
 } = {}) {
   const pressed = new Set(buttons);
+  const jumpPressedThisFrame = jumpPressed ?? pressed.has(INPUT_BUTTONS.JUMP);
   const crouching = pressed.has(INPUT_BUTTONS.CROUCH);
   const maxSpeed = PLAYER_MOVEMENT_DEFAULTS.baseMaxSpeed * getWeaponSpeedModifier(activeWeaponId) * (crouching ? PLAYER_MOVEMENT_DEFAULTS.crouchSpeedModifier : 1);
   const yaw = state.view.yaw + (look.yawDelta || 0) * PLAYER_MOVEMENT_DEFAULTS.mouseSensitivity;
@@ -183,7 +185,7 @@ export function simulatePlayerMovementStep(state, {
   );
 
   let jumping = state.movement.jumping && !groundedAtStart;
-  if (groundedAtStart && pressed.has(INPUT_BUTTONS.JUMP) && !crouching) {
+  if (groundedAtStart && jumpPressedThisFrame && !crouching) {
     velocity.y = PLAYER_MOVEMENT_DEFAULTS.jumpSpeed;
     jumping = true;
   }

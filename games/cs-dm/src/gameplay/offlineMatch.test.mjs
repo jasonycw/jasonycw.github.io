@@ -4,10 +4,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { COMBAT_DEFAULTS, LOCAL_PLAYER_SLOT_INDEX, MATCH_PHASES, PLAYER_LIFE_STATES, SLOT_TYPES, WEAPONS } from '../config/index.js';
+import { INPUT_BUTTONS } from '../core/index.js';
+import { getConfiguredMouseLookDelta } from '../input/index.js';
 import { MAP_COLLISION_VOLUMES, MAP_SPAWN_POINTS, SPAWN_CLEARANCE_RADIUS, getSpawnCollisionOverlaps } from '../map/index.js';
 import { PLAYER_MOVEMENT_DEFAULTS } from '../player/index.js';
 import { selectBuyPurchase } from '../ui/buyMenu.js';
-import { startReload } from '../weapons/index.js';
+import { createWeaponState, startReload } from '../weapons/index.js';
 import {
   advanceOfflineMatchTick,
   buyOfflineWeapon,
@@ -16,9 +18,11 @@ import {
   forceOfflineKill,
   MATCH_OVERLAY_STATES,
   OFFLINE_MATCH_PHASE,
+  reloadOfflineWeapon,
   runOfflineSmokeSimulation,
   summarizeOfflineMatch,
   summarizeOfflineMenuConsistency,
+  switchOfflineWeaponSlot,
 } from './offlineMatch.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -120,7 +124,7 @@ const tests = [
       controllersBySlotIndex: Object.freeze({
         ...state.controllersBySlotIndex,
         0: Object.freeze({ ...state.controllersBySlotIndex[0], position: Object.freeze({ x: 0, y: 0, z: 0 }), velocity: Object.freeze({ x: 0, y: 0, z: 0 }), view: Object.freeze({ yaw: 0, pitch: 0 }) }),
-        1: Object.freeze({ ...state.controllersBySlotIndex[1], position: Object.freeze({ x: 0, y: 0, z: 30 }), radius: 20 }),
+        1: Object.freeze({ ...state.controllersBySlotIndex[1], position: Object.freeze({ x: 0, y: 0, z: -30 }), radius: 20 }),
       }),
       matchState: Object.freeze({
         ...state.matchState,
@@ -142,6 +146,80 @@ const tests = [
     assert.equal(state.matchState.players[0].loadout.activeWeaponId, WEAPONS.AWP.id);
     assert.equal(state.matchState.players[0].health, COMBAT_DEFAULTS.maxHealth);
     localLoadoutPersistenceEvidence = `localLoadoutPersistence=${state.matchState.players[0].lifeState}/${state.matchState.players[0].loadout.primaryWeaponId}/${state.matchState.players[0].loadout.secondaryWeaponId}/${state.matchState.players[0].loadout.activeWeaponId}`;
+  }],
+
+  ['applies configured mouse look deltas to the live offline controller', () => {
+    const state = createOfflineMatch({ localPlayerName: 'MouseLook' });
+    const defaultInverted = advanceOfflineMatchTick(state, {
+      localInput: {
+        look: getConfiguredMouseLookDelta({ yawDelta: 40, pitchDelta: 40 }),
+      },
+    });
+    const standardHalfSensitivity = advanceOfflineMatchTick(state, {
+      localInput: {
+        look: getConfiguredMouseLookDelta({ yawDelta: 40, pitchDelta: 40 }, { sensitivity: 0.5, invertY: false }),
+      },
+    });
+
+    assert.equal(defaultInverted.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].view.yaw, -0.08);
+    assert.equal(defaultInverted.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].view.pitch, -0.08);
+    assert.equal(standardHalfSensitivity.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].view.yaw, -0.04);
+    assert.equal(standardHalfSensitivity.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].view.pitch, 0.04);
+  }],
+
+  ['carries a queued local jump tap into the offline controller state', () => {
+    const state = createOfflineMatch({ localPlayerName: 'JumpTap' });
+    const jumped = advanceOfflineMatchTick(state, {
+      localInput: {
+        buttons: [],
+        jumpPressed: true,
+      },
+    });
+    const released = advanceOfflineMatchTick(jumped);
+    const legacyButtonJump = advanceOfflineMatchTick(state, {
+      localInput: {
+        buttons: [INPUT_BUTTONS.JUMP],
+      },
+    });
+
+    const heldNext = advanceOfflineMatchTick(legacyButtonJump, {
+      localInput: {
+        buttons: [INPUT_BUTTONS.JUMP],
+      },
+    });
+    const tapNext = advanceOfflineMatchTick(jumped);
+
+    assert.equal(jumped.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].movement.jumping, true);
+    assert.equal(jumped.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].movement.grounded, false);
+    assert.equal(jumped.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].position.y > state.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].position.y, true);
+    assert.equal(released.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].position.y > jumped.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].position.y, true);
+    assert.equal(legacyButtonJump.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].movement.jumping, true);
+    assert.equal(heldNext.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].position.y, tapNext.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].position.y);
+    assert.equal(heldNext.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].velocity.y, tapNext.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].velocity.y);
+  }],
+
+  ['records local firing feedback when the weapon fires without a hit target', () => {
+    let state = createOfflineMatch({ localPlayerName: 'MissFeedback' });
+    state = Object.freeze({
+      ...state,
+      matchState: Object.freeze({
+        ...state.matchState,
+        players: Object.freeze(state.matchState.players.map((player, index) => Object.freeze({
+          ...player,
+          lifeState: index === LOCAL_PLAYER_SLOT_INDEX ? PLAYER_LIFE_STATES.ALIVE : PLAYER_LIFE_STATES.RESPAWNING,
+          spawnProtectionUntilMs: 0,
+        }))),
+      }),
+    });
+
+    const fired = advanceOfflineMatchTick(state, { localInput: { fire: true, seed: 71 } });
+    assert.equal(fired.lastLocalShot !== null, true);
+    assert.equal(fired.lastLocalShot.hit, null);
+    assert.equal(fired.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].shotsFired, 1);
+
+    const cooldownBlocked = advanceOfflineMatchTick(fired, { localInput: { fire: true, seed: 72 } });
+    assert.equal(cooldownBlocked.lastLocalShot, null);
+    assert.equal(cooldownBlocked.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].shotsFired, 1);
   }],
 
   ['keeps HUD and overlay state consistent when local death happens with menus open', () => {
@@ -192,6 +270,132 @@ const tests = [
     assert.equal(state.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].weaponId, WEAPONS.AWP.id);
     assert.equal(state.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].isReloading, false);
     assert.equal(state.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].activeWeaponId ?? state.matchState.players[LOCAL_PLAYER_SLOT_INDEX].loadout.activeWeaponId, WEAPONS.AWP.id);
+  }],
+
+  ['switches primary secondary and knife slots without losing purchased loadout', () => {
+    let state = createOfflineMatch({ localPlayerName: 'Switcher' });
+    state = buyOfflineWeapon(state, WEAPONS.AWP.id).state;
+    state = buyOfflineWeapon(state, WEAPONS.USP.id).state;
+
+    const primary = switchOfflineWeaponSlot(state, 'primary');
+    assert.equal(primary.ok, true);
+    assert.equal(primary.state.matchState.players[LOCAL_PLAYER_SLOT_INDEX].loadout.primaryWeaponId, WEAPONS.AWP.id);
+    assert.equal(primary.state.matchState.players[LOCAL_PLAYER_SLOT_INDEX].loadout.secondaryWeaponId, WEAPONS.USP.id);
+    assert.equal(primary.state.matchState.players[LOCAL_PLAYER_SLOT_INDEX].loadout.activeWeaponId, WEAPONS.AWP.id);
+    assert.equal(primary.state.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].activeWeaponId, WEAPONS.AWP.id);
+    assert.equal(primary.state.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].weaponId, WEAPONS.AWP.id);
+
+    const secondary = switchOfflineWeaponSlot(primary.state, 'secondary');
+    assert.equal(secondary.ok, true);
+    assert.equal(secondary.state.matchState.players[LOCAL_PLAYER_SLOT_INDEX].loadout.primaryWeaponId, WEAPONS.AWP.id);
+    assert.equal(secondary.state.matchState.players[LOCAL_PLAYER_SLOT_INDEX].loadout.secondaryWeaponId, WEAPONS.USP.id);
+    assert.equal(secondary.state.matchState.players[LOCAL_PLAYER_SLOT_INDEX].loadout.activeWeaponId, WEAPONS.USP.id);
+
+    const knife = switchOfflineWeaponSlot(secondary.state, 'knife');
+    assert.equal(knife.ok, true);
+    assert.equal(knife.state.matchState.players[LOCAL_PLAYER_SLOT_INDEX].loadout.activeWeaponId, WEAPONS.KNIFE.id);
+    assert.equal(knife.state.matchState.players[LOCAL_PLAYER_SLOT_INDEX].loadout.primaryWeaponId, WEAPONS.AWP.id);
+    assert.equal(knife.state.matchState.players[LOCAL_PLAYER_SLOT_INDEX].loadout.secondaryWeaponId, WEAPONS.USP.id);
+  }],
+
+  ['reloads active local weapon and HUD follows live ammo state', () => {
+    let state = createOfflineMatch({ localPlayerName: 'Reloader' });
+    const spentState = Object.freeze({ ...state.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX], ammoInMagazine: 12 });
+    state = Object.freeze({
+      ...state,
+      weaponStatesBySlotIndex: Object.freeze({ ...state.weaponStatesBySlotIndex, [LOCAL_PLAYER_SLOT_INDEX]: spentState }),
+    });
+
+    const reload = reloadOfflineWeapon(state);
+    assert.equal(reload.ok, true);
+    assert.equal(reload.state.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].isReloading, true);
+    let hud = deriveOfflineMatchHud(reload.state);
+    assert.equal(hud.localPlayer.ammo.clip, 12);
+    assert.equal(hud.localPlayer.ammo.isReloading, true);
+
+    const completed = advanceOfflineMatchTick(Object.freeze({ ...reload.state, tick: 200, nowMs: reload.state.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].reloadCompleteAtMs }));
+    hud = deriveOfflineMatchHud(completed);
+    assert.equal(completed.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].isReloading, false);
+    assert.equal(hud.localPlayer.ammo.clip, WEAPONS.AK47.ammo.magazine);
+    assert.equal(hud.localPlayer.ammo.reserve, WEAPONS.AK47.ammo.reserveMax - (WEAPONS.AK47.ammo.magazine - 12));
+  }],
+
+  ['completes a reload on an idle grounded tick without local input', () => {
+    let state = createOfflineMatch({ localPlayerName: 'IdleReload' });
+    const spentState = Object.freeze({ ...state.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX], ammoInMagazine: 11 });
+    state = Object.freeze({
+      ...state,
+      weaponStatesBySlotIndex: Object.freeze({ ...state.weaponStatesBySlotIndex, [LOCAL_PLAYER_SLOT_INDEX]: spentState }),
+    });
+
+    const reload = reloadOfflineWeapon(state);
+    assert.equal(reload.ok, true);
+    const completed = advanceOfflineMatchTick(Object.freeze({
+      ...reload.state,
+      tick: 301,
+      nowMs: reload.state.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].reloadCompleteAtMs,
+    }));
+    const hud = deriveOfflineMatchHud(completed);
+
+    assert.equal(completed.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].isReloading, false);
+    assert.equal(completed.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].ammoInMagazine, WEAPONS.AK47.ammo.magazine);
+    assert.equal(completed.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].reserveAmmo, WEAPONS.AK47.ammo.reserveMax - (WEAPONS.AK47.ammo.magazine - 11));
+    assert.equal(hud.localPlayer.ammo.clip, WEAPONS.AK47.ammo.magazine);
+    assert.equal(hud.localPlayer.ammo.reserve, WEAPONS.AK47.ammo.reserveMax - (WEAPONS.AK47.ammo.magazine - 11));
+    assert.equal(hud.localPlayer.ammo.isReloading, false);
+  }],
+
+  ['starts reload from browser-like R local input path and completes after delay', () => {
+    let state = createOfflineMatch({ localPlayerName: 'BrowserReloader' });
+    state = advanceOfflineMatchTick(state, { localInput: { fire: true, seed: 91 } });
+    assert.equal(state.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].ammoInMagazine, WEAPONS.AK47.ammo.magazine - 1);
+
+    const reloading = advanceOfflineMatchTick(state, { localInput: { reload: true } });
+    let hud = deriveOfflineMatchHud(reloading);
+
+    assert.equal(reloading.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].isReloading, true);
+    assert.equal(hud.localPlayer.ammo.isReloading, true);
+    assert.equal(hud.localPlayer.ammo.clip, WEAPONS.AK47.ammo.magazine - 1);
+
+    const completed = advanceOfflineMatchTick(Object.freeze({
+      ...reloading,
+      tick: 500,
+      nowMs: reloading.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].reloadCompleteAtMs,
+    }));
+    hud = deriveOfflineMatchHud(completed);
+
+    assert.equal(completed.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].isReloading, false);
+    assert.equal(hud.localPlayer.ammo.clip, WEAPONS.AK47.ammo.magazine);
+    assert.equal(hud.localPlayer.ammo.reserve, WEAPONS.AK47.ammo.reserveMax - 1);
+  }],
+
+  ['local firing can kill an aimed bot and update live kill feedback state', () => {
+    let state = clearInitialSpawnProtection(createOfflineMatch({ localPlayerName: 'Killer' }));
+    state = Object.freeze({
+      ...state,
+      controllersBySlotIndex: Object.freeze({
+        ...state.controllersBySlotIndex,
+        [LOCAL_PLAYER_SLOT_INDEX]: Object.freeze({ ...state.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX], position: Object.freeze({ x: 0, y: 0, z: 0 }), velocity: Object.freeze({ x: 0, y: 0, z: 0 }), view: Object.freeze({ yaw: 0, pitch: 0 }) }),
+        1: Object.freeze({ ...state.controllersBySlotIndex[1], position: Object.freeze({ x: 0, y: 0, z: -12 }), radius: 1.25 }),
+      }),
+      weaponStatesBySlotIndex: Object.freeze({
+        ...state.weaponStatesBySlotIndex,
+        [LOCAL_PLAYER_SLOT_INDEX]: createWeaponState(WEAPONS.AWP.id),
+      }),
+      matchState: Object.freeze({
+        ...state.matchState,
+        players: Object.freeze(state.matchState.players.map((player, index) => index === LOCAL_PLAYER_SLOT_INDEX
+          ? Object.freeze({ ...player, loadout: Object.freeze({ ...player.loadout, primaryWeaponId: WEAPONS.AWP.id, activeWeaponId: WEAPONS.AWP.id }), spawnProtectionUntilMs: 0 })
+          : Object.freeze({ ...player, lifeState: index === 1 ? PLAYER_LIFE_STATES.ALIVE : PLAYER_LIFE_STATES.RESPAWNING, health: index === 1 ? 20 : player.health, armor: index === 1 ? 0 : player.armor, spawnProtectionUntilMs: 0 }))),
+      }),
+    });
+
+    const fired = advanceOfflineMatchTick(state, { localInput: { fire: true, seed: 3 } });
+    assert.equal(fired.lastLocalShot !== null, true);
+    assert.equal(fired.lastLocalShot.hit.targetId, '1');
+    assert.equal(fired.matchState.players[LOCAL_PLAYER_SLOT_INDEX].score.kills, 1);
+    assert.equal(fired.matchState.players[1].lifeState, PLAYER_LIFE_STATES.RESPAWNING);
+    assert.equal(fired.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].ammoInMagazine, WEAPONS.AWP.ammo.magazine - 1);
   }],
 
   ['runs three deterministic T34 two-minute offline QA passes with active bots and local respawns', () => {

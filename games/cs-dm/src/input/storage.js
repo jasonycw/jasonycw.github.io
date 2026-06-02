@@ -1,5 +1,6 @@
 import { INPUT_ACTIONS } from './actions.js';
 import { createDefaultBindingMap } from './bindings.js';
+import { DEFAULT_MOUSE_SETTINGS, normalizeMouseSettings } from './settings.js';
 
 export const INPUT_STORAGE_KEY = 'cs-dm.input-settings.v1';
 export const INPUT_STORAGE_SCHEMA_VERSION = 1;
@@ -38,6 +39,7 @@ const createDefaultInputSettings = () => ({
   version: INPUT_STORAGE_SCHEMA_VERSION,
   playerName: '',
   bindings: createDefaultBindingMap(),
+  mouse: { ...DEFAULT_MOUSE_SETTINGS },
 });
 
 const safeGetItem = (storage, key) => {
@@ -77,6 +79,7 @@ const parseInputSettings = (rawValue) => {
         version: INPUT_STORAGE_SCHEMA_VERSION,
         playerName: normalizePlayerName(parsed.playerName),
         bindings: normalizeBindings(parsed.bindings),
+        mouse: normalizeMouseSettings(parsed.mouse),
       },
       warning: null,
     };
@@ -100,6 +103,7 @@ export const writeInputSettings = (storage = getDefaultStorage(), nextSettings =
     version: INPUT_STORAGE_SCHEMA_VERSION,
     playerName: normalizePlayerName(nextSettings.playerName),
     bindings: normalizeBindings(nextSettings.bindings),
+    mouse: normalizeMouseSettings(nextSettings.mouse),
   }),
 );
 
@@ -136,5 +140,23 @@ export const writeStoredKeybindings = (storage = getDefaultStorage(), bindings =
   return writeInputSettings(storage, {
     ...value,
     bindings,
+  });
+};
+
+export const readStoredMouseSettings = (storage = getDefaultStorage()) => {
+  const { value, warning } = readInputSettings(storage);
+
+  return {
+    value: value.mouse,
+    warning,
+  };
+};
+
+export const writeStoredMouseSettings = (storage = getDefaultStorage(), mouse = DEFAULT_MOUSE_SETTINGS) => {
+  const { value } = readInputSettings(storage);
+
+  return writeInputSettings(storage, {
+    ...value,
+    mouse,
   });
 };

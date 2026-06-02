@@ -19,6 +19,7 @@ import {
   MAP_WAYPOINTS,
   getSpawnCollisionOverlaps,
 } from './index.js';
+import { buildMapRenderGeometry } from '../render/mapGeometry.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '..', '..', '..', '..');
@@ -29,17 +30,23 @@ const requiredCallouts = [
   'CT Spawn',
   'Mid',
   'Mid Doors',
+  'Xbox',
   'Long A',
+  'Long A Doors',
   'Catwalk/Short A',
   'Upper Tunnels',
   'Lower Tunnels',
+  'B Tunnels',
   'A Site',
   'B Site',
+  'B Doors',
   'Window',
   'A Site boxes',
 ];
 
 const requiredTourNames = ['Mid', 'Long A', 'Tunnels', 'A Site', 'B Site'];
+
+const waypointById = (id) => MAP_WAYPOINTS.find((waypoint) => waypoint.id === id);
 
 const requiredVisualRoles = ['crates', 'doors', 'ramps', 'tunnels', 'siteMarkings'];
 
@@ -71,9 +78,18 @@ const tests = [
   ['links route anchors through Dust2-style lanes', () => {
     assert.equal(MAP_ROUTE_GRAPH.anchors.length, MAP_WAYPOINTS.length);
     assert.equal(MAP_ROUTE_GRAPH.debugTourTargets, MAP_DEBUG_TOUR_TARGETS);
-    const midDoors = MAP_WAYPOINTS.find((waypoint) => waypoint.id === 'wp-mid-doors');
-    assert.equal(midDoors.links.includes('wp-long-a'), true);
+    const midDoors = waypointById('wp-mid-doors');
+    const xbox = waypointById('wp-xbox');
+    const upperTunnels = waypointById('wp-upper-tunnels');
+    const bSite = waypointById('wp-b-site');
+    const ctSpawn = waypointById('wp-ct-spawn');
+
+    assert.equal(midDoors.links.includes('wp-long-a-doors'), true);
     assert.equal(midDoors.links.includes('wp-window'), true);
+    assert.equal(xbox.links.includes('wp-short-a'), true);
+    assert.equal(upperTunnels.links.includes('wp-b-tunnels'), true);
+    assert.equal(bSite.links.includes('wp-b-doors'), true);
+    assert.equal(ctSpawn.links.includes('wp-a-site-boxes'), true);
   }],
 
   ['describes original visual style materials for readable landmarks', () => {
@@ -91,6 +107,15 @@ const tests = [
     for (const role of requiredVisualRoles) {
       assert.equal(primitiveRoles.has(role), true, `${role} should be used by map geometry`);
     }
+  }],
+
+  ['keeps non-boundary collision volumes represented by visible render blockers', () => {
+    const renderGeometry = buildMapRenderGeometry({ collisionVolumes: MAP_COLLISION_VOLUMES, geometryPrimitives: MAP_GEOMETRY_PRIMITIVES });
+    const missingVisibleBlockers = MAP_COLLISION_VOLUMES
+      .slice(4)
+      .filter((volume) => !renderGeometry.blockers.some((blocker) => blocker.collisionVolume === volume && blocker.mapCenter === volume.center));
+
+    assert.deepEqual(missingVisibleBlockers, []);
   }],
 
   ['registers visual landmark debug tour targets', () => {

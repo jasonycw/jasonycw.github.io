@@ -20,10 +20,12 @@ export {
   MATCH_OVERLAY_STATES,
   OFFLINE_MATCH_PHASE,
   OFFLINE_TICK_RATE,
+  reloadOfflineWeapon,
   runOfflineSmokeSimulation,
   summarizeOfflineMatch,
   summarizeOfflineMenuConsistency,
   summarizeOfflinePerformance,
+  switchOfflineWeaponSlot,
 } from './offlineMatch.js';
 
 export {

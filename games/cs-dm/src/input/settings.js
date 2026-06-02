@@ -23,6 +23,56 @@ const BINDING_LABEL_OVERRIDES = Object.freeze({
   ArrowRight: 'Right',
 });
 
+
+export const MOUSE_SENSITIVITY_RANGE = Object.freeze({
+  min: 0.25,
+  max: 3,
+  step: 0.05,
+});
+
+export const DEFAULT_MOUSE_SETTINGS = Object.freeze({
+  sensitivity: 1,
+  invertY: true,
+});
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+const roundToStepPrecision = (value) => Number(value.toFixed(2));
+
+export const normalizeMouseSensitivity = (sensitivity = DEFAULT_MOUSE_SETTINGS.sensitivity) => {
+  const numericSensitivity = Number(sensitivity);
+
+  if (!Number.isFinite(numericSensitivity)) {
+    return DEFAULT_MOUSE_SETTINGS.sensitivity;
+  }
+
+  return roundToStepPrecision(clamp(numericSensitivity, MOUSE_SENSITIVITY_RANGE.min, MOUSE_SENSITIVITY_RANGE.max));
+};
+
+export const normalizeMouseSettings = (settings = DEFAULT_MOUSE_SETTINGS) => {
+  if (settings === null || typeof settings !== 'object' || Array.isArray(settings)) {
+    return { ...DEFAULT_MOUSE_SETTINGS };
+  }
+
+  return {
+    sensitivity: normalizeMouseSensitivity(settings.sensitivity),
+    invertY: typeof settings.invertY === 'boolean' ? settings.invertY : DEFAULT_MOUSE_SETTINGS.invertY,
+  };
+};
+
+export const getMouseSensitivityPercent = (settings = DEFAULT_MOUSE_SETTINGS) => `${Math.round(normalizeMouseSettings(settings).sensitivity * 100)}%`;
+
+export const getConfiguredMouseLookDelta = (lookDelta = Object.freeze({ yawDelta: 0, pitchDelta: 0 }), settings = DEFAULT_MOUSE_SETTINGS) => {
+  const mouseSettings = normalizeMouseSettings(settings);
+  const yawDelta = Number(lookDelta.yawDelta) || 0;
+  const pitchDelta = Number(lookDelta.pitchDelta) || 0;
+
+  return Object.freeze({
+    yawDelta: -yawDelta * mouseSettings.sensitivity,
+    pitchDelta: pitchDelta * mouseSettings.sensitivity * (mouseSettings.invertY ? -1 : 1),
+  });
+};
+
 export const getBindingLabel = (code) => {
   if (typeof code !== 'string' || code.length === 0) {
     return 'Unbound';

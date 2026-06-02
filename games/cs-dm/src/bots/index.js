@@ -9,7 +9,7 @@ import {
   WEAPONS,
 } from '../config/index.js';
 import { applyCombatShot, advanceRespawnTimers } from '../gameplay/combat.js';
-import { MAP_LANDMARKS, MAP_ROUTE_GRAPH, MAP_SPAWN_POINTS, MAP_WAYPOINTS } from '../map/index.js';
+import { MAP_COLLISION_VOLUMES, MAP_LANDMARKS, MAP_ROUTE_GRAPH, MAP_SPAWN_POINTS, MAP_WAYPOINTS } from '../map/index.js';
 import { createPlayerControllerState, PLAYER_MOVEMENT_DEFAULTS, simulatePlayerMovementStep } from '../player/index.js';
 import { completeReload, createWeaponState, getWeaponById, startReload } from '../weapons/index.js';
 
@@ -214,7 +214,7 @@ export function getDust2TunnelRouteToBSite() {
 }
 
 export function isTunnelWaypoint(routeStep) {
-  return routeStep.calloutId === MAP_LANDMARKS.UPPER_TUNNELS.id || routeStep.calloutId === MAP_LANDMARKS.LOWER_TUNNELS.id;
+  return routeStep.calloutId === MAP_LANDMARKS.UPPER_TUNNELS.id || routeStep.calloutId === MAP_LANDMARKS.LOWER_TUNNELS.id || routeStep.calloutId === MAP_LANDMARKS.B_TUNNELS.id;
 }
 
 export function summarizeBotSlots(players) {
@@ -383,7 +383,7 @@ const chooseUnstuckRoute = (bot, slotIndex, tick) => {
   });
 };
 
-const advanceBotMovement = ({ bot, controller, slotIndex, tick, activeWeaponId }) => {
+const advanceBotMovement = ({ bot, controller, slotIndex, tick, activeWeaponId, collisionVolumes = undefined }) => {
   const plannedBot = getBotPlan(bot, slotIndex, tick);
   const targetPosition = getRouteTargetPosition(plannedBot);
   const distanceToTarget = distance2d(controller.position, targetPosition);
@@ -402,11 +402,12 @@ const advanceBotMovement = ({ bot, controller, slotIndex, tick, activeWeaponId }
 
   const nextTargetPosition = getRouteTargetPosition(nextBot);
   const moveDirection = normalize2d({ x: nextTargetPosition.x - controller.position.x, z: nextTargetPosition.z - controller.position.z });
-  const yaw = Math.atan2(moveDirection.x, moveDirection.z);
+  const yaw = Math.atan2(-moveDirection.x, -moveDirection.z);
   const movedController = simulatePlayerMovementStep(controller, {
     buttons: ['forward'],
     look: { yawDelta: (yaw - controller.view.yaw) / PLAYER_MOVEMENT_DEFAULTS.mouseSensitivity, pitchDelta: 0 },
     activeWeaponId,
+    ...(collisionVolumes ? { collisionVolumes } : {}),
   });
   const movedDistance = distance2d(controller.position, movedController.position);
   const blockedTicks = movedController.movement.blocked || movedDistance < 0.005 ? (nextBot.movement?.blockedTicks ?? 0) + 1 : 0;
@@ -490,7 +491,7 @@ const advanceBotCombat = ({ state, slotIndex, bot, nowMs, tick, blockers }) => {
   return Object.freeze({ matchState, weaponState, bot: nextBot, metrics });
 };
 
-export function advanceBotAiTick(state, { blockers = [] } = {}) {
+export function advanceBotAiTick(state, { blockers = MAP_COLLISION_VOLUMES } = {}) {
   const tick = state.tick + 1;
   const nowMs = Math.round(tick * BOT_TICK_MS);
   let previousPlayers = state.matchState.players;
@@ -525,7 +526,7 @@ export function advanceBotAiTick(state, { blockers = [] } = {}) {
     }
 
     const controller = controllersBySlotIndex[player.slotIndex] ?? createPlayerControllerState({ activeWeaponId: player.loadout.activeWeaponId });
-    const movementResult = advanceBotMovement({ bot: player.bot, controller, slotIndex: player.slotIndex, tick, activeWeaponId: player.loadout.activeWeaponId });
+    const movementResult = advanceBotMovement({ bot: player.bot, controller, slotIndex: player.slotIndex, tick, activeWeaponId: player.loadout.activeWeaponId, collisionVolumes: blockers });
     controllersBySlotIndex[player.slotIndex] = movementResult.controller;
     metrics = addMetric(metrics, 'movementDistance', movementResult.movedDistance);
     if (movementResult.unstuck) metrics = addMetric(metrics, 'unstuckEvents');
@@ -555,7 +556,7 @@ export function advanceBotAiTick(state, { blockers = [] } = {}) {
   });
 }
 
-export function runBotAiSimulation(initialState, { seconds = 60, blockers = [] } = {}) {
+export function runBotAiSimulation(initialState, { seconds = 60, blockers = MAP_COLLISION_VOLUMES } = {}) {
   const totalTicks = Math.round(seconds * BOT_TICK_RATE);
   let state = initialState;
   for (let index = 0; index < totalTicks; index += 1) {

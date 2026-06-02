@@ -6,10 +6,11 @@ import {
   SLOT_TYPES,
   WEAPONS,
 } from '../config/index.js';
+import { MAP_COLLISION_VOLUMES } from '../map/index.js';
 import { deriveWeaponSwitchMetadata } from '../render/weaponModels.js';
 
 const DEFAULT_SESSION_CLOCK = Object.freeze({ tick: 0, phase: 'menu' });
-const DEFAULT_RADAR = Object.freeze({ kind: 'placeholder', blips: Object.freeze([]) });
+const DEFAULT_RADAR_BOUNDS = Object.freeze({ minX: 0, maxX: 100, minZ: 0, maxZ: 100 });
 const DEFAULT_LATENCY = Object.freeze({ ms: null });
 
 const safeInteger = (value, fallback = 0) => Number.isInteger(value) ? value : fallback;
@@ -33,14 +34,17 @@ const normalizeScore = (score = {}) => Object.freeze({
   deaths: safeInteger(score.deaths),
 });
 
-const deriveAmmo = (loadout) => {
+const deriveAmmo = (loadout, weaponState = null) => {
   const weapon = resolveWeapon(loadout.activeWeaponId);
+  const liveState = weaponState?.weaponId === weapon.id ? weaponState : null;
 
   return Object.freeze({
     weaponId: weapon.id,
-    clip: weapon.ammo.magazine,
-    reserve: weapon.ammo.reserveMax,
+    clip: liveState ? safeInteger(liveState.ammoInMagazine) : weapon.ammo.magazine,
+    reserve: liveState ? safeInteger(liveState.reserveAmmo) : weapon.ammo.reserveMax,
     ammoType: weapon.ammo.type,
+    isReloading: Boolean(liveState?.isReloading),
+    reloadCompleteAtMs: safeInteger(liveState?.reloadCompleteAtMs),
   });
 };
 
@@ -55,6 +59,7 @@ const deriveActiveWeapon = (loadout) => {
       label: weapon.name,
       weaponId: weapon.id,
     }),
+    weaponId: weapon.id,
   });
 };
 
@@ -101,7 +106,74 @@ export const compareFfaScoreboardRows = (left, right) => {
   return left.slotIndex - right.slotIndex;
 };
 
-export const deriveHudPlayer = (player, slotIndex = 0) => {
+const deriveRadarBounds = (collisionVolumes = MAP_COLLISION_VOLUMES) => {
+  const edges = collisionVolumes.flatMap((volume) => [
+    Object.freeze({ x: volume.center.x - volume.size.width / 2, z: volume.center.z - volume.size.depth / 2 }),
+    Object.freeze({ x: volume.center.x + volume.size.width / 2, z: volume.center.z + volume.size.depth / 2 }),
+  ]);
+
+  if (edges.length === 0) {
+    return DEFAULT_RADAR_BOUNDS;
+  }
+
+  return Object.freeze({
+    minX: Math.min(...edges.map((edge) => edge.x)),
+    maxX: Math.max(...edges.map((edge) => edge.x)),
+    minZ: Math.min(...edges.map((edge) => edge.z)),
+    maxZ: Math.max(...edges.map((edge) => edge.z)),
+  });
+};
+
+const clampPercent = (value) => Math.min(100, Math.max(0, value));
+
+const normalizeRadarPoint = (position, bounds, localPosition = null) => {
+  const width = Math.max(1, bounds.maxX - bounds.minX);
+  const depth = Math.max(1, bounds.maxZ - bounds.minZ);
+
+  if (localPosition) {
+    return Object.freeze({
+      x: Number(clampPercent(50 + ((position.x - localPosition.x) / width) * 100).toFixed(3)),
+      y: Number(clampPercent(50 + ((position.z - localPosition.z) / depth) * 100).toFixed(3)),
+    });
+  }
+
+  return Object.freeze({
+    x: Number((((position.x - bounds.minX) / width) * 100).toFixed(3)),
+    y: Number((((position.z - bounds.minZ) / depth) * 100).toFixed(3)),
+  });
+};
+
+const deriveRadarBlocks = (collisionVolumes, bounds, localPosition = null) => Object.freeze(collisionVolumes.map((volume, index) => {
+  const point = normalizeRadarPoint({ x: volume.center.x - volume.size.width / 2, z: volume.center.z - volume.size.depth / 2 }, bounds, localPosition);
+  const width = Math.max(0.5, Number(((volume.size.width / Math.max(1, bounds.maxX - bounds.minX)) * 100).toFixed(3)));
+  const height = Math.max(0.5, Number(((volume.size.depth / Math.max(1, bounds.maxZ - bounds.minZ)) * 100).toFixed(3)));
+  return Object.freeze({ id: `radar-block-${index}`, x: point.x, y: point.y, width, height });
+}));
+
+export const deriveRadarData = ({ players = [], controllersBySlotIndex = {}, localSlotIndex = 0, collisionVolumes = MAP_COLLISION_VOLUMES } = {}) => {
+  const bounds = deriveRadarBounds(collisionVolumes);
+  const localController = controllersBySlotIndex[localSlotIndex];
+  const localPosition = localController?.position ?? null;
+
+  return Object.freeze({
+    kind: 'player-centered-radar',
+    bounds,
+    blocks: deriveRadarBlocks(collisionVolumes, bounds, localPosition),
+    localView: Object.freeze({ yaw: localController?.view?.yaw ?? 0 }),
+    blips: Object.freeze(players
+      .filter((player) => player.lifeState === PLAYER_LIFE_STATES.ALIVE && controllersBySlotIndex[player.slotIndex]?.position)
+      .map((player) => Object.freeze({
+        slotIndex: safeInteger(player.slotIndex),
+        kind: player.slotIndex === localSlotIndex ? 'local' : normalizeSlotType(player.slotType),
+        faction: player.faction ?? FACTIONS.COUNTER_TERRORISTS,
+        point: player.slotIndex === localSlotIndex && localPosition
+          ? Object.freeze({ x: 50, y: 50 })
+          : normalizeRadarPoint(controllersBySlotIndex[player.slotIndex].position, bounds, localPosition),
+      }))),
+  });
+};
+
+export const deriveHudPlayer = (player, slotIndex = 0, { weaponState = null } = {}) => {
   const source = player ?? createFallbackPlayer(slotIndex);
   const lifeState = normalizeLifeState(source.lifeState);
   const loadout = normalizeLoadout(source.loadout);
@@ -118,7 +190,7 @@ export const deriveHudPlayer = (player, slotIndex = 0) => {
     health: isAlive ? safeInteger(source.health, 100) : 0,
     armor: isAlive ? safeInteger(source.armor, 0) : 0,
     loadout,
-    ammo: deriveAmmo(loadout),
+    ammo: deriveAmmo(loadout, weaponState),
     activeWeapon: deriveActiveWeapon(loadout),
     score,
     latency: DEFAULT_LATENCY,
@@ -131,7 +203,7 @@ export const deriveScoreboardRows = (players = []) => Object.freeze(
     .sort(compareFfaScoreboardRows),
 );
 
-export const deriveHudData = (matchState = {}, { localSlotIndex = 0 } = {}) => {
+export const deriveHudData = (matchState = {}, { localSlotIndex = 0, controllersBySlotIndex = {}, weaponStatesBySlotIndex = {} } = {}) => {
   const players = Array.isArray(matchState.players) ? matchState.players : [];
   const paddedPlayers = Array.from({ length: MAX_PLAYER_SLOTS }, (_, slotIndex) => players[slotIndex] ?? createFallbackPlayer(slotIndex));
 
@@ -140,8 +212,8 @@ export const deriveHudData = (matchState = {}, { localSlotIndex = 0 } = {}) => {
       tick: safeInteger(matchState.tick),
       phase: matchState.phase ?? DEFAULT_SESSION_CLOCK.phase,
     }),
-    radar: DEFAULT_RADAR,
-    localPlayer: deriveHudPlayer(paddedPlayers[localSlotIndex] ?? createFallbackPlayer(localSlotIndex), localSlotIndex),
+    radar: deriveRadarData({ players: paddedPlayers, controllersBySlotIndex, localSlotIndex }),
+    localPlayer: deriveHudPlayer(paddedPlayers[localSlotIndex] ?? createFallbackPlayer(localSlotIndex), localSlotIndex, { weaponState: weaponStatesBySlotIndex[localSlotIndex] }),
     scoreboard: deriveScoreboardRows(paddedPlayers),
   });
 };

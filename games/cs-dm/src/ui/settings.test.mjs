@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { INPUT_STORAGE_KEY, InputAction, createDefaultBindingMap, getLiveBindingCandidates, readInputSettings, readStoredKeybindings, readStoredPlayerName, writeStoredKeybindings } from '../input/index.js';
-import { getBindingChangeResult, getBindingLabel, hasBindingConflict, normalizeBindingMap } from './settings.js';
+import { DEFAULT_MOUSE_SETTINGS, MOUSE_SENSITIVITY_RANGE, getBindingChangeResult, getBindingLabel, getConfiguredMouseLookDelta, getMouseSensitivityPercent, hasBindingConflict, normalizeBindingMap, normalizeMouseSensitivity, normalizeMouseSettings } from './settings.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const evidenceRoot = path.resolve(here, '..', '..', '..', '..', '.sisyphus', 'evidence');
@@ -19,6 +19,29 @@ const tests = [
     assert.equal(getBindingLabel('KeyK'), 'K');
     assert.equal(getBindingLabel('Mouse0'), 'Mouse 1');
     assert.equal(getBindingLabel('Numpad7'), 'Num 7');
+  }],
+
+  ['exports mouse settings helpers through the UI settings module', () => {
+    assert.deepEqual(DEFAULT_MOUSE_SETTINGS, { sensitivity: 1, invertY: true });
+    assert.deepEqual(MOUSE_SENSITIVITY_RANGE, { min: 0.25, max: 3, step: 0.05 });
+    assert.equal(normalizeMouseSensitivity(99), 3);
+    assert.equal(normalizeMouseSensitivity(-1), 0.25);
+    assert.equal(normalizeMouseSettings({ sensitivity: '1.55', invertY: false }).sensitivity, 1.55);
+    assert.equal(normalizeMouseSettings({ sensitivity: '1.55', invertY: false }).invertY, false);
+    assert.equal(getMouseSensitivityPercent({ sensitivity: 1.5, invertY: true }), '150%');
+  }],
+
+  ['applies default inverted Y and sensitivity to mouse look deltas', () => {
+    assert.deepEqual(getConfiguredMouseLookDelta({ yawDelta: 8, pitchDelta: 12 }), { yawDelta: -8, pitchDelta: -12 });
+    assert.deepEqual(getConfiguredMouseLookDelta({ yawDelta: 8, pitchDelta: 12 }, { sensitivity: 0.5, invertY: false }), { yawDelta: -4, pitchDelta: 6 });
+
+    writeEvidence('task-mouse-settings-normalization.txt', [
+      'Mouse settings normalization evidence',
+      `defaultInvertY=${DEFAULT_MOUSE_SETTINGS.invertY}`,
+      `clampedMin=${normalizeMouseSensitivity(-1)}`,
+      `clampedMax=${normalizeMouseSensitivity(99)}`,
+      `halfSensitivityStandardY=${JSON.stringify(getConfiguredMouseLookDelta({ yawDelta: 8, pitchDelta: 12 }, { sensitivity: 0.5, invertY: false }))}`,
+    ]);
   }],
 
   ['persists updated bindings through the storage helpers', () => {

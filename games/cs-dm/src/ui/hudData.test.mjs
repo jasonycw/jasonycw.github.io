@@ -4,6 +4,7 @@ import {
   compareFfaScoreboardRows,
   deriveHudData,
   deriveHudPlayer,
+  deriveRadarData,
   deriveScoreboardRows,
 } from './hudData.js';
 import { PLAYER_LIFE_STATES, SLOT_TYPES } from '../config/index.js';
@@ -50,13 +51,70 @@ const tests = [
   }],
 
   ['derives complete HUD data with local player and session clock', () => {
-    const hud = deriveHudData(Object.freeze({ phase: 'running', tick: 144, players }), { localSlotIndex: 0 });
+    const hud = deriveHudData(Object.freeze({ phase: 'running', tick: 144, players }), {
+      localSlotIndex: 0,
+      controllersBySlotIndex: Object.freeze({
+        0: Object.freeze({ position: Object.freeze({ x: 12, y: 0, z: 88 }), view: Object.freeze({ yaw: 0.4 }) }),
+        1: Object.freeze({ position: Object.freeze({ x: 20, y: 0, z: 74 }), view: Object.freeze({ yaw: 0 }) }),
+      }),
+      weaponStatesBySlotIndex: Object.freeze({
+        0: Object.freeze({ weaponId: 'ak47', ammoInMagazine: 17, reserveAmmo: 64, isReloading: true, reloadCompleteAtMs: 4000 }),
+      }),
+    });
 
     assert.equal(hud.sessionClock.phase, 'running');
     assert.equal(hud.sessionClock.tick, 144);
-    assert.equal(hud.radar.kind, 'placeholder');
+    assert.equal(hud.radar.kind, 'player-centered-radar');
+    assert.equal(hud.radar.blocks.length > 0, true);
+    assert.equal(hud.radar.blips.length, 2);
+    assert.equal(hud.localPlayer.ammo.clip, 17);
+    assert.equal(hud.localPlayer.ammo.reserve, 64);
+    assert.equal(hud.localPlayer.ammo.isReloading, true);
     assert.equal(hud.localPlayer.name, 'Local');
     assert.equal(hud.scoreboard.length, 16);
+  }],
+
+  ['derives deterministic radar blocks and live blips from controller state', () => {
+    const radar = deriveRadarData({
+      players,
+      localSlotIndex: 0,
+      collisionVolumes: Object.freeze([
+        Object.freeze({ kind: 'box', center: Object.freeze({ x: 50, y: 0, z: 50 }), size: Object.freeze({ width: 100, height: 4, depth: 100 }) }),
+      ]),
+      controllersBySlotIndex: Object.freeze({
+        0: Object.freeze({ position: Object.freeze({ x: 0, y: 0, z: 0 }), view: Object.freeze({ yaw: 1 }) }),
+        2: Object.freeze({ position: Object.freeze({ x: 100, y: 0, z: 100 }), view: Object.freeze({ yaw: 0 }) }),
+      }),
+    });
+
+    assert.equal(radar.kind, 'player-centered-radar');
+    assert.deepEqual(radar.bounds, { minX: 0, maxX: 100, minZ: 0, maxZ: 100 });
+    assert.deepEqual(radar.blocks[0], { id: 'radar-block-0', x: 50, y: 50, width: 100, height: 100 });
+    assert.equal(radar.blips.length, 2);
+    assert.deepEqual(radar.blips[0].point, { x: 50, y: 50 });
+    assert.deepEqual(radar.blips[1].point, { x: 100, y: 100 });
+  }],
+
+  ['keeps the local radar blip centered while other players move relative to it', () => {
+    const radar = deriveRadarData({
+      players,
+      localSlotIndex: 0,
+      collisionVolumes: Object.freeze([
+        Object.freeze({ kind: 'box', center: Object.freeze({ x: 50, y: 0, z: 50 }), size: Object.freeze({ width: 100, height: 4, depth: 100 }) }),
+      ]),
+      controllersBySlotIndex: Object.freeze({
+        0: Object.freeze({ position: Object.freeze({ x: 40, y: 0, z: 40 }), view: Object.freeze({ yaw: 0 }) }),
+        1: Object.freeze({ position: Object.freeze({ x: 50, y: 0, z: 40 }), view: Object.freeze({ yaw: 0 }) }),
+        2: Object.freeze({ position: Object.freeze({ x: 40, y: 0, z: 30 }), view: Object.freeze({ yaw: 0 }) }),
+      }),
+    });
+    const localBlip = radar.blips.find((blip) => blip.kind === 'local');
+    const eastBlip = radar.blips.find((blip) => blip.slotIndex === 1);
+    const northBlip = radar.blips.find((blip) => blip.slotIndex === 2);
+
+    assert.deepEqual(localBlip.point, { x: 50, y: 50 });
+    assert.deepEqual(eastBlip.point, { x: 60, y: 50 });
+    assert.deepEqual(northBlip.point, { x: 50, y: 40 });
   }],
 
   ['keeps comparator stable on name ties', () => {
