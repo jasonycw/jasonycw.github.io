@@ -92,6 +92,7 @@ const run = async () => {
   await import(pathToFileURL(path.join(gameRoot, 'src', 'ui', 'hudData.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'ui', 'buyMenu.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'ui', 'settings.test.mjs')).href);
+  await import(pathToFileURL(path.join(gameRoot, 'src', 'input', 'storage.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'input', 'domGuards.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'map', 'map.test.mjs')).href);
   await import(pathToFileURL(path.join(gameRoot, 'src', 'bots', 'bots.test.mjs')).href);
@@ -126,6 +127,7 @@ const run = async () => {
   assertExists('games/cs-dm/src/ui/buyMenu.test.mjs');
   assertExists('games/cs-dm/src/ui/settings.js');
   assertExists('games/cs-dm/src/ui/settings.test.mjs');
+  assertExists('games/cs-dm/src/input/storage.test.mjs');
   assertExists('games/cs-dm/src/map/index.js');
   assertExists('games/cs-dm/src/map/map.test.mjs');
   assertExists('games/cs-dm/src/bots/index.js');
@@ -184,11 +186,16 @@ const run = async () => {
     'hud-weapon',
     'settings-menu',
     'binding-conflict',
+    'mouse-sensitivity',
+    'mouse-sensitivity-value',
+    'mouse-invert-y',
+    'mouse-status',
     'audio-mute-toggle',
     'audio-volume',
     'audio-status',
     'match-audio-toggle',
     'perf-summary',
+    'hud-radar',
   ];
   for (const selector of requiredSelectors) {
     assert.equal(indexHtml.includes(`class="${selector}`) || indexHtml.includes(`class='${selector}`) || indexHtml.includes(`id="${selector}`) || indexHtml.includes(`id='${selector}`), true, `index.html must include ${selector}`);
@@ -210,6 +217,34 @@ const run = async () => {
   }
 
   const mainJs = readText('games/cs-dm/src/main.js');
+  const stylesCss = readText('games/cs-dm/styles.css');
+  const hudDataJs = readText('games/cs-dm/src/ui/hudData.js');
+  const productionHudText = [
+    ['games/cs-dm/index.html', indexHtml],
+    ['games/cs-dm/styles.css', stylesCss],
+    ['games/cs-dm/src/main.js', mainJs],
+    ['games/cs-dm/src/ui/hudData.js', hudDataJs],
+  ];
+  const forbiddenFakeKillfeedText = [
+    'BOT SAND RAIDER',
+    'SAND RAIDER AK-47 HARBOR RANGER',
+    'VECTOR AK-47 MID BOT',
+    'CT GUARD M4A1 LONG BOT',
+    'HARBOR RANGER',
+    'CT GUARD',
+    'M4A1 LONG BOT',
+  ];
+  for (const [fileName, text] of productionHudText) {
+    assert.equal(text.includes('.match-hud::after'), false, `${fileName} must not hard-code a fake top-right HUD pseudo-element`);
+    const normalizedText = text.toUpperCase().replace(/\s+/g, ' ');
+    for (const fakeText of forbiddenFakeKillfeedText) {
+      assert.equal(normalizedText.includes(fakeText), false, `${fileName} must not ship fake top-right killfeed text: ${fakeText}`);
+    }
+  }
+  assert.equal(indexHtml.includes('id="hud-killfeed"'), true, 'HUD must expose an explicit killfeed element instead of CSS-generated fake rows');
+  assert.equal(indexHtml.includes('id="hud-killfeed"') && indexHtml.includes('hidden'), true, 'empty killfeed must be hidden until real match events render it');
+  assert.equal(stylesCss.includes('.match-hud__killfeed:empty'), true, 'empty killfeed CSS must remain hidden');
+
   const audioJs = readText('games/cs-dm/src/audio/index.js');
   const audioTest = readText('games/cs-dm/src/audio/audio.test.mjs');
   const buyMenuJs = readText('games/cs-dm/src/ui/buyMenu.js');
@@ -235,7 +270,7 @@ const run = async () => {
     'games/cs-dm/screenshots/p2p-ui.png',
   ];
   assert.equal(mainJs.includes("import { INPUT_BUTTONS, validatePlayerName } from './core/index.js';"), true, 'main.js must import the core validator and gameplay input buttons');
-  assert.equal(mainJs.includes("import { InputAction, createDefaultBindingMap, getLiveBindingCandidates, readStoredKeybindings, readStoredPlayerName, writeStoredKeybindings, writeStoredPlayerName } from './input/index.js';"), true, 'main.js must import input storage and binding helpers');
+  assert.equal(mainJs.includes("from './input/index.js';") && mainJs.includes('readStoredMouseSettings') && mainJs.includes('writeStoredMouseSettings') && mainJs.includes('getConfiguredMouseLookDelta'), true, 'main.js must import input storage, binding, and mouse helpers');
   assert.equal(mainJs.includes("import { createRendererShell } from './render/index.js';"), true, 'main.js must import the renderer shell');
   assert.equal(mainJs.includes("import { AudioEvent, createAudioController } from './audio/index.js';"), true, 'main.js must import audio controller helpers');
 
@@ -246,6 +281,9 @@ const run = async () => {
   assert.equal(mainJs.includes('AudioEvent.DEATH'), true, 'main.js must trigger death feedback');
   assert.equal(mainJs.includes('AudioEvent.RESPAWN'), true, 'main.js must trigger respawn feedback');
   assert.equal(mainJs.includes('AudioEvent.FOOTSTEP'), true, 'main.js must trigger footstep feedback');
+  assert.equal(mainJs.includes('gameCanvas.dataset.localY = String(localController.position.y);'), true, 'main.js must expose local Y for browser jump QA');
+  assert.equal(mainJs.includes('lastLocalShotRegistered = true;'), true, 'main.js must keep successful local firing observable for browser QA');
+  assert.equal(mainJs.includes("gameCanvas.addEventListener('click'") && mainJs.includes('suppressNextCanvasClick'), true, 'main.js must support browser click firing without double-consuming mousedown shots');
   assert.equal(mainJs.includes('buyMenuController.close({ playFeedback: false, restorePointerLock: false });'), true, 'startup openMenu must close buy menu without audio feedback or pointer-lock restore');
   assert.equal(mainJs.includes('options.playFeedback !== false'), true, 'buy menu close feedback must be gated by explicit options');
   assert.equal(mainJs.includes("offlineStartButton.addEventListener('click', openOfflineMatch);"), true, 'offline start button must route to openOfflineMatch');
@@ -256,6 +294,17 @@ const run = async () => {
   assert.equal(mainJs.includes('createBuyMenuController'), true, 'main.js must create the buy menu controller');
   assert.equal(mainJs.includes('getLiveBindingCandidates(currentBindings, InputAction.Buy)'), true, 'main.js must hook the configured buy key');
   assert.equal(mainJs.includes('getLiveBindingCandidates(currentBindings, InputAction.Settings)'), true, 'main.js must hook the configured settings key');
+  assert.equal(mainJs.includes("document.getElementById('mouse-sensitivity')"), true, 'main.js must bind the mouse sensitivity control');
+  assert.equal(mainJs.includes("document.getElementById('mouse-invert-y')"), true, 'main.js must bind the invert mouse Y control');
+  assert.equal(mainJs.includes('currentMouseSettings = storedMouseSettingsResult.value'), true, 'main.js must initialize mouse settings from storage');
+  assert.equal(mainJs.includes('getConfiguredMouseLookDelta({ yawDelta: event.movementX, pitchDelta: event.movementY }, currentMouseSettings)'), true, 'mousemove must use configured mouse look deltas');
+  assert.equal(mainJs.includes('writeStoredMouseSettings(undefined, currentMouseSettings)'), true, 'main.js must persist mouse settings changes');
+  assert.equal(mainJs.includes('currentMouseSettings = { ...DEFAULT_MOUSE_SETTINGS };'), true, 'reset defaults must restore mouse defaults');
+  assert.equal(mainJs.includes("gameCanvas.dataset.lastLocalShot = lastLocalShotRegistered ? 'true' : 'false';"), true, 'local firing feedback dataset must preserve successful shot state for browser QA');
+  assert.equal(mainJs.includes('switchOfflineWeaponSlot') && mainJs.includes("event.code === 'Digit1'") && mainJs.includes("event.code === 'Digit2'") && mainJs.includes("event.code === 'Digit3'"), true, 'main.js must wire live number-key weapon switching');
+  assert.equal(mainJs.includes('reloadOfflineWeapon') && mainJs.includes("event.code === 'KeyR'"), true, 'main.js must wire live R reload');
+  assert.equal(mainJs.includes('renderRadar(hud.radar)') && mainJs.includes('hud.localPlayer.ammo.clip'), true, 'main.js must render live radar and ammo state');
+  assert.equal(mainJs.includes('updateKillfeed(previousState, offlineMatchState)'), true, 'main.js must update killfeed from real match events');
   assert.equal(mainJs.includes('settingsCloseButton.addEventListener') && mainJs.includes('closeSettings();'), true, 'main.js must wire settings close behavior');
   assert.equal(buyMenuJs.includes('BUY_CATEGORY_METADATA'), true, 'buy menu must use category metadata');
   assert.equal(buyMenuJs.includes('WEAPON_LIST'), true, 'buy menu must use canonical weapon list');
@@ -270,6 +319,8 @@ const run = async () => {
   assert.equal(settingsTest.includes('task-20-rebind-persist.txt'), true, 'settings tests must write rebind persistence evidence');
   assert.equal(settingsTest.includes('task-20-binding-conflict.txt'), true, 'settings tests must write binding conflict evidence');
   assert.equal(settingsTest.includes('task-29-storage-recovery.txt'), true, 'settings tests must write T29 storage recovery evidence');
+  assert.equal(settingsJs.includes('getConfiguredMouseLookDelta'), true, 'settings ui export must expose mouse look helper');
+  assert.equal(settingsTest.includes('task-mouse-settings-normalization.txt'), true, 'settings tests must write mouse normalization evidence');
   assert.equal(audioJs.includes('GENERATED_AUDIO_PROVENANCE'), true, 'audio module must document generated sound provenance');
   assert.equal(audioJs.includes('silent-noop'), true, 'audio module must expose a silent fallback state');
   assert.equal(audioTest.includes('task-28-audio-unlock.txt'), true, 'audio tests must write unlock evidence');
@@ -283,6 +334,9 @@ const run = async () => {
   assert.equal(renderStateJs.includes('getSafeViewportSize'), true, 'renderer state must expose deterministic safe viewport sizing');
   assert.equal(renderStateJs.includes('createRendererFallbackState'), true, 'renderer state must expose deterministic WebGL fallback state');
   assert.equal(renderTest.includes('task-29-resize.txt'), true, 'render tests must write T29 resize evidence');
+  assert.equal(renderIndexJs.includes('buildWeaponLayerModel') && renderIndexJs.includes('activeViewModelWeaponId'), true, 'renderer must rebuild active viewmodels from weapon metadata');
+  assert.equal(hudDataJs.includes('deriveRadarData') && hudDataJs.includes('weaponStatesBySlotIndex'), true, 'HUD data must derive radar and live ammo from match state');
+  assert.equal(hudDataJs.includes("kind: 'placeholder'"), false, 'HUD radar must not be a placeholder');
   assert.equal(offlineMatchTest.includes('task-29-menu-death-respawn.txt'), true, 'offline match tests must write T29 menu/death/respawn evidence');
   assert.equal(offlineMatchTest.includes('task-34-offline-tuning.txt'), true, 'offline match tests must write T34 offline tuning evidence');
   assert.equal(offlineMatchTest.includes('task-34-spawn-validity.txt'), true, 'offline match tests must write T34 spawn validity evidence');
