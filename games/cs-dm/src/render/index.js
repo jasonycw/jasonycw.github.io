@@ -53,9 +53,6 @@ const createPartMesh = (THREE, part, materials) => {
     : new THREE.Mesh(new THREE.BoxGeometry(part.size.x, part.size.y, part.size.z), material);
   mesh.position.set(part.position.x, part.position.y, part.position.z);
   mesh.rotation.set(part.rotation.x, part.rotation.y, part.rotation.z);
-  if (part.shape === 'cylinder' && Math.abs(part.rotation.y) > 1) {
-    mesh.rotation.set(part.rotation.x, 0, Math.PI / 2 + part.rotation.z);
-  }
   mesh.name = part.id;
   return mesh;
 };
@@ -74,7 +71,16 @@ const createWeaponMaterialRegistry = (THREE) => Object.freeze({
   'perforated-black': new THREE.MeshStandardMaterial({ color: '#121611', metalness: 0.4, roughness: 0.62 }),
   'olive-canvas': new THREE.MeshStandardMaterial({ color: '#59603e', roughness: 0.9 }),
   'warning-matte-gray': new THREE.MeshStandardMaterial({ color: '#60605a', roughness: 0.82 }),
+  'sandstone-trim': new THREE.MeshStandardMaterial({ color: '#e0bc78', roughness: 0.94 }),
 });
+
+const createPartOutline = (THREE, part) => {
+  const outline = new THREE.Mesh(new THREE.BoxGeometry(part.size.x * 1.025, part.size.y * 1.025, part.size.z * 1.025), new THREE.MeshBasicMaterial({ color: '#050403', transparent: true, opacity: 0.28 }));
+  outline.position.set(part.position.x, part.position.y, part.position.z);
+  outline.rotation.set(part.rotation.x, part.rotation.y, part.rotation.z);
+  outline.name = `${part.id}-shadow-outline`;
+  return outline;
+};
 
 const buildViewModelGroup = (THREE, weaponId, materials) => {
   const descriptor = buildWeaponLayerModel(weaponId, WEAPON_MODEL_LAYERS.VIEWMODEL);
@@ -82,26 +88,29 @@ const buildViewModelGroup = (THREE, weaponId, materials) => {
   group.name = `viewmodel-${descriptor.weaponId}`;
   descriptor.parts.forEach((part) => {
     group.add(createPartMesh(THREE, part, materials));
+    if (part.shape === 'box' && part.id.includes('vm-')) {
+      group.add(createPartOutline(THREE, part));
+    }
   });
 
-  const gloveMaterial = new THREE.MeshStandardMaterial({ color: '#26241d', roughness: 0.86 });
-  const skinMaterial = new THREE.MeshStandardMaterial({ color: '#9b7557', roughness: 0.82 });
-  const leftForearm = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.18, 0.24), skinMaterial);
-  leftForearm.position.set(descriptor.hooks.hands.left.x, descriptor.hooks.hands.left.y - 0.16, descriptor.hooks.hands.left.z + 0.1);
+  const gloveMaterial = new THREE.MeshStandardMaterial({ color: '#1d1b15', roughness: 0.86 });
+  const skinMaterial = new THREE.MeshStandardMaterial({ color: '#8b6449', roughness: 0.82 });
+  const leftForearm = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.1, 0.16), skinMaterial);
+  leftForearm.position.set(descriptor.hooks.hands.left.x, descriptor.hooks.hands.left.y - 0.22, descriptor.hooks.hands.left.z + 0.18);
   leftForearm.rotation.z = -0.08;
-  const leftGlove = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.28), gloveMaterial);
+  const leftGlove = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.16), gloveMaterial);
   leftGlove.position.set(descriptor.hooks.hands.left.x, descriptor.hooks.hands.left.y, descriptor.hooks.hands.left.z);
-  const rightForearm = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.18, 0.22), skinMaterial);
-  rightForearm.position.set(descriptor.hooks.hands.right.x - 0.12, descriptor.hooks.hands.right.y - 0.18, descriptor.hooks.hands.right.z + 0.14);
+  const rightForearm = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.1, 0.16), skinMaterial);
+  rightForearm.position.set(descriptor.hooks.hands.right.x - 0.06, descriptor.hooks.hands.right.y - 0.24, descriptor.hooks.hands.right.z + 0.22);
   rightForearm.rotation.z = 0.28;
-  const rightGlove = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.22, 0.26), gloveMaterial);
+  const rightGlove = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.16), gloveMaterial);
   rightGlove.position.set(descriptor.hooks.hands.right.x, descriptor.hooks.hands.right.y, descriptor.hooks.hands.right.z);
   const muzzleFlash = new THREE.Mesh(
     new THREE.ConeGeometry(0.18 * descriptor.pose.firing.muzzleFlash.scale, 0.58 * descriptor.pose.firing.muzzleFlash.scale, 14),
     new THREE.MeshBasicMaterial({ color: '#ffd45d', transparent: true, opacity: 0 }),
   );
   muzzleFlash.name = 'muzzleFlash';
-  muzzleFlash.rotation.z = -Math.PI / 2;
+  muzzleFlash.rotation.x = -Math.PI / 2;
   muzzleFlash.position.set(descriptor.hooks.muzzle.x, descriptor.hooks.muzzle.y, descriptor.hooks.muzzle.z);
   group.add(muzzleFlash, leftForearm, leftGlove, rightForearm, rightGlove);
   group.traverse((child) => {
@@ -123,6 +132,21 @@ const createMapMaterialRegistry = (THREE) => Object.freeze(Object.fromEntries(Ob
   return [material.id, wallMaterial];
 })));
 
+const addMapAccentGeometry = (THREE, scene, descriptor, materials) => {
+  if (!['doorway', 'cover', 'site-marking', 'ledge', 'ramp'].includes(descriptor.kind)) return;
+
+  const trimMaterial = descriptor.kind === 'site-marking'
+    ? materials[MAP_MATERIALS.SITE_PAINT.id]
+    : new THREE.MeshStandardMaterial({ color: descriptor.visualRole === 'crates' ? '#3d2515' : '#f0cf8b', roughness: 0.88 });
+  const accentHeight = descriptor.kind === 'site-marking' ? 0.045 : Math.max(0.04, descriptor.size.y * 0.12);
+  const accentSize = descriptor.kind === 'cover'
+    ? { x: descriptor.size.x * 0.9, y: accentHeight, z: descriptor.size.z * 0.12 }
+    : { x: descriptor.size.x, y: accentHeight, z: Math.max(0.04, descriptor.size.z * 0.16) };
+  const accent = createBox(THREE, accentSize, { x: descriptor.position.x, y: descriptor.position.y + descriptor.size.y / 2 + accentHeight / 2, z: descriptor.position.z }, trimMaterial);
+  accent.name = `map-${descriptor.id}-accent`;
+  scene.add(accent);
+};
+
 const createMapMesh = (THREE, descriptor, materials) => {
   const material = materials[descriptor.materialId] ?? materials[MAP_MATERIALS.CONCRETE.id];
   const mesh = createBox(THREE, descriptor.size, descriptor.position, material);
@@ -135,19 +159,25 @@ const createMapMesh = (THREE, descriptor, materials) => {
   return mesh;
 };
 
-const createPlayerWithWeapon = (THREE, modelId, position, scale = 1) => {
+const buildWorldWeaponGroup = (THREE, weaponId, materials) => {
+  const descriptor = buildWeaponLayerModel(weaponId, WEAPON_MODEL_LAYERS.WORLD);
+  const weapon = new THREE.Group();
+  weapon.name = `world-weapon-${descriptor.weaponId}`;
+  descriptor.parts.forEach((part) => {
+    weapon.add(createPartMesh(THREE, part, materials));
+  });
+  weapon.scale.setScalar(0.62);
+  weapon.rotation.y = -Math.PI / 2;
+  weapon.position.set(0.42, 1.18, 0.42);
+  weapon.userData = Object.freeze({ weaponId: descriptor.weaponId, source: 'WEAPON_MODEL_LAYERS.WORLD' });
+  return weapon;
+};
+
+const createPlayerWithWeapon = (THREE, modelId, weaponId, position, scale = 1, weaponMaterials) => {
   const player = buildPlayerModel(THREE, modelId);
   player.position.set(position.x, position.y, position.z);
   player.scale.setScalar(scale);
-
-  const weaponMaterial = new THREE.MeshStandardMaterial({ color: '#141514', metalness: 0.25, roughness: 0.62 });
-  const weapon = new THREE.Group();
-  const body = createBox(THREE, { x: 0.62, y: 0.12, z: 0.16 }, { x: 0.46, y: 1.18, z: 0.38 }, weaponMaterial);
-  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.58, 10), weaponMaterial);
-  barrel.rotation.z = Math.PI / 2;
-  barrel.position.set(0.86, 1.2, 0.38);
-  weapon.add(body, barrel);
-  player.add(weapon);
+  player.add(buildWorldWeaponGroup(THREE, weaponId, weaponMaterials));
 
   return player;
 };
@@ -173,9 +203,9 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
   const camera = new THREE.PerspectiveCamera(68, 16 / 9, 0.1, 120);
   camera.position.set(0, 1.65, 7.5);
   const viewModelScene = new THREE.Scene();
-  const viewModelCamera = new THREE.OrthographicCamera(-1.6, 1.6, 0.9, -0.9, 0.01, 10);
-  viewModelCamera.position.set(0, 0, 2.5);
-  viewModelCamera.lookAt(0, 0, 0);
+  const viewModelCamera = new THREE.PerspectiveCamera(VIEWMODEL_CAMERA_ALIGNMENT.camera.fovDegrees, 16 / 9, 0.01, 10);
+  viewModelCamera.position.set(0, 0, 0);
+  viewModelCamera.lookAt(0, 0, -1);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   const viewModelRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -195,22 +225,39 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
   mount.replaceChildren(renderer.domElement, viewModelRenderer.domElement);
 
   const mapMaterials = createMapMaterialRegistry(THREE);
+  const weaponMaterials = createWeaponMaterialRegistry(THREE);
   const mapRenderGeometry = buildMapRenderGeometry({ collisionVolumes: MAP_COLLISION_VOLUMES, geometryPrimitives: MAP_GEOMETRY_PRIMITIVES });
   scene.add(createMapMesh(THREE, mapRenderGeometry.floor, mapMaterials));
   mapRenderGeometry.primitives.forEach((primitive) => {
     scene.add(createMapMesh(THREE, primitive, mapMaterials));
+    addMapAccentGeometry(THREE, scene, primitive, mapMaterials);
   });
   mapRenderGeometry.blockers.forEach((blocker) => {
     scene.add(createMapMesh(THREE, blocker, mapMaterials));
   });
 
-  const players = Array.from({ length: 15 }, (_, index) => createPlayerWithWeapon(THREE, index % 2 === 0 ? PLAYER_MODEL_IDS.T_RAIDER : PLAYER_MODEL_IDS.CT_RANGER, { x: -2.25 + (index % 5) * 1.25, y: 0, z: -5.7 - Math.floor(index / 5) * 2.2 }, 0.72));
+  const players = Array.from({ length: 15 }, (_, index) => createPlayerWithWeapon(
+    THREE,
+    index % 2 === 0 ? PLAYER_MODEL_IDS.T_RAIDER : PLAYER_MODEL_IDS.CT_RANGER,
+    index % 3 === 0 ? 'glock18' : 'ak47',
+    { x: -2.25 + (index % 5) * 1.25, y: 0, z: -5.7 - Math.floor(index / 5) * 2.2 },
+    0.9,
+    weaponMaterials,
+  ));
   players.forEach((player, index) => {
     player.rotation.y = index % 2 === 0 ? 0.08 : -0.12;
+    player.traverse((child) => {
+      if (child.material?.color && index % 2 === 0) {
+        child.material.emissive = new THREE.Color('#2a1208');
+        child.material.emissiveIntensity = 0.08;
+      } else if (child.material?.color) {
+        child.material.emissive = new THREE.Color('#061a24');
+        child.material.emissiveIntensity = 0.1;
+      }
+    });
     scene.add(player);
   });
 
-  const weaponMaterials = createWeaponMaterialRegistry(THREE);
   let viewModel = buildViewModelGroup(THREE, 'ak47', weaponMaterials);
   viewModelScene.add(viewModel);
   scene.add(camera);
@@ -256,9 +303,15 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
       const slot = matchState.matchState?.players?.[slotIndex];
       if (!controller || !slot) return;
       const mapped = mapToScenePosition(controller.position);
+      const feedback = matchState.visualFeedbackBySlotIndex?.[slotIndex];
+      const feedbackAgeMs = Number.isFinite(feedback?.recentDeathAtMs)
+        ? matchState.nowMs - feedback.recentDeathAtMs
+        : Number.isFinite(feedback?.recentDamageAtMs) ? matchState.nowMs - feedback.recentDamageAtMs : Number.POSITIVE_INFINITY;
+      const feedbackActive = feedbackAgeMs >= 0 && feedbackAgeMs < 220;
       player.position.set(mapped.x, mapped.y, mapped.z);
       player.rotation.y = controller.view?.yaw ?? player.rotation.y;
       player.visible = slot.lifeState === 'alive';
+      player.scale.setScalar(feedbackActive ? 1 : 0.9);
     });
 
     if (matchState.lastLocalShot) {
@@ -273,7 +326,9 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
   const onResize = () => {
     const { width, height } = getSafeViewportSize(mount);
     camera.aspect = width / height;
+    viewModelCamera.aspect = width / height;
     camera.updateProjectionMatrix();
+    viewModelCamera.updateProjectionMatrix();
     renderer.setSize(width, height, false);
     viewModelRenderer.setSize(width, height, false);
     return Object.freeze({ ok: true, width, height, aspect: camera.aspect });

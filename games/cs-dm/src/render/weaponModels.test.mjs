@@ -130,10 +130,16 @@ const tests = [
   ['viewmodel camera alignment keeps AK Glock and knife silhouettes in frustum', () => {
     const summaries = ['ak47', 'glock18', 'knife'].map((weaponId) => summarizeViewModelCameraVisibility(weaponId));
 
+    assert.deepEqual(summaries[0].alignment.coordinateContract, { screenRight: '+X', up: '+Y', forward: '-Z' });
     summaries.forEach((summary) => {
       assert.equal(summary.visiblePartCount >= 3, true, `${summary.weaponId} should have multiple visible parts`);
       assert.equal(summary.parts.some((entry) => entry.depth > summary.alignment.camera.near), true, `${summary.weaponId} should be in front of the near plane`);
+      const switchMetadata = deriveWeaponSwitchMetadata(summary.requestedWeaponId);
+      assert.equal(switchMetadata.viewmodel.hooks.muzzle.z < switchMetadata.pose.origin.z, true, `${summary.weaponId} muzzle should sit forward on -Z from the lower-right origin`);
+      assert.equal(switchMetadata.firing.kickOffset.z > 0, true, `${summary.weaponId} recoil should kick back toward the camera on +Z`);
     });
+    assert.equal(deriveWeaponSwitchMetadata('ak47').viewmodel.layer.parts.find((entry) => entry.id === 'vm-barrel').rotation.x > 1, true, 'AK barrel cylinder should be rotated to face -Z');
+    assert.equal(deriveWeaponSwitchMetadata('glock18').viewmodel.layer.parts.find((entry) => entry.id === 'vm-barrel').rotation.x > 1, true, 'Glock barrel cylinder should be rotated to face -Z');
     assert.equal(summaries[0].parts.some((entry) => entry.id.includes('curved-magazine') && entry.visible), true, 'AK magazine should be visible');
     assert.equal(summaries[1].parts.some((entry) => entry.id.includes('frame') && entry.visible), true, 'Glock frame should be visible');
     assert.equal(summaries[2].parts.some((entry) => entry.id.includes('blade') && entry.visible), true, 'Knife blade should be visible');

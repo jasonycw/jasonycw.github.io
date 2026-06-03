@@ -31,6 +31,8 @@ const getMaterialIdForRole = (visualRole) => {
     ramps: MAP_MATERIALS.CONCRETE.id,
     tunnels: MAP_MATERIALS.SANDSTONE.id,
     siteMarkings: MAP_MATERIALS.SITE_PAINT.id,
+    arches: MAP_MATERIALS.SANDSTONE.id,
+    ledges: MAP_MATERIALS.CONCRETE.id,
     boundaries: MAP_MATERIALS.SANDSTONE.id,
   };
 
@@ -59,13 +61,13 @@ const createBlockingDescriptor = (collisionVolume, index, geometryPrimitives) =>
   });
 };
 
-const createPrimitiveDescriptor = (primitive) => {
+const createPrimitiveDescriptor = (primitive, suffix = '') => {
   const isSiteMarking = primitive.kind === 'site-marking';
   const height = isSiteMarking ? 0.035 : Math.max(0.08, primitive.footprint.size.height / MAP_SCENE_SCALE);
   const basePosition = mapToScenePosition(primitive.footprint.center);
 
   return Object.freeze({
-    id: primitive.id,
+    id: `${primitive.id}${suffix}`,
     kind: primitive.kind,
     visualRole: primitive.visualRole,
     materialId: primitive.material,
@@ -74,6 +76,44 @@ const createPrimitiveDescriptor = (primitive) => {
     size: mapSizeToSceneSize(primitive.footprint.size, height),
     primitive,
   });
+};
+
+const createOffsetPrimitiveDescriptor = (primitive, suffix, offset, sizeScale) => {
+  const base = createPrimitiveDescriptor(primitive, suffix);
+  const baseSize = primitive.footprint.size;
+  const offsetCenter = freezePoint(
+    primitive.footprint.center.x + offset.x,
+    primitive.footprint.center.y + offset.y,
+    primitive.footprint.center.z + offset.z,
+  );
+  const mapped = mapToScenePosition(offsetCenter);
+  const mapSize = Object.freeze({
+    width: baseSize.width * sizeScale.x,
+    height: baseSize.height * sizeScale.y,
+    depth: baseSize.depth * sizeScale.z,
+  });
+  const height = Math.max(0.08, mapSize.height / MAP_SCENE_SCALE);
+
+  return Object.freeze({
+    ...base,
+    mapCenter: offsetCenter,
+    position: freezePoint(mapped.x, height / 2, mapped.z),
+    size: mapSizeToSceneSize(mapSize, height),
+  });
+};
+
+const createPrimitiveDescriptors = (primitive) => {
+  if (primitive.kind !== 'arch' && primitive.kind !== 'doorframe') {
+    return Object.freeze([createPrimitiveDescriptor(primitive)]);
+  }
+
+  const width = primitive.footprint.size.width;
+  const depth = primitive.footprint.size.depth;
+  return Object.freeze([
+    createOffsetPrimitiveDescriptor(primitive, '-left', { x: -width * 0.42, y: 0, z: 0 }, { x: 0.16, y: 1, z: 1 }),
+    createOffsetPrimitiveDescriptor(primitive, '-right', { x: width * 0.42, y: 0, z: 0 }, { x: 0.16, y: 1, z: 1 }),
+    createOffsetPrimitiveDescriptor(primitive, '-cap', { x: 0, y: primitive.footprint.size.height * 0.36, z: 0 }, { x: 1, y: 0.22, z: Math.max(0.28, Math.min(1, 2 / Math.max(1, depth))) }),
+  ]);
 };
 
 export function buildMapRenderGeometry({
@@ -91,6 +131,6 @@ export function buildMapRenderGeometry({
       size: freezeSize(100 / MAP_SCENE_SCALE, 0.03, 100 / MAP_SCENE_SCALE),
     }),
     blockers: Object.freeze(collisionVolumes.map((collisionVolume, index) => createBlockingDescriptor(collisionVolume, index, geometryPrimitives))),
-    primitives: Object.freeze(geometryPrimitives.map(createPrimitiveDescriptor)),
+    primitives: Object.freeze(geometryPrimitives.flatMap((primitive) => createPrimitiveDescriptors(primitive))),
   });
 }

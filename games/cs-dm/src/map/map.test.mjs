@@ -26,47 +26,51 @@ const repoRoot = path.resolve(here, '..', '..', '..', '..');
 const evidenceDir = path.join(repoRoot, '.sisyphus', 'evidence');
 
 const requiredCallouts = [
-  'T Spawn',
-  'CT Spawn',
-  'Mid',
-  'Mid Doors',
-  'Xbox',
-  'Long A',
-  'Long A Doors',
-  'Catwalk/Short A',
-  'Upper Tunnels',
-  'Lower Tunnels',
-  'B Tunnels',
-  'A Site',
-  'B Site',
-  'B Doors',
-  'Window',
-  'A Site boxes',
+  'Raider Gate',
+  'Guard Yard',
+  'Market Mid',
+  'Twin Gate',
+  'Split Crates',
+  'Sunwalk Long',
+  'Long Gate',
+  'Catwalk Spur',
+  'Upper Cistern',
+  'Lower Cistern',
+  'Vault Tunnel',
+  'Sun Court',
+  'Cistern Court',
+  'Cistern Doors',
+  'Guard Window',
+  'Sun Court Crates',
 ];
 
-const requiredTourNames = ['Mid', 'Long A', 'Tunnels', 'A Site', 'B Site'];
+const requiredTourNames = ['Market Mid', 'Sunwalk Long', 'Cistern Tunnels', 'Sun Court', 'Cistern Court'];
 
 const waypointById = (id) => MAP_WAYPOINTS.find((waypoint) => waypoint.id === id);
 
-const requiredVisualRoles = ['crates', 'doors', 'ramps', 'tunnels', 'siteMarkings'];
+const requiredVisualRoles = ['crates', 'doors', 'ramps', 'tunnels', 'siteMarkings', 'arches', 'ledges'];
 
 const tests = [
-  ['exports Dust2 blockout map data', () => {
-    assert.equal(MAP_NAME, 'Dust2 Blockout');
+  ['exports original three-lane desert tactical map data', () => {
+    assert.equal(MAP_NAME, 'Sunspire Yard');
     assert.equal(MAP_CALLOUTS.length >= requiredCallouts.length, true);
     assert.equal(MAP_COLLISION_VOLUMES.length >= 10, true);
-    assert.equal(MAP_GEOMETRY_PRIMITIVES.length >= 8, true);
+    assert.equal(MAP_GEOMETRY_PRIMITIVES.length >= 30, true);
     assert.equal(MAP_WAYPOINTS.length >= 10, true);
     assert.equal(MAP_DEBUG_FLAGS.showCollisionVolumes, false);
     assert.equal(MAP_DEBUG_OVERLAY.enabled, false);
   }],
 
-  ['includes the required Dust2-style callouts', () => {
+  ['includes the required homage callouts without exact Dust2 naming', () => {
     const calloutNames = new Set(MAP_CALLOUTS.map((callout) => callout.callout));
     for (const requiredCallout of requiredCallouts) {
       assert.equal(calloutNames.has(requiredCallout), true, `${requiredCallout} should exist`);
     }
-    assert.equal(MAP_LANDMARKS.A_SITE_BOXES.callout, 'A Site boxes');
+    assert.equal(MAP_LANDMARKS.A_SITE_BOXES.callout, 'Sun Court Crates');
+    assert.equal(calloutNames.has('Dust2 Blockout'), false);
+    assert.equal(calloutNames.has('Xbox'), false);
+    assert.equal(MAP_NAME.includes('Dust'), false);
+    assert.equal(MAP_VISUAL_STYLE.tone.includes('three-lane tactical arena'), true);
   }],
 
   ['keeps 16 spawn points clear of collision volumes', () => {
@@ -75,7 +79,7 @@ const tests = [
     assert.deepEqual(overlaps, []);
   }],
 
-  ['links route anchors through Dust2-style lanes', () => {
+  ['links route anchors through long mid catwalk and tunnel tactical lanes', () => {
     assert.equal(MAP_ROUTE_GRAPH.anchors.length, MAP_WAYPOINTS.length);
     assert.equal(MAP_ROUTE_GRAPH.debugTourTargets, MAP_DEBUG_TOUR_TARGETS);
     const midDoors = waypointById('wp-mid-doors');
@@ -93,7 +97,8 @@ const tests = [
   }],
 
   ['describes original visual style materials for readable landmarks', () => {
-    assert.match(MAP_VISUAL_STYLE.provenance, /Generated placeholder descriptors only/);
+    assert.match(MAP_VISUAL_STYLE.provenance, /Original generated homage descriptors only/);
+    assert.equal(MAP_VISUAL_STYLE.provenance.includes('copied Counter-Strike'), true);
     assert.equal(MAP_MATERIALS.SITE_PAINT.texture.startsWith('./assets/textures/'), true);
 
     for (const role of requiredVisualRoles) {
@@ -106,6 +111,10 @@ const tests = [
     const primitiveRoles = new Set(MAP_GEOMETRY_PRIMITIVES.map((primitive) => primitive.visualRole));
     for (const role of requiredVisualRoles) {
       assert.equal(primitiveRoles.has(role), true, `${role} should be used by map geometry`);
+    }
+    const primitiveKinds = new Set(MAP_GEOMETRY_PRIMITIVES.map((primitive) => primitive.kind));
+    for (const kind of ['doorway', 'doorframe', 'arch', 'ramp', 'cover', 'ledge', 'site-marking']) {
+      assert.equal(primitiveKinds.has(kind), true, `${kind} geometry should be present`);
     }
   }],
 

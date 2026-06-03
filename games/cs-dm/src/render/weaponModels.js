@@ -27,8 +27,9 @@ const freezeDeep = (value) => {
 const vector = (x = 0, y = 0, z = 0) => Object.freeze({ x, y, z });
 
 export const VIEWMODEL_CAMERA_ALIGNMENT = freezeDeep({
+  coordinateContract: Object.freeze({ screenRight: '+X', up: '+Y', forward: '-Z' }),
   rotation: vector(0, 0, 0),
-  scale: 1.24,
+  scale: 0.76,
   camera: Object.freeze({ fovDegrees: 68, aspect: 16 / 9, near: 0.1 }),
   orthographic: Object.freeze({ left: -1.6, right: 1.6, top: 0.9, bottom: -0.9 }),
 });
@@ -102,18 +103,18 @@ const sharedReloadPath = Object.freeze([
 ]);
 
 const fallbackHooks = createHooks({
-  muzzle: vector(0, 0.06, 0.52),
-  shellEject: vector(0.12, 0.08, 0.1),
-  leftHand: vector(-0.12, -0.16, 0.1),
-  rightHand: vector(0.14, -0.18, -0.12),
-  magazine: vector(0, -0.1, -0.02),
+  muzzle: vector(0.28, -0.12, -1.02),
+  shellEject: vector(0.44, -0.04, -0.44),
+  leftHand: vector(0.12, -0.46, -0.54),
+  rightHand: vector(0.46, -0.58, -0.08),
+  magazine: vector(0.34, -0.62, -0.24),
   reloadPath: sharedReloadPath,
 });
 
 const fallbackPose = createPose({
-  origin: vector(0.42, -0.38, -0.74),
+  origin: vector(0.2, -0.1, -0.58),
   switchRaiseMs: 220,
-  fireKick: vector(0, 0.02, -0.05),
+  fireKick: vector(0, 0.02, 0.05),
   recoil: { pitch: 0.6, yaw: 0.2, settleMs: 120 },
   bob: { amplitude: 0.018, frequency: 7.5, sprintMultiplier: 1.4 },
   muzzleFlashScale: 0.7,
@@ -131,14 +132,15 @@ const modelDefinitions = Object.freeze([
       { id: 'knife-tip', shape: 'box', material: 'blued-steel', size: vector(0.18, 0.06, 0.06), position: vector(0.74, 0.04, 0), rotation: vector(0, 0, 0.18) },
     ],
     viewmodelParts: [
-      { id: 'vm-knife-handle', shape: 'box', material: 'ribbed-black', size: vector(0.54, 0.16, 0.22), position: vector(0.04, -0.48, 0.22), rotation: vector(0, 0, -0.42) },
-      { id: 'vm-knife-pommel', shape: 'box', material: 'dark-bore', size: vector(0.16, 0.2, 0.24), position: vector(-0.2, -0.56, 0.2), rotation: vector(0, 0, -0.42) },
-      { id: 'vm-knife-guard', shape: 'box', material: 'dark-bore', size: vector(0.1, 0.34, 0.26), position: vector(0.3, -0.34, 0.24), rotation: vector(0, 0, -0.22) },
-      { id: 'vm-knife-blade', shape: 'box', material: 'warning-matte-gray', size: vector(0.92, 0.1, 0.1), position: vector(0.78, -0.18, 0.28), rotation: vector(0, 0, 0.08) },
-      { id: 'vm-knife-clipped-tip', shape: 'box', material: 'blued-steel', size: vector(0.24, 0.08, 0.08), position: vector(1.34, -0.14, 0.28), rotation: vector(0, 0, 0.32) },
+      { id: 'vm-knife-handle', shape: 'box', material: 'ribbed-black', size: vector(0.2, 0.18, 0.58), position: vector(0.42, -0.52, -0.24), rotation: vector(-0.2, 0.12, -0.08) },
+      { id: 'vm-knife-pommel', shape: 'box', material: 'dark-bore', size: vector(0.24, 0.22, 0.16), position: vector(0.46, -0.58, 0.06), rotation: vector(-0.2, 0.12, -0.08) },
+      { id: 'vm-knife-guard', shape: 'box', material: 'dark-bore', size: vector(0.44, 0.12, 0.12), position: vector(0.32, -0.42, -0.52), rotation: vector(0, 0.08, 0.08) },
+      { id: 'vm-knife-spine', shape: 'box', material: 'blued-steel', size: vector(0.18, 0.1, 0.88), position: vector(0.18, -0.28, -0.98), rotation: vector(0.08, 0.04, 0.04) },
+      { id: 'vm-knife-blade', shape: 'box', material: 'warning-matte-gray', size: vector(0.26, 0.08, 1.08), position: vector(0.24, -0.22, -1.04), rotation: vector(0.08, 0.04, 0.04) },
+      { id: 'vm-knife-clipped-tip', shape: 'box', material: 'blued-steel', size: vector(0.18, 0.06, 0.26), position: vector(0.2, -0.18, -1.66), rotation: vector(0.18, 0.06, 0.16) },
     ],
-    hooks: createHooks({ muzzle: vector(1.5, -0.14, 0.28), shellEject: vector(0.3, -0.34, 0.24), leftHand: vector(0.3, -0.54, 0.24), rightHand: vector(-0.08, -0.66, 0.12), magazine: vector(0.04, -0.48, 0.22), reloadPath: sharedReloadPath }),
-    pose: createPose({ origin: vector(-0.24, -0.05, -1.2), switchRaiseMs: 130, fireKick: vector(0.024, 0.012, -0.034), recoil: { pitch: 0.18, yaw: 0.12, settleMs: 80 }, bob: { amplitude: 0.032, frequency: 9.4, sprintMultiplier: 1.8 }, muzzleFlashScale: 0.18 }),
+    hooks: createHooks({ muzzle: vector(0.2, -0.18, -1.82), shellEject: vector(0.32, -0.42, -0.52), leftHand: vector(0.3, -0.78, -0.3), rightHand: vector(0.56, -0.84, 0.02), magazine: vector(0.42, -0.52, -0.24), reloadPath: sharedReloadPath }),
+    pose: createPose({ origin: vector(0.62, -0.34, -0.32), switchRaiseMs: 130, fireKick: vector(0.014, 0.012, 0.034), recoil: { pitch: 0.18, yaw: 0.12, settleMs: 80 }, bob: { amplitude: 0.032, frequency: 9.4, sprintMultiplier: 1.8 }, muzzleFlashScale: 0.18 }),
   }),
   createModel({
     weaponId: 'glock18',
@@ -151,13 +153,16 @@ const modelDefinitions = Object.freeze([
       { id: 'grip', shape: 'box', material: 'ribbed-black', size: vector(0.16, 0.36, 0.14), position: vector(-0.14, -0.22, -0.02), rotation: vector(0, 0, -0.18) },
     ],
     viewmodelParts: [
-      { id: 'vm-slide', shape: 'box', material: 'matte-gunmetal', size: vector(0.78, 0.22, 0.24), position: vector(0.28, -0.12, 0.46) },
-      { id: 'vm-frame', shape: 'box', material: 'charcoal-polymer', size: vector(0.62, 0.16, 0.18), position: vector(0.16, -0.3, 0.36) },
-      { id: 'vm-barrel', shape: 'cylinder', material: 'dark-bore', size: vector(0.14, 0.14, 0.32), position: vector(0.74, -0.12, 0.46), rotation: vector(0, 1.5708, 0) },
-      { id: 'vm-grip', shape: 'box', material: 'ribbed-black', size: vector(0.22, 0.48, 0.2), position: vector(-0.04, -0.56, 0.22), rotation: vector(0, 0, -0.16) },
+      { id: 'vm-slide', shape: 'box', material: 'matte-gunmetal', size: vector(0.32, 0.22, 0.78), position: vector(0.38, -0.12, -0.64) },
+      { id: 'vm-front-sight', shape: 'box', material: 'dark-bore', size: vector(0.08, 0.08, 0.12), position: vector(0.38, 0.02, -1.04) },
+      { id: 'vm-frame', shape: 'box', material: 'charcoal-polymer', size: vector(0.26, 0.16, 0.62), position: vector(0.38, -0.3, -0.5) },
+      { id: 'vm-barrel', shape: 'cylinder', material: 'dark-bore', size: vector(0.14, 0.14, 0.36), position: vector(0.38, -0.12, -1.02), rotation: vector(1.5708, 0, 0) },
+      { id: 'vm-trigger-guard', shape: 'box', material: 'dark-bore', size: vector(0.22, 0.08, 0.18), position: vector(0.38, -0.42, -0.36), rotation: vector(0, 0, 0.06) },
+      { id: 'vm-grip', shape: 'box', material: 'ribbed-black', size: vector(0.26, 0.52, 0.22), position: vector(0.46, -0.58, -0.16), rotation: vector(-0.18, 0, -0.08) },
+      { id: 'vm-magazine-base', shape: 'box', material: 'charcoal-polymer', size: vector(0.28, 0.1, 0.24), position: vector(0.48, -0.84, -0.08), rotation: vector(-0.18, 0, -0.08) },
     ],
-    hooks: createHooks({ muzzle: vector(0.92, -0.12, 0.46), shellEject: vector(0.46, 0, 0.32), leftHand: vector(-0.18, -0.56, 0.18), rightHand: vector(0.1, -0.62, 0.08), magazine: vector(-0.02, -0.62, 0.18), reloadPath: sharedReloadPath }),
-    pose: createPose({ origin: vector(-0.22, 0.02, -1.25), switchRaiseMs: 180, fireKick: vector(0, 0.018, -0.044), recoil: { pitch: 0.75, yaw: 0.24, settleMs: 105 }, bob: { amplitude: 0.018, frequency: 8.5, sprintMultiplier: 1.35 }, muzzleFlashScale: 0.58 }),
+    hooks: createHooks({ muzzle: vector(0.38, -0.12, -1.24), shellEject: vector(0.55, -0.02, -0.56), leftHand: vector(0.16, -0.78, -0.24), rightHand: vector(0.52, -0.86, 0.02), magazine: vector(0.48, -0.76, -0.1), reloadPath: sharedReloadPath }),
+    pose: createPose({ origin: vector(0.62, -0.32, -0.3), switchRaiseMs: 180, fireKick: vector(0, 0.018, 0.044), recoil: { pitch: 0.75, yaw: 0.24, settleMs: 105 }, bob: { amplitude: 0.018, frequency: 8.5, sprintMultiplier: 1.35 }, muzzleFlashScale: 0.58 }),
   }),
   createModel({
     weaponId: 'ak47',
@@ -171,14 +176,18 @@ const modelDefinitions = Object.freeze([
       { id: 'curved-magazine', shape: 'box', material: 'oiled-black-steel', size: vector(0.18, 0.46, 0.18), position: vector(0.02, -0.32, 0.02), rotation: vector(0, 0, 0.2) },
     ],
     viewmodelParts: [
-      { id: 'vm-receiver', shape: 'box', material: 'oiled-black-steel', size: vector(1.02, 0.24, 0.26), position: vector(0.34, -0.2, 0.42) },
-      { id: 'vm-barrel', shape: 'cylinder', material: 'dark-bore', size: vector(0.1, 0.1, 0.92), position: vector(1.18, -0.18, 0.42), rotation: vector(0, 1.5708, 0) },
-      { id: 'vm-handguard', shape: 'box', material: 'warm-wood', size: vector(0.56, 0.2, 0.3), position: vector(0.78, -0.24, 0.42) },
-      { id: 'vm-stock-tail', shape: 'box', material: 'warm-wood', size: vector(0.36, 0.2, 0.24), position: vector(-0.34, -0.2, 0.38), rotation: vector(0, 0, -0.08) },
-      { id: 'vm-curved-magazine', shape: 'box', material: 'oiled-black-steel', size: vector(0.2, 0.54, 0.22), position: vector(0.26, -0.42, 0.3), rotation: vector(0, 0, 0.22) },
+      { id: 'vm-receiver', shape: 'box', material: 'oiled-black-steel', size: vector(0.36, 0.24, 0.96), position: vector(0.34, -0.2, -0.54) },
+      { id: 'vm-receiver-cover', shape: 'box', material: 'matte-gunmetal', size: vector(0.28, 0.12, 0.62), position: vector(0.34, -0.06, -0.62) },
+      { id: 'vm-barrel', shape: 'cylinder', material: 'dark-bore', size: vector(0.1, 0.1, 0.98), position: vector(0.34, -0.16, -1.38), rotation: vector(1.5708, 0, 0) },
+      { id: 'vm-front-sight', shape: 'box', material: 'dark-bore', size: vector(0.18, 0.18, 0.12), position: vector(0.34, -0.02, -1.76) },
+      { id: 'vm-handguard', shape: 'box', material: 'warm-wood', size: vector(0.48, 0.2, 0.56), position: vector(0.34, -0.28, -1.0) },
+      { id: 'vm-stock-tail', shape: 'box', material: 'warm-wood', size: vector(0.42, 0.2, 0.38), position: vector(0.4, -0.24, 0.1), rotation: vector(-0.06, 0.08, -0.04) },
+      { id: 'vm-pistol-grip', shape: 'box', material: 'warm-wood', size: vector(0.24, 0.48, 0.24), position: vector(0.44, -0.56, -0.24), rotation: vector(-0.2, 0, -0.08) },
+      { id: 'vm-curved-magazine', shape: 'box', material: 'oiled-black-steel', size: vector(0.24, 0.58, 0.24), position: vector(0.3, -0.62, -0.5), rotation: vector(-0.22, 0, 0.08) },
+      { id: 'vm-magazine-lip', shape: 'box', material: 'matte-gunmetal', size: vector(0.26, 0.14, 0.28), position: vector(0.3, -0.38, -0.46), rotation: vector(-0.1, 0, 0.04) },
     ],
-    hooks: createHooks({ muzzle: vector(1.68, -0.18, 0.42), shellEject: vector(0.48, -0.02, 0.22), leftHand: vector(0.72, -0.52, 0.36), rightHand: vector(0.02, -0.58, 0.12), magazine: vector(0.26, -0.74, 0.24), reloadPath: sharedReloadPath }),
-    pose: createPose({ origin: vector(-0.32, 0.02, -1.4), switchRaiseMs: 270, fireKick: vector(-0.006, 0.032, -0.082), recoil: { pitch: 1.25, yaw: 0.42, settleMs: 155 }, bob: { amplitude: 0.024, frequency: 7.2, sprintMultiplier: 1.5 }, muzzleFlashScale: 0.92 }),
+    hooks: createHooks({ muzzle: vector(0.34, -0.16, -1.92), shellEject: vector(0.58, -0.02, -0.46), leftHand: vector(0.16, -0.78, -0.92), rightHand: vector(0.54, -0.86, -0.12), magazine: vector(0.3, -0.78, -0.54), reloadPath: sharedReloadPath }),
+    pose: createPose({ origin: vector(0.64, -0.34, -0.32), switchRaiseMs: 270, fireKick: vector(-0.006, 0.032, 0.082), recoil: { pitch: 1.25, yaw: 0.42, settleMs: 155 }, bob: { amplitude: 0.024, frequency: 7.2, sprintMultiplier: 1.5 }, muzzleFlashScale: 0.92 }),
   }),
   createModel({
     weaponId: 'awp',

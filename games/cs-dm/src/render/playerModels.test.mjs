@@ -81,8 +81,12 @@ const tests = [
     assert.notEqual(PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.CT_RANGER].silhouette, PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.T_RAIDER].silhouette);
     assert.equal(PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.CT_RANGER].parts.some((part) => part.id === 'ct-radio-mast'), true);
     assert.equal(PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.CT_RANGER].parts.some((part) => part.id === 'ct-backpack'), true);
+    assert.equal(PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.CT_RANGER].parts.some((part) => part.id === 'ct-visor'), true);
+    assert.equal(PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.CT_RANGER].parts.some((part) => part.id === 'ct-chest-plate'), true);
     assert.equal(PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.T_RAIDER].parts.some((part) => part.id === 't-scarf-tail'), true);
     assert.equal(PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.T_RAIDER].parts.some((part) => part.id === 't-soft-pack'), true);
+    assert.equal(PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.T_RAIDER].parts.some((part) => part.id === 't-bandolier-rounds'), true);
+    assert.equal(PLAYER_MODEL_VARIANTS[PLAYER_MODEL_IDS.T_RAIDER].parts.some((part) => part.id === 't-face-wrap'), true);
   }],
 
   ['keeps hitbox and collision dimensions identical across variants', () => {
@@ -125,7 +129,7 @@ const tests = [
 
     const debugSummary = summarizePlayerModelDebug();
     assert.equal(debugSummary.length, Object.keys(PLAYER_MODEL_VARIANTS).length);
-    assert.equal(debugSummary.every((entry) => entry.partCount >= 8), true);
+    assert.equal(debugSummary.every((entry) => entry.partCount >= 20), true);
 
     writeEvidence('task-16-player-models.txt', [
       'T16 player model evidence',

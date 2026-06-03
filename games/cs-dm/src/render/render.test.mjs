@@ -42,16 +42,23 @@ const tests = [
     assert.equal(rendererSource.includes('controllersBySlotIndex'), true);
     assert.equal(rendererSource.includes('muzzleFlash'), true);
     assert.equal(rendererSource.includes('buildWeaponLayerModel'), true);
+    assert.equal(rendererSource.includes('buildWorldWeaponGroup'), true);
+    assert.equal(rendererSource.includes('WEAPON_MODEL_LAYERS.WORLD'), true);
+    assert.equal(rendererSource.includes("source: 'WEAPON_MODEL_LAYERS.WORLD'"), true);
     assert.equal(rendererSource.includes('buildViewModelGroup'), true);
     assert.equal(rendererSource.includes('activeViewModelWeaponId'), true);
     assert.equal(rendererSource.includes('viewModelRenderer'), true);
     assert.equal(rendererSource.includes('match-stage__viewmodel-canvas'), true);
+    assert.equal(rendererSource.includes('new THREE.PerspectiveCamera(VIEWMODEL_CAMERA_ALIGNMENT.camera.fovDegrees'), true);
+    assert.equal(rendererSource.includes('viewModelCamera.lookAt(0, 0, -1)'), true);
+    assert.equal(rendererSource.includes('viewModelCamera.aspect = width / height'), true);
     assert.equal(rendererSource.includes('viewModelRenderer.render(viewModelScene, viewModelCamera)'), true);
     assert.equal(rendererSource.includes('VIEWMODEL_CAMERA_ALIGNMENT'), true);
     assert.equal(rendererSource.includes('cameraAlignment: VIEWMODEL_CAMERA_ALIGNMENT'), true);
     assert.equal(rendererSource.includes('child.material.depthTest = false'), true);
     assert.equal(rendererSource.includes('child.material.depthWrite = false'), true);
     assert.equal(rendererSource.includes('player.visible = slot.lifeState === \'alive\''), true);
+    assert.equal(rendererSource.includes("new THREE.MeshStandardMaterial({ color: '#141514'"), false, 'world player guns must not be hard-coded placeholder bars');
   }],
 
   ['builds visible map blockers from collision volumes with the shared scene transform', () => {
@@ -61,7 +68,7 @@ const tests = [
     const mappedMidDoor = mapToScenePosition(midDoorCollision.center);
 
     assert.equal(geometry.blockers.length, MAP_COLLISION_VOLUMES.length);
-    assert.equal(geometry.primitives.length, MAP_GEOMETRY_PRIMITIVES.length);
+    assert.equal(geometry.primitives.length > MAP_GEOMETRY_PRIMITIVES.length, true, 'arch and doorframe primitives should expand into richer render descriptors');
     assert.equal(Boolean(midDoorBlocker), true, 'mid doors collision volume should have a visible blocker');
     assert.equal(midDoorBlocker.position.x, mappedMidDoor.x);
     assert.equal(midDoorBlocker.position.z, mappedMidDoor.z);
@@ -69,6 +76,8 @@ const tests = [
     assert.equal(midDoorBlocker.size.z, Number((midDoorCollision.size.depth / MAP_SCENE_SCALE).toFixed(6)));
     assert.equal(midDoorBlocker.kind, 'blocking-box');
     assert.equal(midDoorBlocker.visualRole, 'doors');
+    assert.equal(geometry.primitives.some((primitive) => primitive.id === 'mid-door-arch-top-cap' && primitive.visualRole === 'arches'), true);
+    assert.equal(geometry.primitives.some((primitive) => primitive.kind === 'ledge' && primitive.visualRole === 'ledges'), true);
 
     writeEvidence('task-map-render-geometry.txt', [
       'CS DM map/render geometry evidence',
