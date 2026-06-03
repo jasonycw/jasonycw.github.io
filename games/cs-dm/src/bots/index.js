@@ -63,6 +63,7 @@ const BOT_WAYPOINT_REACHED_RADIUS = 1.4;
 const BOT_STUCK_TICKS = 18;
 const BOT_VISIBLE_RANGE = 70;
 const BOT_RETREAT_HEALTH = 35;
+const BOT_MAX_YAW_RADIANS_PER_TICK = (150 * Math.PI / 180) / BOT_TICK_RATE;
 const BOT_LOADOUTS = Object.freeze([
   Object.freeze({ primaryWeaponId: WEAPONS.AK47.id, secondaryWeaponId: WEAPONS.GLOCK18.id, equipmentIds: Object.freeze([WEAPONS.KNIFE.id, WEAPONS.KEVLAR.id]), activeWeaponId: WEAPONS.AK47.id }),
   Object.freeze({ primaryWeaponId: WEAPONS.M4A1.id, secondaryWeaponId: WEAPONS.USP.id, equipmentIds: Object.freeze([WEAPONS.KNIFE.id, WEAPONS.KEVLAR.id]), activeWeaponId: WEAPONS.M4A1.id }),
@@ -209,7 +210,7 @@ export function createBotPathPlan({ slotIndex, currentWaypointId = 'wp-t-spawn',
   });
 }
 
-export function getDust2TunnelRouteToBSite() {
+export function getCisternTunnelRouteToCisternCourt() {
   return findWaypointRoute('wp-t-spawn', 'wp-b-site');
 }
 
@@ -237,6 +238,8 @@ const normalize2d = (vector) => {
   const length = Math.hypot(vector.x, vector.z);
   return length === 0 ? { x: 0, z: 1 } : { x: vector.x / length, z: vector.z / length };
 };
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const normalizeAngle = (angle) => Math.atan2(Math.sin(angle), Math.cos(angle));
 const createBotMetrics = () => Object.freeze({
   movementDistance: 0,
   shotsFired: 0,
@@ -367,7 +370,7 @@ const getBotPlan = (bot, slotIndex, tick) => {
   }
 
   const plan = createBotPathPlan({ slotIndex, currentWaypointId: bot.currentWaypointId, tick });
-  return Object.freeze({ ...bot, ...plan, route: plan.route, movement: Object.freeze({ ...bot.movement, routeIndex: Math.min(1, Math.max(0, plan.route.length - 1)) }) });
+  return Object.freeze({ ...bot, ...plan, route: plan.route, movement: Object.freeze({ ...bot.movement, routeIndex: 0 }) });
 };
 
 const chooseUnstuckRoute = (bot, slotIndex, tick) => {
@@ -379,7 +382,7 @@ const chooseUnstuckRoute = (bot, slotIndex, tick) => {
     state: BOT_STATE_MACHINE_STATES.NAVIGATING,
     targetWaypointId: alternateTarget,
     route,
-    movement: Object.freeze({ ...bot.movement, routeIndex: Math.min(1, Math.max(0, route.length - 1)), blockedTicks: 0, unstuckCount: (bot.movement?.unstuckCount ?? 0) + 1 }),
+    movement: Object.freeze({ ...bot.movement, routeIndex: 0, blockedTicks: 0, unstuckCount: (bot.movement?.unstuckCount ?? 0) + 1 }),
   });
 };
 
@@ -402,12 +405,13 @@ const advanceBotMovement = ({ bot, controller, slotIndex, tick, activeWeaponId, 
 
   const nextTargetPosition = getRouteTargetPosition(nextBot);
   const moveDirection = normalize2d({ x: nextTargetPosition.x - controller.position.x, z: nextTargetPosition.z - controller.position.z });
-  const yaw = Math.atan2(-moveDirection.x, -moveDirection.z);
+  const desiredYaw = Math.atan2(-moveDirection.x, -moveDirection.z);
+  const yawDelta = clamp(normalizeAngle(desiredYaw - controller.view.yaw), -BOT_MAX_YAW_RADIANS_PER_TICK, BOT_MAX_YAW_RADIANS_PER_TICK);
   const movedController = simulatePlayerMovementStep(controller, {
     buttons: ['forward'],
-    look: { yawDelta: (yaw - controller.view.yaw) / PLAYER_MOVEMENT_DEFAULTS.mouseSensitivity, pitchDelta: 0 },
+    look: { yawDelta: yawDelta / PLAYER_MOVEMENT_DEFAULTS.mouseSensitivity, pitchDelta: 0 },
     activeWeaponId,
-    ...(collisionVolumes ? { collisionVolumes } : {}),
+    collisionVolumes,
   });
   const movedDistance = distance2d(controller.position, movedController.position);
   const blockedTicks = movedController.movement.blocked || movedDistance < 0.005 ? (nextBot.movement?.blockedTicks ?? 0) + 1 : 0;
@@ -547,6 +551,7 @@ export function advanceBotAiTick(state, { blockers = MAP_COLLISION_VOLUMES } = {
   }
 
   return Object.freeze({
+    ...state,
     matchState,
     controllersBySlotIndex: Object.freeze(controllersBySlotIndex),
     weaponStatesBySlotIndex: Object.freeze(weaponStatesBySlotIndex),

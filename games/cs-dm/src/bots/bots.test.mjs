@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import { COMBAT_DEFAULTS, MATCH_PHASES, PLAYER_LIFE_STATES } from '../config/index.js';
 import { createMatchState, createOfflineSlots, SLOT_TYPES } from '../core/index.js';
-import { MAP_COLLISION_VOLUMES, MAP_SPAWN_POINTS } from '../map/index.js';
+import { MAP_COLLISION_VOLUMES, MAP_ROUTE_GRAPH, MAP_SPAWN_POINTS } from '../map/index.js';
 import { createPlayerControllerState } from '../player/index.js';
 import {
   BOT_COMBAT_INTENT_STATES,
@@ -20,7 +20,7 @@ import {
   createBotSlotFields,
   createBotPathPlan,
   findWaypointRoute,
-  getDust2TunnelRouteToBSite,
+  getCisternTunnelRouteToCisternCourt,
   hasApproximateLineOfSight,
   isTunnelWaypoint,
   listOfflineBotSlotIndexes,
@@ -40,6 +40,14 @@ const writeEvidence = (fileName, lines) => {
 
 const setPlayer = (players, slotIndex, fields) => Object.freeze(players.map((player, index) => index === slotIndex ? Object.freeze({ ...player, ...fields }) : player));
 const setBot = (players, slotIndex, botFields) => setPlayer(players, slotIndex, { bot: Object.freeze({ ...players[slotIndex].bot, ...botFields }) });
+const distance2d = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+const pointOverlapsBox2d = (point, radius, box) => {
+  const halfWidth = box.size.width / 2;
+  const halfDepth = box.size.depth / 2;
+  const closestX = Math.max(box.center.x - halfWidth, Math.min(point.x, box.center.x + halfWidth));
+  const closestZ = Math.max(box.center.z - halfDepth, Math.min(point.z, box.center.z + halfDepth));
+  return Math.hypot(point.x - closestX, point.z - closestZ) < radius;
+};
 
 const tests = [
   ['defines bot lifecycle, difficulty, combat, path, and handoff contracts', () => {
@@ -78,8 +86,8 @@ const tests = [
     assert.equal(plan.route[plan.route.length - 1].waypointId, firstSelection);
   }],
 
-  ['routes T Spawn to B Site through Dust2 tunnel waypoints', () => {
-    const route = getDust2TunnelRouteToBSite();
+  ['routes Raider Gate to Cistern Court through cistern tunnel waypoints', () => {
+    const route = getCisternTunnelRouteToCisternCourt();
     const routeIds = route.map((step) => step.waypointId);
 
     assert.deepEqual(routeIds, ['wp-t-spawn', 'wp-upper-tunnels', 'wp-b-tunnels', 'wp-b-site']);
@@ -193,22 +201,41 @@ const tests = [
 
   ['keeps bots grounded and outside collision volumes during deterministic movement soak', () => {
     const initialSimulation = createBotAiSimulation({ matchState: createMatchState({ phase: MATCH_PHASES.RUNNING, players: createOfflineSlots('Grounded') }) });
-    const finalSimulation = runBotAiSimulation(initialSimulation, { seconds: 20 });
+    let simulation = initialSimulation;
+    let maxStepDistance = 0;
+    let overlapCount = 0;
+    for (let tickIndex = 0; tickIndex < 20 * 60; tickIndex += 1) {
+      const beforeControllers = simulation.controllersBySlotIndex;
+      const beforePlayers = simulation.matchState.players;
+      simulation = advanceBotAiTick(simulation, { blockers: MAP_COLLISION_VOLUMES });
+      for (const player of simulation.matchState.players.filter((entry) => entry.slotType === SLOT_TYPES.BOT)) {
+        const before = beforeControllers[player.slotIndex];
+        const after = simulation.controllersBySlotIndex[player.slotIndex];
+        const beforePlayer = beforePlayers[player.slotIndex];
+        if (before && after && beforePlayer?.lifeState === PLAYER_LIFE_STATES.ALIVE && player.lifeState === PLAYER_LIFE_STATES.ALIVE) {
+          maxStepDistance = Math.max(maxStepDistance, distance2d(before.position, after.position));
+        }
+        if (after && MAP_COLLISION_VOLUMES.some((volume) => pointOverlapsBox2d(after.position, 0.6, volume))) {
+          overlapCount += 1;
+        }
+      }
+    }
+    const finalSimulation = simulation;
     const botControllers = finalSimulation.matchState.players
       .filter((player) => player.slotType === SLOT_TYPES.BOT)
       .map((player) => finalSimulation.controllersBySlotIndex[player.slotIndex]);
-    const overlappingControllers = botControllers.filter((controller) => MAP_COLLISION_VOLUMES.some((volume) => {
-      const halfWidth = volume.size.width / 2;
-      const halfDepth = volume.size.depth / 2;
-      const closestX = Math.max(volume.center.x - halfWidth, Math.min(controller.position.x, volume.center.x + halfWidth));
-      const closestZ = Math.max(volume.center.z - halfDepth, Math.min(controller.position.z, volume.center.z + halfDepth));
-      return Math.hypot(controller.position.x - closestX, controller.position.z - closestZ) < 0.6;
-    }));
 
     assert.equal(finalSimulation.tick, 1200);
     assert.equal(botControllers.every((controller) => controller.position.y === 0), true);
     assert.equal(botControllers.every((controller) => controller.movement.grounded), true);
-    assert.equal(overlappingControllers.length, 0);
+    assert.equal(overlapCount, 0);
+    assert.equal(maxStepDistance <= 0.12, true);
+  }],
+
+  ['keeps waypoint anchors outside blockers', () => {
+    const invalidAnchors = MAP_ROUTE_GRAPH.anchors.filter((anchor) => MAP_COLLISION_VOLUMES.some((volume) => pointOverlapsBox2d(anchor.position, 0.6, volume)));
+
+    assert.deepEqual(invalidAnchors.map((anchor) => anchor.id), []);
   }],
 ];
 

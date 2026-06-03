@@ -452,21 +452,21 @@ const run = async () => {
   ].join('\n'));
   writeFileSync(path.join(evidenceDir, 'task-9-callouts.txt'), [
     'T9 callouts evidence',
-    'Map: dust2-blockout',
-    'Required callouts: T Spawn, CT Spawn, Mid, Mid Doors, Long A, Catwalk/Short A, Upper Tunnels, Lower Tunnels, B Site, Window, A Site boxes',
+    'Map: sunspire-yard',
+    'Required callouts: Raider Gate, Guard Yard, Market Mid, Twin Gate, Sunwalk Long, Catwalk Spur, Upper Cistern, Lower Cistern, Cistern Court, Guard Window, Sun Court Crates',
     'Waypoints: spawn anchors, lane anchors, site anchors, and tunnel anchors',
   ].join('\n'));
   writeFileSync(path.join(evidenceDir, 'task-9-collision.txt'), [
     'T9 collision evidence',
     'Spawn count: 16',
     'Spawn overlap count: 0',
-    'Collision volumes: 12',
+    'Collision volumes: 16',
   ].join('\n'));
 
   const { createOfflineSlots, validatePlayerName } = await import(pathToFileURL(path.join(gameRoot, 'src', 'core', 'index.js')).href);
-  const { getDust2TunnelRouteToBSite, isTunnelWaypoint, summarizeBotSlots } = await import(pathToFileURL(path.join(gameRoot, 'src', 'bots', 'index.js')).href);
+  const { getCisternTunnelRouteToCisternCourt, isTunnelWaypoint, summarizeBotSlots } = await import(pathToFileURL(path.join(gameRoot, 'src', 'bots', 'index.js')).href);
   const botSummary = summarizeBotSlots(createOfflineSlots('Verifier'));
-  const tunnelRoute = getDust2TunnelRouteToBSite();
+  const tunnelRoute = getCisternTunnelRouteToCisternCourt();
   writeFileSync(path.join(evidenceDir, 'task-12-bot-slots.txt'), [
     'T12 bot slot evidence',
     `Bot slot count: ${botSummary.botSlotCount}`,

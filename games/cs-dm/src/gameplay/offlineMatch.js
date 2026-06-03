@@ -65,6 +65,23 @@ const countScoreKills = (matchState) => matchState.players.reduce((total, player
 const countScoreDeaths = (matchState) => matchState.players.reduce((total, player) => total + player.score.deaths, 0);
 const getMetricDelta = (before, after, key) => Math.max(0, (after[key] ?? 0) - (before[key] ?? 0));
 
+const updateFeedbackForLocalShot = (state, shot, damageResult) => {
+  const victimSlotIndex = shot?.hit ? Number(shot.hit.targetId) : null;
+  if (!Number.isInteger(victimSlotIndex) || !damageResult || damageResult.damageApplied <= 0) {
+    return state.visualFeedbackBySlotIndex ?? Object.freeze({});
+  }
+
+  return Object.freeze({
+    ...(state.visualFeedbackBySlotIndex ?? {}),
+    [victimSlotIndex]: Object.freeze({
+      recentDamageAtMs: state.nowMs,
+      recentDamage: damageResult.damageApplied,
+      recentAttackerSlotIndex: LOCAL_PLAYER_SLOT_INDEX,
+      recentDeathAtMs: damageResult.killed ? state.nowMs : state.visualFeedbackBySlotIndex?.[victimSlotIndex]?.recentDeathAtMs ?? null,
+    }),
+  });
+};
+
 export function createOfflineMatch({ localPlayerName = 'Player', localLoadout = DEFAULT_LOADOUT } = {}) {
   const normalizedLoadout = cloneLoadout(localLoadout);
   const players = Object.freeze(createOfflineSlots(localPlayerName).map((player) => (
@@ -246,13 +263,16 @@ export function applyOfflineLocalInput(state, {
       matchState = result.matchState;
       weaponStatesBySlotIndex = Object.freeze({ ...weaponStatesBySlotIndex, [LOCAL_PLAYER_SLOT_INDEX]: result.weaponState });
       shot = result.shot;
+      if (result.ok) {
+        state = Object.freeze({ ...state, visualFeedbackBySlotIndex: updateFeedbackForLocalShot(state, shot, result.damage) });
+      }
     }
   }
 
   return Object.freeze({ ...state, matchState, controllersBySlotIndex, weaponStatesBySlotIndex, lastLocalShot: shot });
 }
 
-export function advanceOfflineMatchTick(state, { localInput = null, blockers = [] } = {}) {
+export function advanceOfflineMatchTick(state, { localInput = null, blockers = MAP_COLLISION_VOLUMES } = {}) {
   const beforeMetrics = state.metrics;
   const beforeKills = countScoreKills(state.matchState);
   const beforeDeaths = countScoreDeaths(state.matchState);
@@ -264,6 +284,23 @@ export function advanceOfflineMatchTick(state, { localInput = null, blockers = [
   const lastLocalShot = localInput ? workingState.lastLocalShot ?? null : null;
 
   workingState = advanceBotAiTick(workingState, { blockers });
+  if (lastLocalShot?.hit) {
+    const victimSlotIndex = Number(lastLocalShot.hit.targetId);
+    const feedback = workingState.visualFeedbackBySlotIndex?.[victimSlotIndex];
+    if (feedback) {
+      workingState = Object.freeze({
+        ...workingState,
+        visualFeedbackBySlotIndex: Object.freeze({
+          ...workingState.visualFeedbackBySlotIndex,
+          [victimSlotIndex]: Object.freeze({
+            ...feedback,
+            recentDamageAtMs: workingState.nowMs,
+            recentDeathAtMs: Number.isFinite(feedback.recentDeathAtMs) ? workingState.nowMs : feedback.recentDeathAtMs,
+          }),
+        }),
+      });
+    }
+  }
   workingState = completeLocalReloadIfReady(workingState);
 
   const localPlayer = workingState.matchState.players[LOCAL_PLAYER_SLOT_INDEX];
@@ -303,7 +340,7 @@ export function runOfflineSmokeSimulation(initialState = createOfflineMatch(), {
   let state = initialState;
 
   for (let tickIndex = 0; tickIndex < totalTicks; tickIndex += 1) {
-    state = advanceOfflineMatchTick(state, { localInput: localInputs[tickIndex] ?? null });
+    state = advanceOfflineMatchTick(state, { localInput: localInputs[tickIndex] ?? null, blockers: MAP_COLLISION_VOLUMES });
   }
 
   return state;

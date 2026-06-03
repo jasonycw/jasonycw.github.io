@@ -396,6 +396,18 @@ const tests = [
     assert.equal(fired.matchState.players[LOCAL_PLAYER_SLOT_INDEX].score.kills, 1);
     assert.equal(fired.matchState.players[1].lifeState, PLAYER_LIFE_STATES.RESPAWNING);
     assert.equal(fired.weaponStatesBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].ammoInMagazine, WEAPONS.AWP.ammo.magazine - 1);
+    assert.equal(fired.visualFeedbackBySlotIndex[1].recentDamageAtMs, fired.nowMs);
+    assert.equal(fired.visualFeedbackBySlotIndex[1].recentDeathAtMs, fired.nowMs);
+    assert.equal(fired.visualFeedbackBySlotIndex[1].recentDamage > 0, true);
+  }],
+
+  ['browser-like key and click spam queues one fixed tick without accelerating bots', () => {
+    const state = createOfflineMatch({ localPlayerName: 'SpamGuard' });
+    const advanced = advanceOfflineMatchTick(state, { localInput: { buttons: [INPUT_BUTTONS.FORWARD], fire: true, reload: true } });
+
+    assert.equal(advanced.tick, state.tick + 1);
+    assert.equal(advanced.nowMs, Math.round(advanced.tick * (1000 / 60)));
+    assert.equal(advanced.metrics.movementDistance < 15, true);
   }],
 
   ['runs three deterministic T34 two-minute offline QA passes with active bots and local respawns', () => {

@@ -578,6 +578,16 @@ const advanceOfflineMatchWithFeedback = (options = {}) => {
   syncRendererState();
 };
 
+const queueOneShotOfflineInput = ({ fire = false, reload = false } = {}) => {
+  if (!offlineMatchState) {
+    return false;
+  }
+
+  localFireQueued = localFireQueued || fire;
+  localReloadQueued = localReloadQueued || reload;
+  return true;
+};
+
 const stopOfflineLoop = () => {
   if (offlineMatchTimer !== null) {
     window.clearInterval(offlineMatchTimer);
@@ -637,10 +647,7 @@ const fireLocalWeaponFromPointerEvent = (event) => {
 
   event.preventDefault();
   event.stopPropagation();
-  localFireQueued = false;
-  advanceOfflineMatchWithFeedback({ localInput: { buttons: [...pressedMovementButtons], look: pendingLookDelta, fire: true } });
-  pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
-  return true;
+  return queueOneShotOfflineInput({ fire: true });
 };
 
 const openSettings = () => {
@@ -1010,9 +1017,9 @@ document.addEventListener('keydown', (event) => {
 
   if (getLiveBindingCandidates(currentBindings, InputAction.Fire).includes(event.code) && offlineMatchState) {
     event.preventDefault();
-    localFireQueued = false;
-    advanceOfflineMatchWithFeedback({ localInput: { buttons: [...pressedMovementButtons], look: pendingLookDelta, fire: true } });
-    pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
+    if (!event.repeat) {
+      queueOneShotOfflineInput({ fire: true });
+    }
     return;
   }
 
@@ -1025,9 +1032,9 @@ document.addEventListener('keydown', (event) => {
 
   if (offlineMatchState && isReloadEvent(event)) {
     event.preventDefault();
-    localReloadQueued = false;
-    advanceOfflineMatchWithFeedback({ localInput: { buttons: [...pressedMovementButtons], look: pendingLookDelta, fire: false, reload: true } });
-    pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
+    if (!event.repeat) {
+      queueOneShotOfflineInput({ reload: true });
+    }
     return;
   }
 
@@ -1043,8 +1050,6 @@ document.addEventListener('keydown', (event) => {
       lastFootstepAt = now;
       playAudioEvent(AudioEvent.FOOTSTEP, { unlock: true });
     }
-    advanceOfflineMatchWithFeedback({ localInput: { buttons: [...pressedMovementButtons], look: pendingLookDelta, fire: false } });
-    pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
     return;
   }
 

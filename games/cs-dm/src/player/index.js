@@ -119,6 +119,16 @@ const applyFriction = (velocity, deltaSeconds) => {
   return { x: velocity.x * scale, y: velocity.y, z: velocity.z * scale };
 };
 
+const clampHorizontalSpeed = (velocity, maxSpeed) => {
+  const speed = Math.hypot(velocity.x, velocity.z);
+  if (speed <= maxSpeed || speed === 0) {
+    return velocity;
+  }
+
+  const scale = maxSpeed / speed;
+  return { x: velocity.x * scale, y: velocity.y, z: velocity.z * scale };
+};
+
 const circleIntersectsBoxProjection = (position, radius, box) => {
   const halfWidth = box.size.width / 2;
   const halfDepth = box.size.depth / 2;
@@ -183,6 +193,7 @@ export function simulatePlayerMovementStep(state, {
     maxSpeed,
     deltaSeconds,
   );
+  velocity = clampHorizontalSpeed(velocity, maxSpeed);
 
   let jumping = state.movement.jumping && !groundedAtStart;
   if (groundedAtStart && jumpPressedThisFrame && !crouching) {
