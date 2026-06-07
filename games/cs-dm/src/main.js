@@ -1,4 +1,5 @@
 ﻿import { INPUT_BUTTONS, validatePlayerName } from './core/index.js';
+import { getWeaponById } from './config/index.js';
 import { AudioEvent, createAudioController } from './audio/index.js';
 import { OFFLINE_TICK_RATE, advanceOfflineMatchTick, buyOfflineWeapon, createOfflineMatch, deriveOfflineMatchHud, reloadOfflineWeapon, summarizeOfflinePerformance, switchOfflineWeaponSlot } from './gameplay/index.js';
 import { DEFAULT_MOUSE_SETTINGS, InputAction, createDefaultBindingMap, getConfiguredMouseLookDelta, getLiveBindingCandidates, getMouseSensitivityPercent, normalizeMouseSettings, readStoredKeybindings, readStoredMouseSettings, readStoredPlayerName, writeStoredKeybindings, writeStoredMouseSettings, writeStoredPlayerName } from './input/index.js';
@@ -398,6 +399,13 @@ const renderRadar = (radar) => {
   });
 };
 
+const createKillfeedSpan = (className, text) => {
+  const span = document.createElement('span');
+  span.className = className;
+  span.textContent = text;
+  return span;
+};
+
 const renderKillfeed = () => {
   if (!hudKillfeed) {
     return;
@@ -407,7 +415,12 @@ const renderKillfeed = () => {
   killfeedEntries.slice(0, 4).forEach((entry) => {
     const item = document.createElement('li');
     item.className = 'match-hud__killfeed-entry';
-    item.textContent = `${entry.killer} ${entry.weapon} ${entry.victim}`;
+    item.append(
+      createKillfeedSpan('match-hud__killfeed-killer', entry.killer),
+      createKillfeedSpan('match-hud__killfeed-weapon', entry.weapon),
+      createKillfeedSpan('match-hud__killfeed-arrow', '\u25B8'),
+      createKillfeedSpan('match-hud__killfeed-victim', entry.victim),
+    );
     hudKillfeed.append(item);
   });
   hudKillfeed.hidden = killfeedEntries.length === 0;
@@ -422,7 +435,9 @@ const updateKillfeed = (previousState, nextState) => {
     const previousPlayer = previousState.matchState.players[slotIndex];
     if (previousPlayer?.lifeState !== 'respawning' && player.lifeState === 'respawning' && player.killedBySlotIndex !== null && player.killedBySlotIndex !== undefined) {
       const killer = nextState.matchState.players[player.killedBySlotIndex];
-      killfeedEntries = [{ killer: killer?.name ?? 'Player', victim: player.name, weapon: killer?.loadout?.activeWeaponId?.toUpperCase() ?? 'WEAPON' }, ...killfeedEntries].slice(0, 4);
+      const weaponId = killer?.loadout?.activeWeaponId;
+      const weaponName = weaponId ? (getWeaponById(weaponId)?.name ?? weaponId.toUpperCase()) : 'WEAPON';
+      killfeedEntries = [{ killer: killer?.name ?? 'Player', victim: player.name, weapon: weaponName }, ...killfeedEntries].slice(0, 4);
     }
   });
 };
@@ -1070,7 +1085,11 @@ document.addEventListener('keydown', (event) => {
   if (getLiveBindingCandidates(currentBindings, InputAction.Settings).includes(event.code)) {
     event.preventDefault();
     playAudioEvent(AudioEvent.MENU_ACTION, { unlock: true });
-    openSettings();
+    if (settingsPanel.hidden) {
+      openSettings();
+    } else {
+      closeSettings();
+    }
   }
 });
 

@@ -702,6 +702,27 @@ button:disabled {
 
 .match-hud__killfeed-entry {
   margin: 0;
+  display: inline-flex;
+  gap: 0.35em;
+  align-items: center;
+}
+
+.match-hud__killfeed-killer {
+  color: rgba(245, 203, 92, 0.92);
+}
+
+.match-hud__killfeed-weapon {
+  color: #f1c36d;
+  letter-spacing: 0.08em;
+}
+
+.match-hud__killfeed-arrow {
+  color: rgba(245, 203, 92, 0.35);
+  font-size: 0.7em;
+}
+
+.match-hud__killfeed-victim {
+  color: #e8c87a;
 }
 
 .match-hud__label {
