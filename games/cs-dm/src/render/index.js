@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 import { LOCAL_PLAYER_SLOT_INDEX } from '../config/index.js';
 import { MAP_COLLISION_VOLUMES, MAP_GEOMETRY_PRIMITIVES, MAP_MATERIALS } from '../map/index.js';
-import { buildMapRenderGeometry, mapToScenePosition } from './mapGeometry.js';
+import { MAP_SCENE_CENTER, MAP_SCENE_SCALE, buildMapRenderGeometry, mapToScenePosition } from './mapGeometry.js';
 import { PLAYER_MODEL_IDS, buildPlayerModel } from './playerModels.js';
 import { createRendererFallbackState, getSafeViewportSize, hasUsableWebGL } from './state.js';
 import { VIEWMODEL_CAMERA_ALIGNMENT, WEAPON_MODEL_LAYERS, WEAPON_MODEL_REGISTRY, buildWeaponLayerModel } from './weaponModels.js';
@@ -236,6 +236,37 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
     scene.add(createMapMesh(THREE, blocker, mapMaterials));
   });
 
+  // Pre-compute scene-space blockers for 2D occlusion checks
+  const sceneOcclusionBlockers = MAP_COLLISION_VOLUMES.map((vol) => ({
+    center: {
+      x: (vol.center.x - MAP_SCENE_CENTER) / MAP_SCENE_SCALE,
+      z: (vol.center.z - MAP_SCENE_CENTER) / MAP_SCENE_SCALE,
+    },
+    halfSize: {
+      x: (vol.size.width / 2) / MAP_SCENE_SCALE,
+      z: (vol.size.depth / 2) / MAP_SCENE_SCALE,
+    },
+  }));
+  const isLineOfSightBlocked = (origin, target) => {
+    const dx = target.x - origin.x;
+    const dz = target.z - origin.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < 0.5) return false;
+    const steps = Math.max(2, Math.ceil(dist / 0.4));
+    for (let step = 1; step < steps; step += 1) {
+      const t = step / steps;
+      const px = origin.x + dx * t;
+      const pz = origin.z + dz * t;
+      for (const blocker of sceneOcclusionBlockers) {
+        if (Math.abs(px - blocker.center.x) <= blocker.halfSize.x &&
+            Math.abs(pz - blocker.center.z) <= blocker.halfSize.z) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
   const players = Array.from({ length: 15 }, (_, index) => createPlayerWithWeapon(
     THREE,
     index % 2 === 0 ? PLAYER_MODEL_IDS.T_RAIDER : PLAYER_MODEL_IDS.CT_RANGER,
@@ -318,6 +349,16 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
       player.rotation.y = controller.view?.yaw ?? player.rotation.y;
       player.visible = slot.lifeState === 'alive' || deathAnimActive;
       player.scale.setScalar(feedbackActive ? 1 : 0.9);
+    });
+
+    // Occlusion — hide enemies behind collision volumes
+    const camPos = { x: camera.position.x, z: camera.position.z };
+    players.forEach((player) => {
+      if (!player.visible) return;
+      const playerPos = { x: player.position.x, z: player.position.z };
+      if (isLineOfSightBlocked(camPos, playerPos)) {
+        player.visible = false;
+      }
     });
 
     if (matchState.lastLocalShot) {
