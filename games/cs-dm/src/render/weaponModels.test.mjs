@@ -114,17 +114,16 @@ const tests = [
     assert.equal(deriveWeaponSwitchMetadata('m3').viewmodel.layer.layer, WEAPON_MODEL_LAYERS.VIEWMODEL);
   }],
 
-  ['known unmodelled weapons reuse role silhouettes while preserving HUD identity', () => {
-    const usp = getWeaponModel('usp');
-    const m4a1 = deriveWeaponSwitchMetadata('m4a1');
-
-    assert.equal(usp.ok, true);
-    assert.equal(usp.warning.code, 'weapon-model-role-fallback');
-    assert.equal(usp.warning.modelWeaponId, 'glock18');
-    assert.equal(m4a1.hud.label, 'M4A1');
-    assert.equal(m4a1.weaponId, 'm4a1');
-    assert.equal(m4a1.warning.code, 'weapon-model-role-fallback');
-    assert.equal(m4a1.viewmodel.layer.weaponId, 'ak47');
+  ['all combat weapons resolve to their own dedicated models without fallback', () => {
+    const combatWeaponIds = ['usp', 'p228', 'deagle', 'elite', 'fiveseven', 'xm1014', 'tmp', 'mac10', 'ump45', 'p90', 'm4a1', 'famas', 'galil', 'sg552', 'aug', 'scout', 'g3sg1', 'sg550'];
+    combatWeaponIds.forEach((weaponId) => {
+      const result = getWeaponModel(weaponId);
+      assert.equal(result.ok, true, `${weaponId} should resolve`);
+      assert.equal(result.warning, null, `${weaponId} should not use fallback: ${result.warning?.code ?? 'none'}`);
+      assert.equal(result.model.weaponId, weaponId, `${weaponId} should use its own model`);
+      assert.equal(result.model.layers.world.parts.length >= 3, true, `${weaponId} world silhouette should have parts`);
+      assert.equal(result.model.layers.viewmodel.parts.length >= 5, true, `${weaponId} viewmodel silhouette should have parts`);
+    });
   }],
 
   ['viewmodel camera alignment keeps AK Glock and knife silhouettes in frustum', () => {
