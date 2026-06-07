@@ -117,6 +117,7 @@ let lastFootstepAt = 0;
 let pressedMovementButtons = new Set();
 let pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
 let localFireQueued = false;
+let localAltFireQueued = false;
 let localJumpQueued = false;
 let localReloadQueued = false;
 let lastLocalShotRegistered = false;
@@ -578,12 +579,13 @@ const advanceOfflineMatchWithFeedback = (options = {}) => {
   syncRendererState();
 };
 
-const queueOneShotOfflineInput = ({ fire = false, reload = false } = {}) => {
+const queueOneShotOfflineInput = ({ fire = false, reload = false, altFire = false } = {}) => {
   if (!offlineMatchState) {
     return false;
   }
 
   localFireQueued = localFireQueued || fire;
+  localAltFireQueued = localAltFireQueued || altFire;
   localReloadQueued = localReloadQueued || reload;
   return true;
 };
@@ -598,11 +600,12 @@ const stopOfflineLoop = () => {
 const startOfflineLoop = () => {
   stopOfflineLoop();
   offlineMatchTimer = window.setInterval(() => {
-    const localInput = (pressedMovementButtons.size > 0 || pendingLookDelta.yawDelta !== 0 || pendingLookDelta.pitchDelta !== 0 || localFireQueued || localJumpQueued || localReloadQueued)
-      ? { buttons: [...pressedMovementButtons], look: pendingLookDelta, fire: localFireQueued, reload: localReloadQueued }
+    const localInput = (pressedMovementButtons.size > 0 || pendingLookDelta.yawDelta !== 0 || pendingLookDelta.pitchDelta !== 0 || localFireQueued || localAltFireQueued || localJumpQueued || localReloadQueued)
+      ? { buttons: [...pressedMovementButtons], look: pendingLookDelta, fire: localFireQueued, altFire: localAltFireQueued, reload: localReloadQueued }
       : null;
     pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
     localFireQueued = false;
+    localAltFireQueued = false;
     localReloadQueued = false;
     advanceOfflineMatchWithFeedback({ localInput });
   }, 1000 / OFFLINE_TICK_RATE);
@@ -641,13 +644,23 @@ const reloadLocalWeapon = () => {
 };
 
 const fireLocalWeaponFromPointerEvent = (event) => {
-  if (event.button !== 0 || !offlineMatchState) {
+  if (!offlineMatchState) {
     return false;
   }
 
-  event.preventDefault();
-  event.stopPropagation();
-  return queueOneShotOfflineInput({ fire: true });
+  if (event.button === 0) {
+    event.preventDefault();
+    event.stopPropagation();
+    return queueOneShotOfflineInput({ fire: true });
+  }
+
+  if (event.button === 2) {
+    event.preventDefault();
+    event.stopPropagation();
+    return queueOneShotOfflineInput({ altFire: true });
+  }
+
+  return false;
 };
 
 const openSettings = () => {
@@ -790,6 +803,7 @@ const openOfflineMatch = () => {
   pressedMovementButtons = new Set();
   pendingLookDelta = { yawDelta: 0, pitchDelta: 0 };
   localFireQueued = false;
+  localAltFireQueued = false;
   localJumpQueued = false;
   localReloadQueued = false;
   lastLocalShotRegistered = false;
@@ -1089,6 +1103,10 @@ gameCanvas.addEventListener('click', (event) => {
   }
 
   fireLocalWeaponFromPointerEvent(event);
+});
+
+gameCanvas.addEventListener('contextmenu', (event) => {
+  event.preventDefault();
 });
 
 gameCanvas.addEventListener('mousemove', (event) => {

@@ -225,6 +225,7 @@ export function applyOfflineLocalInput(state, {
   look = { yawDelta: 0, pitchDelta: 0 },
   fire = false,
   reload = false,
+  altFire = false,
   nowMs = state.nowMs,
   seed = state.tick + 1,
 } = {}) {
@@ -259,6 +260,7 @@ export function applyOfflineLocalInput(state, {
         moving: Math.hypot(controller.velocity.x, controller.velocity.z) > 0.01,
         origin: controller.position,
         direction: Object.freeze({ x: -Math.sin(controller.view.yaw), y: 0, z: -Math.cos(controller.view.yaw) }),
+        altFire,
       });
       matchState = result.matchState;
       weaponStatesBySlotIndex = Object.freeze({ ...weaponStatesBySlotIndex, [LOCAL_PLAYER_SLOT_INDEX]: result.weaponState });

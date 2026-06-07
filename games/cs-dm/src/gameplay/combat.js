@@ -108,6 +108,7 @@ export function applyCombatShot(matchState, {
   moving = false,
   origin,
   direction = { x: 0, y: 0, z: 1 },
+  altFire = false,
 } = {}) {
   const shooter = matchState.players[shooterSlotIndex];
   if (!shooter || shooter.lifeState !== PLAYER_LIFE_STATES.ALIVE) {
@@ -123,6 +124,7 @@ export function applyCombatShot(matchState, {
     origin: shotOrigin,
     direction,
     targets: getTargetRecords(matchState, controllersBySlotIndex, shooterSlotIndex),
+    altFire,
   });
 
   if (!shotResult.ok) {

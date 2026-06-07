@@ -50,6 +50,11 @@ const weapon = ({
   spreadBase,
   spreadMove,
   pellets = 1,
+  isMelee = false,
+  altDamageClose = null,
+  altDamageFar = null,
+  altFireRate = null,
+  altRangeMax = null,
 }) => freezeWeapon({
   id,
   name,
@@ -65,10 +70,14 @@ const weapon = ({
   speedModifier,
   recoil: { pitch: recoilPitch, yaw: recoilYaw },
   spread: { base: spreadBase, moving: spreadMove },
+  isMelee,
+  altDamage: altDamageClose !== null ? { close: altDamageClose, far: altDamageFar } : null,
+  altFireRate: altFireRate ?? null,
+  altRangeMax: altRangeMax ?? null,
 });
 
 export const WEAPONS = Object.freeze({
-  KNIFE: weapon({ id: 'knife', name: 'Knife', category: WEAPON_CATEGORIES.EQUIPMENT, cost: 0, equipmentSlot: 'melee', ammoType: 'none', magazine: 0, reserveMax: 0, fireRate: 1.6, reloadMs: 0, damageClose: 55, damageFar: 55, rangeMax: 2, falloffStart: 2, speedModifier: 1, recoilPitch: 0, recoilYaw: 0, spreadBase: 0, spreadMove: 0 }),
+  KNIFE: weapon({ id: 'knife', name: 'Knife', category: WEAPON_CATEGORIES.EQUIPMENT, cost: 0, equipmentSlot: 'melee', ammoType: 'none', magazine: 0, reserveMax: 0, fireRate: 1.6, reloadMs: 0, damageClose: 20, damageFar: 17, rangeMax: 65, falloffStart: 65, speedModifier: 1, recoilPitch: 0, recoilYaw: 0, spreadBase: 0, spreadMove: 0, isMelee: true, altDamageClose: 65, altDamageFar: 55, altFireRate: 1.0, altRangeMax: 80 }),
   KEVLAR: weapon({ id: 'kevlar', name: 'Kevlar Vest', category: WEAPON_CATEGORIES.EQUIPMENT, cost: 650, equipmentSlot: 'armor', ammoType: 'none', magazine: 0, reserveMax: 0, fireRate: 0, reloadMs: 0, damageClose: 0, damageFar: 0, rangeMax: 0, falloffStart: 0, speedModifier: 1, recoilPitch: 0, recoilYaw: 0, spreadBase: 0, spreadMove: 0 }),
   KEVLAR_HELMET: weapon({ id: 'kevlar-helmet', name: 'Kevlar + Helmet', category: WEAPON_CATEGORIES.EQUIPMENT, cost: 1000, equipmentSlot: 'armor', ammoType: 'none', magazine: 0, reserveMax: 0, fireRate: 0, reloadMs: 0, damageClose: 0, damageFar: 0, rangeMax: 0, falloffStart: 0, speedModifier: 1, recoilPitch: 0, recoilYaw: 0, spreadBase: 0, spreadMove: 0 }),
   DEFUSER: weapon({ id: 'defuser', name: 'Defuse Kit', category: WEAPON_CATEGORIES.EQUIPMENT, cost: 200, equipmentSlot: 'kit', ammoType: 'none', magazine: 0, reserveMax: 0, fireRate: 0, reloadMs: 0, damageClose: 0, damageFar: 0, rangeMax: 0, falloffStart: 0, speedModifier: 1, recoilPitch: 0, recoilYaw: 0, spreadBase: 0, spreadMove: 0 }),
@@ -209,37 +218,57 @@ export const traceHitscan = ({ origin, direction, maxRange, targets = [] }) => {
   return closestHit;
 };
 
-export const fireWeapon = (weaponState, { nowMs = 0, seed = 1, moving = false, origin = { x: 0, y: 0, z: 0 }, direction = { x: 0, y: 0, z: 1 }, targets = [] } = {}) => {
+export const fireWeapon = (weaponState, { nowMs = 0, seed = 1, moving = false, origin = { x: 0, y: 0, z: 0 }, direction = { x: 0, y: 0, z: 1 }, targets = [], altFire = false } = {}) => {
   const selectedWeapon = getWeaponById(weaponState.weaponId);
 
   if (!selectedWeapon) {
     throw new Error(`Unknown weapon id: ${weaponState.weaponId}`);
   }
 
-  if (selectedWeapon.ammo.magazine === 0) {
-    return Object.freeze({ ok: false, reason: 'not-fireable', state: weaponState, shot: null });
-  }
+  // Melee weapons bypass magazine/ammo/reload checks
+  if (!selectedWeapon.isMelee) {
+    if (selectedWeapon.ammo.magazine === 0) {
+      return Object.freeze({ ok: false, reason: 'not-fireable', state: weaponState, shot: null });
+    }
 
-  if (weaponState.isReloading && nowMs < weaponState.reloadCompleteAtMs) {
-    return Object.freeze({ ok: false, reason: 'reloading', state: weaponState, shot: null });
+    if (weaponState.isReloading && nowMs < weaponState.reloadCompleteAtMs) {
+      return Object.freeze({ ok: false, reason: 'reloading', state: weaponState, shot: null });
+    }
+
+    if (weaponState.ammoInMagazine <= 0) {
+      return Object.freeze({ ok: false, reason: 'reload-required', state: weaponState, shot: null });
+    }
   }
 
   if (nowMs < weaponState.nextFireAtMs) {
     return Object.freeze({ ok: false, reason: 'cooldown', state: weaponState, shot: null });
   }
 
-  if (weaponState.ammoInMagazine <= 0) {
-    return Object.freeze({ ok: false, reason: 'reload-required', state: weaponState, shot: null });
-  }
+  // Choose alt-fire values for melee weapons
+  const useAlt = altFire && selectedWeapon.isMelee && selectedWeapon.altDamage;
+  const effectiveRangeMax = useAlt && selectedWeapon.altRangeMax ? selectedWeapon.altRangeMax : selectedWeapon.range.max;
+  const effectiveFireRate = useAlt && selectedWeapon.altFireRate ? selectedWeapon.altFireRate : selectedWeapon.fireRate;
 
   const shotIndex = weaponState.shotsFired;
   const spreadOffset = computeSpreadOffset(selectedWeapon, { seed, shotIndex, moving });
   const shotDirection = applySpreadToDirection(normalizeDirection(direction), spreadOffset);
-  const hit = traceHitscan({ origin, direction: shotDirection, maxRange: selectedWeapon.range.max, targets });
+  const hit = traceHitscan({ origin, direction: shotDirection, maxRange: effectiveRangeMax, targets });
+
+  // Compute damage: alt-fire melee uses alt damage values (flat, no falloff)
+  let damage = 0;
+  if (hit) {
+    if (useAlt) {
+      damage = selectedWeapon.altDamage.close * selectedWeapon.damage.pellets;
+    } else {
+      damage = computeDamageAtDistance(selectedWeapon, hit.distance) * selectedWeapon.damage.pellets;
+    }
+  }
+
+  // Melee weapons don't consume ammo
   const nextState = Object.freeze({
     ...weaponState,
-    ammoInMagazine: weaponState.ammoInMagazine - 1,
-    nextFireAtMs: nowMs + Math.ceil(1000 / selectedWeapon.fireRate),
+    ammoInMagazine: selectedWeapon.isMelee ? weaponState.ammoInMagazine : weaponState.ammoInMagazine - 1,
+    nextFireAtMs: nowMs + Math.ceil(1000 / effectiveFireRate),
     isReloading: false,
     reloadCompleteAtMs: 0,
     shotsFired: weaponState.shotsFired + 1,
@@ -254,7 +283,7 @@ export const fireWeapon = (weaponState, { nowMs = 0, seed = 1, moving = false, o
       direction: shotDirection,
       spreadOffset,
       hit,
-      damage: hit ? computeDamageAtDistance(selectedWeapon, hit.distance) * selectedWeapon.damage.pellets : 0,
+      damage,
     }),
   });
 };
