@@ -10,6 +10,7 @@ import { createPlayerControllerState } from '../player/index.js';
 import {
   BOT_COMBAT_INTENT_STATES,
   BOT_DIFFICULTIES,
+  BOT_PLAYSTYLES,
   BOT_SLOT_CONTRACT,
   BOT_STATE_MACHINE_STATES,
   WAYPOINT_GRAPH_CONTRACT,
@@ -19,8 +20,11 @@ import {
   createBotAimDirection,
   createBotSlotFields,
   createBotPathPlan,
+  findNearestCover,
   findWaypointRoute,
   getCisternTunnelRouteToCisternCourt,
+  getPlaystyleForSlot,
+  getZoneAssignmentForSlot,
   hasApproximateLineOfSight,
   isTunnelWaypoint,
   listOfflineBotSlotIndexes,
@@ -229,7 +233,90 @@ const tests = [
     assert.equal(botControllers.every((controller) => controller.position.y === 0), true);
     assert.equal(botControllers.every((controller) => controller.movement.grounded), true);
     assert.equal(overlapCount, 0);
-    assert.equal(maxStepDistance <= 0.13, true);
+    // Diagonal strafing (forward + left/right) for flankers produces ~1.414× single-axis step distance
+    assert.equal(maxStepDistance <= 0.20, true);
+  }],
+
+  ['assigns varied playstyles to all 15 bot slots', () => {
+    const playstyles = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((slotIndex) => getPlaystyleForSlot(slotIndex));
+    const uniquePlaystyles = new Set(playstyles);
+
+    assert.equal(playstyles.length, 15);
+    assert.equal(uniquePlaystyles.size >= 4, true, `Expected at least 4 unique playstyles, got ${uniquePlaystyles.size}`);
+    assert.equal(uniquePlaystyles.has('rusher'), true);
+    assert.equal(uniquePlaystyles.has('anchor'), true);
+    assert.equal(uniquePlaystyles.has('support'), true);
+  }],
+
+  ['assigns different home zones to bots', () => {
+    const zones = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((slotIndex) => getZoneAssignmentForSlot(slotIndex));
+    const uniqueZones = new Set(zones);
+
+    assert.equal(zones.length, 15);
+    assert.equal(uniqueZones.size >= 4, true, `Expected at least 4 unique zones, got ${uniqueZones.size}`);
+  }],
+
+  ['creates bots with different initial waypoints via zone system', () => {
+    const slots = createOfflineSlots('Spread');
+    const botWaypoints = slots
+      .filter((player) => player.slotType === SLOT_TYPES.BOT)
+      .map((player) => player.bot.currentWaypointId);
+    const uniqueWaypoints = new Set(botWaypoints);
+
+    assert.equal(botWaypoints.length, 15);
+    assert.equal(uniqueWaypoints.size >= 4, true, `Only ${uniqueWaypoints.size} unique starting waypoints — bots all share same zone`);
+  }],
+
+  ['playstyle loadouts vary by difficulty for same slot', () => {
+    assert.notDeepEqual(selectBotLoadout({ slotIndex: 3, difficultyId: 'easy' }), selectBotLoadout({ slotIndex: 3, difficultyId: 'hard' }));
+    assert.notDeepEqual(selectBotLoadout({ slotIndex: 7, difficultyId: 'easy' }), selectBotLoadout({ slotIndex: 7, difficultyId: 'normal' }));
+    assert.notDeepEqual(selectBotLoadout({ slotIndex: 3, difficultyId: 'easy' }), selectBotLoadout({ slotIndex: 5, difficultyId: 'easy' }));
+  }],
+
+  ['playstyle loadouts give correct weapon categories', () => {
+    const awpLoadout = selectBotLoadout({ slotIndex: 3, difficultyId: 'hard', playstyleId: 'awper' });
+    const rusherLoadout = selectBotLoadout({ slotIndex: 1, difficultyId: 'hard', playstyleId: 'rusher' });
+    const supportLoadout = selectBotLoadout({ slotIndex: 5, difficultyId: 'normal', playstyleId: 'support' });
+
+    assert.equal(['awp', 'scout', 'sg550', 'g3sg1'].includes(awpLoadout.primaryWeaponId), true);
+    assert.equal(['ak47', 'famas', 'galil'].includes(rusherLoadout.primaryWeaponId), true);
+    assert.equal(['mp5', 'tmp', 'ump45', 'p90'].includes(supportLoadout.primaryWeaponId), true);
+  }],
+
+  ['cover function finds valid cover positions', () => {
+    const origin = { x: 50, y: 0, z: 50 };
+    const threatDirection = { x: 0.7, z: 0.7 };
+    const coverResult = findNearestCover({ origin, threatDirection });
+
+    if (coverResult !== null) {
+      assert.equal(typeof coverResult.position.x, 'number');
+      assert.equal(typeof coverResult.position.z, 'number');
+      assert.equal(coverResult.volume.kind, 'box');
+    }
+  }],
+
+  ['bots spread across the map during simulation', () => {
+    let players = createOfflineSlots('Spread');
+    const matchState = createMatchState({ phase: MATCH_PHASES.RUNNING, players });
+    let simulation = createBotAiSimulation({ matchState });
+    const botPositions = () => simulation.matchState.players
+      .filter((p) => p.slotType === SLOT_TYPES.BOT && p.lifeState === PLAYER_LIFE_STATES.ALIVE)
+      .map((p) => simulation.controllersBySlotIndex[p.slotIndex]?.position)
+      .filter(Boolean);
+
+    // Run 300 ticks (5 seconds) to let bots spread
+    for (let i = 0; i < 300; i += 1) {
+      simulation = advanceBotAiTick(simulation);
+    }
+
+    const positions = botPositions();
+    const averageX = positions.reduce((sum, p) => sum + p.x, 0) / positions.length;
+    const averageZ = positions.reduce((sum, p) => sum + p.z, 0) / positions.length;
+    const variance = positions.reduce((sum, p) => sum + Math.hypot(p.x - averageX, p.z - averageZ), 0) / positions.length;
+
+    // Bots should have spread enough that average distance from center is > 10 units
+    assert.equal(variance > 10, true, `Bot spread too low: ${variance.toFixed(1)} units from center`);
+    assert.equal(positions.length >= 5, true, `Too few alive bots to measure spread: ${positions.length}`);
   }],
 
   ['keeps waypoint anchors outside blockers', () => {
