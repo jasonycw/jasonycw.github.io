@@ -5,7 +5,7 @@ import { MAP_COLLISION_VOLUMES, MAP_GEOMETRY_PRIMITIVES, MAP_MATERIALS } from '.
 import { buildMapRenderGeometry, mapToScenePosition } from './mapGeometry.js';
 import { PLAYER_MODEL_IDS, buildPlayerModel } from './playerModels.js';
 import { createRendererFallbackState, getSafeViewportSize, hasUsableWebGL } from './state.js';
-import { VIEWMODEL_CAMERA_ALIGNMENT, WEAPON_MODEL_LAYERS, buildWeaponLayerModel } from './weaponModels.js';
+import { VIEWMODEL_CAMERA_ALIGNMENT, WEAPON_MODEL_LAYERS, WEAPON_MODEL_REGISTRY, buildWeaponLayerModel } from './weaponModels.js';
 
 export * from './state.js';
 export * from './mapGeometry.js';
@@ -278,6 +278,8 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
   let latestMatchState = null;
   let fireFeedbackUntil = 0;
   let activeViewModelWeaponId = 'ak47';
+  let reloadAnimStartMs = 0;
+  let wasReloading = false;
 
   const updateMatchState = (matchState) => {
     latestMatchState = matchState;
@@ -304,13 +306,17 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
       if (!controller || !slot) return;
       const mapped = mapToScenePosition(controller.position);
       const feedback = matchState.visualFeedbackBySlotIndex?.[slotIndex];
-      const feedbackAgeMs = Number.isFinite(feedback?.recentDeathAtMs)
+      const deathFlash = Number.isFinite(feedback?.recentDeathAtMs)
         ? matchState.nowMs - feedback.recentDeathAtMs
-        : Number.isFinite(feedback?.recentDamageAtMs) ? matchState.nowMs - feedback.recentDamageAtMs : Number.POSITIVE_INFINITY;
+        : Number.POSITIVE_INFINITY;
+      const feedbackAgeMs = Number.isFinite(feedback?.recentDamageAtMs) && !Number.isFinite(feedback?.recentDeathAtMs)
+        ? matchState.nowMs - feedback.recentDamageAtMs
+        : deathFlash;
       const feedbackActive = feedbackAgeMs >= 0 && feedbackAgeMs < 220;
+      const deathAnimActive = deathFlash >= 0 && deathFlash < 350;
       player.position.set(mapped.x, mapped.y, mapped.z);
       player.rotation.y = controller.view?.yaw ?? player.rotation.y;
-      player.visible = slot.lifeState === 'alive';
+      player.visible = slot.lifeState === 'alive' || deathAnimActive;
       player.scale.setScalar(feedbackActive ? 1 : 0.9);
     });
 
@@ -360,14 +366,115 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
 
   let animationFrame = window.requestAnimationFrame(function tick(time) {
     const localController = latestMatchState?.controllersBySlotIndex?.[LOCAL_PLAYER_SLOT_INDEX];
-    const moving = localController ? Math.hypot(localController.velocity.x, localController.velocity.z) > 0.05 : false;
-    const bob = Math.sin(time * 0.008) * (moving ? 0.035 : 0.014);
+    const localWeaponState = latestMatchState?.weaponStatesBySlotIndex?.[LOCAL_PLAYER_SLOT_INDEX];
+    const speed = localController ? Math.hypot(localController.velocity.x, localController.velocity.z) : 0;
+    const moving = speed > 0.05;
     const pose = viewModel.userData.pose;
     const firing = time < fireFeedbackUntil;
-    const recoil = firing ? pose.firing.kickOffset.z : 0;
-    viewModel.position.set(pose.origin.x, pose.origin.y + bob, pose.origin.z + recoil);
+
+    // ---- Walking / Idle Bob ----
+    const bobFreq = moving ? 0.008 + speed * 0.004 : 0.0035;
+    const bobAmp = moving ? Math.min(0.035 + speed * 0.025, 0.07) : 0.005;
+    const bob = Math.sin(time * bobFreq) * bobAmp;
+    const bobStrafe = Math.sin(time * bobFreq * 0.67) * bobAmp * 0.4;
+
+    // ---- Reload Animation ----
+    let reloadOffset = { x: 0, y: 0, z: 0 };
+    const weaponModelData = WEAPON_MODEL_REGISTRY[activeViewModelWeaponId];
+    const reloadPath = weaponModelData?.hooks?.reloadPath;
+    if (localWeaponState?.isReloading) {
+      if (!wasReloading) {
+        reloadAnimStartMs = latestMatchState.nowMs;
+      }
+      wasReloading = true;
+
+      if (reloadPath && reloadPath.length > 0) {
+        const totalPathMs = reloadPath.reduce((sum, step) => sum + step.durationMs, 0);
+        const elapsed = Math.min(latestMatchState.nowMs - reloadAnimStartMs, totalPathMs);
+        let cumulativeMs = 0;
+        for (let i = 0; i < reloadPath.length; i++) {
+          const step = reloadPath[i];
+          if (elapsed <= cumulativeMs + step.durationMs) {
+            const t = step.durationMs > 0 ? (elapsed - cumulativeMs) / step.durationMs : 1;
+            const prevOffset = i > 0 ? reloadPath[i - 1].offset : { x: 0, y: 0, z: 0 };
+            reloadOffset = {
+              x: prevOffset.x + (step.offset.x - prevOffset.x) * t,
+              y: prevOffset.y + (step.offset.y - prevOffset.y) * t,
+              z: prevOffset.z + (step.offset.z - prevOffset.z) * t,
+            };
+            break;
+          }
+          cumulativeMs += step.durationMs;
+        }
+        if (elapsed >= totalPathMs) {
+          reloadOffset = { ...reloadPath[reloadPath.length - 1].offset };
+        }
+      }
+    } else {
+      wasReloading = false;
+    }
+
+    // ---- Fire Recoil ----
+    const kickX = firing ? pose.firing.kickOffset.x : 0;
+    const kickY = firing ? pose.firing.kickOffset.y : 0;
+    const kickZ = firing ? pose.firing.kickOffset.z : 0;
+
+    viewModel.position.set(
+      pose.origin.x + kickX + reloadOffset.x + bobStrafe,
+      pose.origin.y + bob + kickY + reloadOffset.y,
+      pose.origin.z + kickZ + reloadOffset.z,
+    );
+
+    // Fire recoil rotation — kick on fire, smooth settle
+    if (firing) {
+      viewModel.rotation.x = VIEWMODEL_CAMERA_ALIGNMENT.rotation.x - 0.018;
+      viewModel.rotation.z = VIEWMODEL_CAMERA_ALIGNMENT.rotation.z + 0.006;
+    } else {
+      viewModel.rotation.x += (VIEWMODEL_CAMERA_ALIGNMENT.rotation.x - viewModel.rotation.x) * 0.1;
+      viewModel.rotation.z += (VIEWMODEL_CAMERA_ALIGNMENT.rotation.z - viewModel.rotation.z) * 0.1;
+    }
+
+    // Muzzle flash
     const muzzleFlash = viewModel.getObjectByName('muzzleFlash');
     if (muzzleFlash) muzzleFlash.material.opacity = firing ? 0.86 : 0;
+
+    // ---- Player Model Animation ----
+    players.forEach((player, index) => {
+      if (!player.visible) return;
+      const slotIndex = index + 1;
+      const slot = latestMatchState?.matchState?.players?.[slotIndex];
+      const controller = latestMatchState?.controllersBySlotIndex?.[slotIndex];
+      if (!slot || !controller) return;
+
+      const pSpeed = Math.hypot(controller.velocity.x, controller.velocity.z);
+      const pMoving = pSpeed > 0.05;
+
+      // Death tilt — briefly rotate model on death
+      const feedback = latestMatchState?.visualFeedbackBySlotIndex?.[slotIndex];
+      const deathAgeMs = Number.isFinite(feedback?.recentDeathAtMs)
+        ? latestMatchState.nowMs - feedback.recentDeathAtMs
+        : Number.POSITIVE_INFINITY;
+      const dying = deathAgeMs >= 0 && deathAgeMs < 350;
+
+      if (dying) {
+        // Tilt backward and slightly roll
+        player.rotation.x = -0.35 + deathAgeMs * 0.001;
+      } else if (slot.lifeState === 'alive') {
+        // Smoothly return to upright when alive
+        player.rotation.x += (0 - player.rotation.x) * 0.05;
+
+        // Idle sway (gentle breathing bounce)
+        const idleBob = Math.sin(time * 0.003 + index * 2.1) * 0.005;
+
+        // Walk bob — synced to movement speed
+        const walkBob = pMoving ? Math.sin(time * 0.01 + index * 0.9) * 0.028 : 0;
+        const walkSway = pMoving ? Math.sin(time * 0.007 + index * 1.3) * 0.012 : 0;
+
+        player.position.y += idleBob + walkBob;
+        player.position.x += walkSway;
+      }
+    });
+
     renderer.render(scene, camera);
     viewModelRenderer.clear();
     viewModelRenderer.render(viewModelScene, viewModelCamera);
