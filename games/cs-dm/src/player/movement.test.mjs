@@ -109,8 +109,8 @@ const tests = [
       60,
     );
 
-    assert.equal(knife.movement.maxSpeed, 7);
-    assert.equal(awp.movement.maxSpeed, 5.46);
+    assert.equal(knife.movement.maxSpeed, 7.5);
+    assert.equal(awp.movement.maxSpeed, 6);
     assert.equal(knife.position.z < awp.position.z, true);
 
     writeEvidence('task-11-weapon-speed.txt', [
@@ -138,7 +138,7 @@ const tests = [
     assert.equal(jumping.position.y > 0, true);
     assert.equal(crouching.movement.crouching, true);
     assert.equal(crouching.movement.height, PLAYER_MOVEMENT_DEFAULTS.crouchingHeight);
-    assert.equal(crouching.movement.maxSpeed, 3.15);
+    assert.equal(crouching.movement.maxSpeed, 3.375);
 
     writeEvidence('task-11-jump-crouch.txt', [
       'T11 jump/crouch evidence',

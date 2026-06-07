@@ -7,10 +7,10 @@ const round = (value) => Number(value.toFixed(6));
 const freezeVector = (vector) => Object.freeze({ x: round(vector.x), y: round(vector.y), z: round(vector.z) });
 
 export const PLAYER_MOVEMENT_DEFAULTS = Object.freeze({
-  baseMaxSpeed: 7,
-  acceleration: 48,
+  baseMaxSpeed: 7.5,
+  acceleration: 56,
   airAcceleration: 16,
-  groundFriction: 12,
+  groundFriction: 14,
   gravity: 20,
   jumpSpeed: 6.5,
   mouseSensitivity: 0.002,
