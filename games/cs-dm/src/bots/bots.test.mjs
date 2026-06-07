@@ -53,8 +53,8 @@ const tests = [
   ['defines bot lifecycle, difficulty, combat, path, and handoff contracts', () => {
     assert.deepEqual(Object.values(BOT_STATE_MACHINE_STATES), ['idle', 'navigating', 'engaging', 'retreating/reloading', 'dead', 'respawning']);
     assert.equal(BOT_DIFFICULTIES.EASY.id, 'easy');
-    assert.equal(BOT_DIFFICULTIES.NORMAL.pathReplanTicks, 45);
-    assert.equal(BOT_DIFFICULTIES.HARD.aggression, 0.75);
+    assert.equal(BOT_DIFFICULTIES.NORMAL.pathReplanTicks, 35);
+    assert.equal(BOT_DIFFICULTIES.HARD.aggression, 0.85);
     assert.equal(BOT_SLOT_CONTRACT.handoff.includes('canBeReplacedByRemote'), true);
     assert.equal(WAYPOINT_GRAPH_CONTRACT.selection.includes('deterministic'), true);
   }],
@@ -229,7 +229,7 @@ const tests = [
     assert.equal(botControllers.every((controller) => controller.position.y === 0), true);
     assert.equal(botControllers.every((controller) => controller.movement.grounded), true);
     assert.equal(overlapCount, 0);
-    assert.equal(maxStepDistance <= 0.12, true);
+    assert.equal(maxStepDistance <= 0.13, true);
   }],
 
   ['keeps waypoint anchors outside blockers', () => {

@@ -30,9 +30,9 @@ export const BOT_COMBAT_INTENT_STATES = Object.freeze({
 });
 
 export const BOT_DIFFICULTIES = Object.freeze({
-  EASY: Object.freeze({ id: 'easy', label: 'Easy', reactionTicks: 24, aimErrorDegrees: 10, pathReplanTicks: 60, aggression: 0.35 }),
-  NORMAL: Object.freeze({ id: 'normal', label: 'Normal', reactionTicks: 14, aimErrorDegrees: 6, pathReplanTicks: 45, aggression: 0.55 }),
-  HARD: Object.freeze({ id: 'hard', label: 'Hard', reactionTicks: 8, aimErrorDegrees: 3, pathReplanTicks: 30, aggression: 0.75 }),
+  EASY: Object.freeze({ id: 'easy', label: 'Easy', reactionTicks: 20, aimErrorDegrees: 8, pathReplanTicks: 60, aggression: 0.35 }),
+  NORMAL: Object.freeze({ id: 'normal', label: 'Normal', reactionTicks: 10, aimErrorDegrees: 4, pathReplanTicks: 35, aggression: 0.65 }),
+  HARD: Object.freeze({ id: 'hard', label: 'Hard', reactionTicks: 6, aimErrorDegrees: 2, pathReplanTicks: 25, aggression: 0.85 }),
 });
 
 export const DEFAULT_BOT_DIFFICULTY_ID = BOT_DIFFICULTIES.NORMAL.id;
