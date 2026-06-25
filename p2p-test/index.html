@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serverless P2P Chat</title>
+<style>
+    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+    textarea { width: 100%; height: 80px; margin: 10px 0; font-family: monospace; }
+    button { padding: 8px 16px; margin: 5px 0; cursor: pointer; }
+    .hidden { display: none; }
+    .box { border: 1px solid #ccc; padding: 15px; border-radius: 5px; margin-top: 15px; }
+    #chatBox { height: 300px; border: 1px solid #ccc; overflow-y: auto; margin-bottom: 10px; padding: 10px; border-radius: 5px; }
+</style>
+</head>
+<body>
+
+<h2>Serverless P2P Chat</h2>
+
+<div id="roleSelection">
+    <button onclick="startHost()">I am the Host</button>
+    <button onclick="startJoin()">I am Joining</button>
+</div>
+
+<div id="hostUI" class="hidden box">
+    <h3>Host Setup</h3>
+    <p>1. Send this token to your friend:</p>
+    <textarea id="hostOffer" readonly placeholder="Generating..."></textarea>
+    <button onclick="copyToClipboard('hostOffer')">Copy Token</button>
+    
+    <p>2. Paste their reply token here and connect:</p>
+    <textarea id="hostAnswer" placeholder="Paste reply token here..."></textarea>
+    <button onclick="connectHost()">Connect</button>
+</div>
+
+<div id="joinUI" class="hidden box">
+    <h3>Join Setup</h3>
+    <p>1. Paste the Host's token here:</p>
+    <textarea id="joinOffer" placeholder="Paste host token here..."></textarea>
+    <button onclick="generateAnswer()">Generate Reply</button>
+    
+    <p>2. Send this reply token back to the Host:</p>
+    <textarea id="joinAnswer" readonly placeholder="Will appear here..."></textarea>
+    <button onclick="copyToClipboard('joinAnswer')">Copy Reply</button>
+</div>
+
+<div id="chatUI" class="hidden box">
+    <h3>Chat Room</h3>
+    <div id="chatBox"></div>
+    <input type="text" id="msgInput" placeholder="Type a message..." style="width: 70%; padding: 8px;">
+    <button onclick="sendMessage()">Send</button>
+</div>
+
+<script>
+    // Configuration using free public Google STUN servers
+    const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+    let peerConnection;
+    let dataChannel;
+
+    // --- SETUP PEER CONNECTION ---
+    function setupConnection() {
+        peerConnection = new RTCPeerConnection(config);
+        
+        peerConnection.ondatachannel = (event) => {
+            dataChannel = event.channel;
+            setupDataChannel();
+        };
+
+        peerConnection.onconnectionstatechange = () => {
+            if (peerConnection.connectionState === 'connected') {
+                document.getElementById('hostUI').classList.add('hidden');
+                document.getElementById('joinUI').classList.add('hidden');
+                document.getElementById('chatUI').classList.remove('hidden');
+                appendMessage('System', 'Connected!');
+            }
+        };
+    }
+
+    function setupDataChannel() {
+        dataChannel.onmessage = (event) => appendMessage('Peer', event.data);
+        dataChannel.onopen = () => appendMessage('System', 'Data channel open and ready.');
+    }
+
+    // --- HOST LOGIC ---
+    async function startHost() {
+        document.getElementById('roleSelection').classList.add('hidden');
+        document.getElementById('hostUI').classList.remove('hidden');
+        
+        setupConnection();
+        dataChannel = peerConnection.createDataChannel('chat');
+        setupDataChannel();
+
+        peerConnection.onicegatheringstatechange = () => {
+            // Wait until all network routes are gathered before giving the user the string
+            if (peerConnection.iceGatheringState === 'complete') {
+                const token = btoa(JSON.stringify(peerConnection.localDescription));
+                document.getElementById('hostOffer').value = token;
+            }
+        };
+
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+    }
+
+    async function connectHost() {
+        const answerToken = document.getElementById('hostAnswer').value;
+        const answer = JSON.parse(atob(answerToken));
+        await peerConnection.setRemoteDescription(answer);
+    }
+
+    // --- JOINER LOGIC ---
+    function startJoin() {
+        document.getElementById('roleSelection').classList.add('hidden');
+        document.getElementById('joinUI').classList.remove('hidden');
+        setupConnection();
+    }
+
+    async function generateAnswer() {
+        const offerToken = document.getElementById('joinOffer').value;
+        const offer = JSON.parse(atob(offerToken));
+        
+        peerConnection.onicegatheringstatechange = () => {
+            if (peerConnection.iceGatheringState === 'complete') {
+                const token = btoa(JSON.stringify(peerConnection.localDescription));
+                document.getElementById('joinAnswer').value = token;
+            }
+        };
+
+        await peerConnection.setRemoteDescription(offer);
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+    }
+
+    // --- CHAT LOGIC ---
+    function sendMessage() {
+        const input = document.getElementById('msgInput');
+        const msg = input.value;
+        if (msg && dataChannel.readyState === 'open') {
+            dataChannel.send(msg);
+            appendMessage('You', msg);
+            input.value = '';
+        }
+    }
+
+    function appendMessage(sender, text) {
+        const box = document.getElementById('chatBox');
+        box.innerHTML += `<div><strong>${sender}:</strong> ${text}</div>`;
+        box.scrollTop = box.scrollHeight;
+    }
+
+    // --- UTILS ---
+    function copyToClipboard(id) {
+        const el = document.getElementById(id);
+        el.select();
+        document.execCommand('copy');
+    }
+
+    // Allow Enter key to send message
+    document.getElementById('msgInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') sendMessage();
+    });
+</script>
+
+</body>
+</html>
