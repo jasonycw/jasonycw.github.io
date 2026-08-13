@@ -34,3 +34,24 @@ The existing screenshots show a coherent dark shell and extensive controls, but 
 ## Replacement video validation
 
 The original screen recording captured the browser window at 896x768, including browser chrome and only the upper-left portion of the game. The replacement uses Chromium's rendered page surface at 1280x720, excluding browser chrome. A three-moment contact sheet confirms a changing player position, weapon/ammo changes after firing, visible bot silhouettes and killfeed activity, and a full scoreboard overlay in the final moment. The replacement clip is `games/cs-dm/screenshots/cs-dm-gameplay-full.mp4`.
+
+## Direct CS 1.6 gameplay comparison target
+
+An analyzed CS 1.6 Dust II deathmatch recording establishes the following observable target characteristics: a narrow first-person eye-level view; a chunky low-poly weapon occupying roughly the lower-right 15–20% of the viewport; circular radar at top left; chronological killfeed at top right; health and armor at bottom left; ammo and reserve at bottom right; a simple green four-point crosshair that expands with movement and rapid fire; snappy movement with jump, crouch, and strafing; visible weapon recoil and viewmodel displacement; muzzle flash and shell ejection; bright hit blood and wall bullet decals; rapid respawn/death spectator feedback; warm desaturated sandstone materials with sharp mostly static lighting; and recognizable Dust II-inspired landmarks including A-site crates, Long A, Catwalk, and Middle double doors. Player silhouettes should read as dark tactical CT forms versus lighter desert Terrorist forms. These are clean-room observable goals, not copied assets.
+
+Reference video: https://www.youtube.com/watch?v=9AZ8tgZJj3w
+Analysis artifact: /home/ubuntu/cs16-pr17/video_9AZ8tgZJj3w_analysis_20260813_152618.md
+
+## Live comparison audit after map/model pass
+
+The live browser comparison confirms the scene is full-viewport and the desert palette is closer, but the current frame still exposes important mismatches against the CS 1.6 reference: the HUD banner remains hard-coded as SUNSPIRE YARD despite the Dust II rename; the first-person AK-47 is too blocky and black, lacks a readable wood handguard/stock silhouette, and occupies too much of the right edge; the nearby Terrorist model reads as an oversized head and rigid rectangular torso instead of a compact low-poly soldier; and spawn placement can put an NPC directly in the camera lane before combat begins. These are priority fixes before final evidence capture.
+
+The refreshed browser frame now correctly shows DUST II / MIDDLE in the top bar and a warmer, more separated desert surface palette. However, the direct CS 1.6 comparison still shows the same major blockers: the local AK viewmodel is mostly a black rectangular silhouette with too much of the weapon occluded by the nearby NPC, and the NPC’s head/torso proportions remain oversized and toy-like. The game also reports ticks=0 and botShots=0 at the first frame, so the capture must delay until simulation activity is visible and must avoid recording the spawn-protection freeze as its hero shot.
+
+The latest live build now advances correctly (ticks=34, simMs=567), confirming the earlier tick-zero issue was the missing local slot import. At the first visible frame, botShots=0 is expected while the 2-second spawn-protection window is still active, but the frame is still poor evidence because an NPC fills the center of the camera. The capture must wait past protection and deliberately move/aim into a combat lane before recording.
+
+## Final evidence capture validation
+
+The encoded clip is 1280x720, 15 seconds, and full-viewport. Its contact sheet shows the local player moving through multiple Dust II lanes, mouse-look changing the crosshair and view direction, ammo decreasing across AK-47 and Glock 18 states, active bot killfeed lines, the scoreboard/settings overlay, and the buy/settings interaction. A shot-timed frame also shows the local player at 0 health with `ELIMINATED BY Bishop · RESPAWN IN 1s`, multiple live killfeed entries, a visible enemy in the lane, and a CT model crossing the right side. A focused shot frame with muzzle flash and a confirmed local NPC kill should still be captured before final PR evidence replacement.
+
+The focused capture improves the comparison: a representative frame shows a visible enemy at the end of the lane aligned near the crosshair, the AK-47 ammo has dropped from 30 to 26 during the opening burst, and the bot killfeed is active at the top right. The capture still does not guarantee a visually obvious muzzle-flash frame or local confirmed kill in the contact sheet because CDP screenshots sample after the short flash window and the player is moving past the target. Final evidence should use a dedicated slower firing/aim segment or the hitmarker/killfeed state as proof of the local combat action.
