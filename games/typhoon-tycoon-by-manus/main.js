@@ -80,7 +80,8 @@ function initializeUI() {
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-document.addEventListener('mousedown', (event) => {
+// Gemini Feedback: Attach listener to domElement to prevent UI clicks from placing towers
+renderer.domElement.addEventListener('mousedown', (event) => {
     if (gameManager.state !== 'playing') return;
 
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
