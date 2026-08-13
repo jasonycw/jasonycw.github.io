@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 import { LOCAL_PLAYER_SLOT_INDEX } from '../config/index.js';
 import { MAP_COLLISION_VOLUMES, MAP_GEOMETRY_PRIMITIVES, MAP_MATERIALS } from '../map/index.js';
-import { MAP_SCENE_CENTER, MAP_SCENE_SCALE, buildMapRenderGeometry, mapToScenePosition } from './mapGeometry.js';
+import { buildMapRenderGeometry, mapToScenePosition } from './mapGeometry.js';
 import { PLAYER_MODEL_IDS, buildPlayerModel } from './playerModels.js';
 import { createRendererFallbackState, getSafeViewportSize, hasUsableWebGL } from './state.js';
 import { VIEWMODEL_CAMERA_ALIGNMENT, WEAPON_MODEL_LAYERS, WEAPON_MODEL_REGISTRY, buildWeaponLayerModel } from './weaponModels.js';
@@ -236,37 +236,6 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
     scene.add(createMapMesh(THREE, blocker, mapMaterials));
   });
 
-  // Pre-compute scene-space blockers for 2D occlusion checks
-  const sceneOcclusionBlockers = MAP_COLLISION_VOLUMES.map((vol) => ({
-    center: {
-      x: (vol.center.x - MAP_SCENE_CENTER) / MAP_SCENE_SCALE,
-      z: (vol.center.z - MAP_SCENE_CENTER) / MAP_SCENE_SCALE,
-    },
-    halfSize: {
-      x: (vol.size.width / 2) / MAP_SCENE_SCALE,
-      z: (vol.size.depth / 2) / MAP_SCENE_SCALE,
-    },
-  }));
-  const isLineOfSightBlocked = (origin, target) => {
-    const dx = target.x - origin.x;
-    const dz = target.z - origin.z;
-    const dist = Math.hypot(dx, dz);
-    if (dist < 0.5) return false;
-    const steps = Math.max(2, Math.ceil(dist / 0.4));
-    for (let step = 1; step < steps; step += 1) {
-      const t = step / steps;
-      const px = origin.x + dx * t;
-      const pz = origin.z + dz * t;
-      for (const blocker of sceneOcclusionBlockers) {
-        if (Math.abs(px - blocker.center.x) <= blocker.halfSize.x &&
-            Math.abs(pz - blocker.center.z) <= blocker.halfSize.z) {
-          return true;
-        }
-      }
-    }
-    return false;
-  };
-
   const players = Array.from({ length: 15 }, (_, index) => createPlayerWithWeapon(
     THREE,
     index % 2 === 0 ? PLAYER_MODEL_IDS.T_RAIDER : PLAYER_MODEL_IDS.CT_RANGER,
@@ -311,88 +280,6 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
   let activeViewModelWeaponId = 'ak47';
   let reloadAnimStartMs = 0;
   let wasReloading = false;
-  const playerOcclusionState = new WeakMap();
-
-  const ensurePlayerOcclusionCache = (player) => {
-    const existing = playerOcclusionState.get(player);
-    if (existing) return existing;
-    const materials = new Map();
-    player.traverse((child) => {
-      if (!child.material) return;
-      const isArray = Array.isArray(child.material);
-      const list = isArray ? child.material : [child.material];
-      const clones = list.map((source) => {
-        if (materials.has(source)) return source;
-        const clone = source.clone();
-        materials.set(clone, {
-          transparent: clone.transparent,
-          opacity: clone.opacity,
-          depthTest: clone.depthTest,
-          depthWrite: clone.depthWrite,
-          color: clone.color ? clone.color.clone() : null,
-          emissive: clone.emissive ? clone.emissive.clone() : null,
-          emissiveIntensity: clone.emissiveIntensity ?? 0,
-          renderOrder: child.renderOrder ?? 0,
-        });
-        return clone;
-      });
-      child.material = isArray ? clones : clones[0];
-    });
-    const state = { isOccluded: false, materials };
-    playerOcclusionState.set(player, state);
-    return state;
-  };
-
-  const applyPlayerOcclusionStyle = (player, occluded) => {
-    const state = ensurePlayerOcclusionCache(player);
-    if (state.isOccluded === occluded) return;
-    state.isOccluded = occluded;
-    player.traverse((child) => {
-      if (!child.material) return;
-      const list = Array.isArray(child.material) ? child.material : [child.material];
-      list.forEach((material) => {
-        const original = state.materials.get(material);
-        if (!original) return;
-        if (occluded) {
-          material.transparent = true;
-          material.opacity = 0.4;
-          material.depthTest = false;
-          material.depthWrite = false;
-          if (material.color && original.color) {
-            material.color.setRGB(
-              Math.min(1, original.color.r * 0.55 + 0.35),
-              original.color.g * 0.42,
-              original.color.b * 0.42,
-            );
-          }
-          if (material.emissive) {
-            material.emissive.setRGB(0.38, 0.06, 0.06);
-            material.emissiveIntensity = 0.55;
-          }
-        } else {
-          material.transparent = original.transparent;
-          material.opacity = original.opacity;
-          material.depthTest = original.depthTest;
-          material.depthWrite = original.depthWrite;
-          if (material.color && original.color) {
-            material.color.copy(original.color);
-          }
-          if (material.emissive && original.emissive) {
-            material.emissive.copy(original.emissive);
-            material.emissiveIntensity = original.emissiveIntensity;
-          }
-        }
-        material.needsUpdate = true;
-      });
-      const first = list[0];
-      const original = state.materials.get(first);
-      if (occluded) {
-        child.renderOrder = 10;
-      } else if (original) {
-        child.renderOrder = original.renderOrder;
-      }
-    });
-  };
 
   const updateMatchState = (matchState) => {
     latestMatchState = matchState;
@@ -431,15 +318,6 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
       player.rotation.y = controller.view?.yaw ?? player.rotation.y;
       player.visible = slot.lifeState === 'alive' || deathAnimActive;
       player.scale.setScalar(feedbackActive ? 1 : 0.9);
-    });
-
-    // Occlusion — render enemies behind walls at partial visibility (x-ray tint)
-    const camPos = { x: camera.position.x, z: camera.position.z };
-    players.forEach((player) => {
-      if (!player.visible) return;
-      const playerPos = { x: player.position.x, z: player.position.z };
-      const occluded = isLineOfSightBlocked(camPos, playerPos);
-      applyPlayerOcclusionStyle(player, occluded);
     });
 
     if (matchState.lastLocalShot) {
