@@ -118,6 +118,7 @@ const MAP_ZONES = Object.freeze({
 });
 
 const ZONE_LIST = Object.values(MAP_ZONES);
+const BOT_COMBAT_CHASE_RANGE = 92;
 
 // Bi-directional waypoint → zone lookup
 const WAYPOINT_TO_ZONE = Object.freeze(
@@ -738,6 +739,9 @@ const createRouteTargetPosition = (bot) => bot.route[Math.min(bot.movement?.rout
   ?? WAYPOINTS_BY_ID[bot.currentWaypointId]?.position;
 
 const getBotTargetPosition = (bot) => {
+  if (bot.combatIntent?.targetPosition && bot.combatIntent.state !== BOT_COMBAT_INTENT_STATES.TAKING_COVER) {
+    return bot.combatIntent.targetPosition;
+  }
   if (bot.coverPosition && bot.combatIntent.state === BOT_COMBAT_INTENT_STATES.TAKING_COVER) {
     return bot.coverPosition;
   }
@@ -827,9 +831,11 @@ const getMoveButtons = (bot, slotIndex, tick) => {
     return shouldCrouch ? ['forward', 'crouch'] : ['forward'];
   }
 
-  // Not navigating — stand still
+  // Engaging bots continue closing distance toward a remembered enemy position.
+  const pursuingTarget = bot.combatIntent?.targetPosition && bot.combatIntent.state !== BOT_COMBAT_INTENT_STATES.NONE;
   if (bot.state !== BOT_STATE_MACHINE_STATES.NAVIGATING
-    && bot.state !== BOT_STATE_MACHINE_STATES.RETREATING_RELOADING) {
+    && bot.state !== BOT_STATE_MACHINE_STATES.RETREATING_RELOADING
+    && !pursuingTarget) {
     return [];
   }
 
@@ -954,7 +960,8 @@ const advanceBotCombat = ({ state, slotIndex, bot, nowMs, tick, blockers }) => {
   const playstyle = BOT_PLAYSTYLES[currentBot.playstyleId] ?? BOT_PLAYSTYLES.support;
   const effectiveReactionTicks = Math.max(1, currentBot.difficulty.reactionTicks + (playstyle.reactionTicksBonus ?? 0));
 
-  const visibleTarget = chooseVisibleBotTarget({
+  const origin = getControllerPosition(state.controllersBySlotIndex, slotIndex);
+  let visibleTarget = chooseVisibleBotTarget({
     matchState,
     controllersBySlotIndex: state.controllersBySlotIndex,
     slotIndex,
@@ -964,13 +971,37 @@ const advanceBotCombat = ({ state, slotIndex, bot, nowMs, tick, blockers }) => {
   });
 
   if (!visibleTarget) {
-    if (currentBot.combatIntent.state !== BOT_COMBAT_INTENT_STATES.NONE) {
+    const nearestEnemy = matchState.players
+      .filter((candidate) => candidate.slotIndex !== slotIndex
+        && candidate.lifeState === PLAYER_LIFE_STATES.ALIVE
+        && candidate.spawnProtectionUntilMs <= nowMs
+        && state.controllersBySlotIndex[candidate.slotIndex])
+      .map((candidate) => {
+        const position = getControllerPosition(state.controllersBySlotIndex, candidate.slotIndex);
+        return { candidate, position, distance: distance2d(origin, position) };
+      })
+      .filter((entry) => entry.distance <= BOT_COMBAT_CHASE_RANGE)
+      .sort((first, second) => first.distance - second.distance)[0];
+
+    if (nearestEnemy) {
+      visibleTarget = Object.freeze({
+        slotIndex: nearestEnemy.candidate.slotIndex,
+        position: freezeVector(nearestEnemy.position),
+        distance: round(nearestEnemy.distance),
+      });
+    }
+  }
+
+  if (!visibleTarget) {
+    if (currentBot.combatIntent.state !== BOT_COMBAT_INTENT_STATES.NONE || currentBot.combatIntent.targetPosition) {
       currentBot = Object.freeze({
         ...currentBot,
+        state: BOT_STATE_MACHINE_STATES.NAVIGATING,
         coverPosition: null,
         combatIntent: Object.freeze({
           state: BOT_COMBAT_INTENT_STATES.NONE,
           targetSlotIndex: null,
+          targetPosition: null,
           lastSeenTick: null,
           desiredRange: 18,
           targetAcquiredTick: null,
@@ -983,8 +1014,7 @@ const advanceBotCombat = ({ state, slotIndex, bot, nowMs, tick, blockers }) => {
   const targetAcquiredTick = currentBot.combatIntent.targetSlotIndex === visibleTarget.slotIndex
     ? currentBot.combatIntent.targetAcquiredTick ?? tick
     : tick;
-
-  const origin = getControllerPosition(state.controllersBySlotIndex, slotIndex);
+  currentBot = Object.freeze({ ...currentBot, state: BOT_STATE_MACHINE_STATES.ENGAGING });
   const threatDirection = normalize2d({
     x: origin.x - visibleTarget.position.x,
     z: origin.z - visibleTarget.position.z,
@@ -1008,6 +1038,7 @@ const advanceBotCombat = ({ state, slotIndex, bot, nowMs, tick, blockers }) => {
         combatIntent: Object.freeze({
           state: BOT_COMBAT_INTENT_STATES.TAKING_COVER,
           targetSlotIndex: visibleTarget.slotIndex,
+          targetPosition: freezeVector(visibleTarget.position),
           lastSeenTick: tick,
           desiredRange: Math.min(visibleTarget.distance, selectedWeapon?.range.falloffStart ?? playstyle.engagementRange),
           targetAcquiredTick,
@@ -1029,6 +1060,7 @@ const advanceBotCombat = ({ state, slotIndex, bot, nowMs, tick, blockers }) => {
       combatIntent: Object.freeze({
         state: BOT_COMBAT_INTENT_STATES.ACQUIRING_TARGET,
         targetSlotIndex: visibleTarget.slotIndex,
+        targetPosition: freezeVector(visibleTarget.position),
         lastSeenTick: tick,
         desiredRange: Math.min(visibleTarget.distance, selectedWeapon?.range.falloffStart ?? playstyle.engagementRange),
         targetAcquiredTick,
@@ -1045,6 +1077,7 @@ const advanceBotCombat = ({ state, slotIndex, bot, nowMs, tick, blockers }) => {
         ...currentBot.combatIntent,
         state: BOT_COMBAT_INTENT_STATES.ACQUIRING_TARGET,
         targetSlotIndex: visibleTarget.slotIndex,
+        targetPosition: freezeVector(visibleTarget.position),
         lastSeenTick: tick,
         targetAcquiredTick,
       }),
@@ -1105,6 +1138,7 @@ const advanceBotCombat = ({ state, slotIndex, bot, nowMs, tick, blockers }) => {
         ...currentBot.combatIntent,
         state: BOT_COMBAT_INTENT_STATES.HOLDING_ANGLE,
         targetSlotIndex: visibleTarget.slotIndex,
+        targetPosition: freezeVector(visibleTarget.position),
         lastSeenTick: tick,
         targetAcquiredTick,
       }),
