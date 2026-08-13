@@ -71,7 +71,43 @@ export class Map {
         }
         
         this.createScenery();
+        this.createSeaFoam();
         this.isReady = true;
+    }
+
+    createSeaFoam() {
+        this.foams = [];
+        const foamGeom = new THREE.PlaneGeometry(2, 2);
+        const foamMat = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.2,
+            depthWrite: false
+        });
+
+        for (let i = 0; i < 50; i++) {
+            const foam = new THREE.Mesh(foamGeom, foamMat);
+            const x = (Math.random() - 0.5) * Config.WORLD.SIZE;
+            const z = (Math.random() - 0.5) * Config.WORLD.SIZE;
+            foam.position.set(x, 0.02, z);
+            foam.rotation.x = -Math.PI / 2;
+            foam.scale.setScalar(0.5 + Math.random());
+            this.scene.add(foam);
+            this.foams.push({
+                mesh: foam,
+                speed: 0.5 + Math.random(),
+                offset: Math.random() * Math.PI * 2
+            });
+        }
+    }
+
+    update(dt, time) {
+        if (!this.foams) return;
+        this.foams.forEach(f => {
+            f.mesh.position.x += f.speed * dt * 0.2;
+            if (f.mesh.position.x > Config.WORLD.SIZE / 2) f.mesh.position.x = -Config.WORLD.SIZE / 2;
+            f.mesh.material.opacity = 0.1 + Math.sin(time * 0.002 + f.offset) * 0.1;
+        });
     }
 
     createScenery() {

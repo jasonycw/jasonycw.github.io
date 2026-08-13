@@ -45,6 +45,7 @@ export class Game {
 
     update(dt, currentTime) {
         this.effects.update(dt);
+        this.map.update(dt, currentTime);
         if (this.state !== 'playing') return;
 
         // Passive Income
