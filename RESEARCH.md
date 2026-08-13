@@ -30,3 +30,7 @@ The visual and pacing target should be validated against public no-commentary CS
 ## Current branch visual audit
 
 The existing screenshots show a coherent dark shell and extensive controls, but the presentation reads as a tall diagnostics page rather than a game. The match view has a dark empty viewport, sparse HUD, placeholder-like scoreboard, and a visible pointer-lock warning. The menu is a narrow centered dashboard with modern rounded cards and blue buttons, not the compact utilitarian 4:3 CS 1.6 menu language. The next pass should prioritize a visibly playable canvas: a stylized dust/industrial arena, a first-person weapon silhouette, crosshair, radar, killfeed, ammo/health/armor readouts, active targets, muzzle flashes, hit markers, and a compact in-match scoreboard overlay. It should retain the existing accessible shell and tests while reducing the feeling of a placeholder/debug screen.
+
+## Replacement video validation
+
+The original screen recording captured the browser window at 896x768, including browser chrome and only the upper-left portion of the game. The replacement uses Chromium's rendered page surface at 1280x720, excluding browser chrome. A three-moment contact sheet confirms a changing player position, weapon/ammo changes after firing, visible bot silhouettes and killfeed activity, and a full scoreboard overlay in the final moment. The replacement clip is `games/cs-dm/screenshots/cs-dm-gameplay-full.mp4`.

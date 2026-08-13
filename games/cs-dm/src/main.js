@@ -77,6 +77,7 @@ const audioVolume = document.getElementById('audio-volume');
 const audioStatus = document.getElementById('audio-status');
 const matchAudioToggle = document.getElementById('match-audio-toggle');
 const matchStageNotice = document.getElementById('match-stage-notice');
+const matchStageKillcam = document.getElementById('match-stage-killcam');
 const matchStageHitmarker = document.querySelector('.match-stage__hitmarker');
 
 const mainButtons = [offlineStartButton, hostGameButton, joinGameButton];
@@ -463,9 +464,21 @@ const renderOfflineHud = () => {
     const localPlayer = offlineMatchState.matchState.players[offlineMatchState.matchState.localSlotIndex];
     const isProtected = localPlayer.spawnProtectionUntilMs > offlineMatchState.nowMs;
     const isDead = localPlayer.lifeState !== 'alive';
+    const killer = Number.isInteger(localPlayer.killedBySlotIndex)
+      ? offlineMatchState.matchState.players[localPlayer.killedBySlotIndex]
+      : null;
+    const respawnSeconds = Number.isFinite(localPlayer.respawnAtMs)
+      ? Math.max(0, Math.ceil((localPlayer.respawnAtMs - offlineMatchState.nowMs) / 1000))
+      : 0;
     setTextContent(matchStageNotice, isDead ? 'RESPAWNING' : isProtected ? 'SPAWN PROTECTED' : 'FREE FOR ALL');
     matchStageNotice.classList.toggle('match-stage__notice--protected', isProtected);
     matchStageNotice.classList.toggle('match-stage__notice--danger', isDead);
+    if (matchStageKillcam) {
+      matchStageKillcam.hidden = !isDead;
+      setTextContent(matchStageKillcam, isDead
+        ? `ELIMINATED BY ${killer?.name ?? 'UNKNOWN'} · RESPAWN IN ${respawnSeconds}s`
+        : '');
+    }
   }
   if (matchStageHitmarker) {
     const localShotHit = Boolean(offlineMatchState.lastLocalShot?.hit);

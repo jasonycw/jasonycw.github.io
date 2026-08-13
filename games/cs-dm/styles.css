@@ -1372,3 +1372,27 @@ body.in-game-settings-open .overlay-card {
 .match-stage__notice--protected { border-color: rgba(142,219,119,.5); color: #b8df9d; }
 .match-stage__notice--danger { border-color: rgba(220,86,62,.58); color: #ef9b83; }
 @keyframes csdm-hitmarker { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.65); } 22% { opacity: 1; transform: translate(-50%, -50%) scale(1.12); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1); } }
+
+
+.match-stage__killcam {
+  position: absolute;
+  z-index: 9;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: min(520px, 80vw);
+  padding: 14px 22px;
+  border-top: 1px solid rgba(229,94,67,.7);
+  border-bottom: 1px solid rgba(229,94,67,.7);
+  background: linear-gradient(90deg, transparent, rgba(73,22,18,.78) 18%, rgba(73,22,18,.78) 82%, transparent);
+  color: #f2b09b;
+  font: 700 13px/1.4 "Lucida Console", "Courier New", monospace;
+  letter-spacing: .16em;
+  text-align: center;
+  text-shadow: 0 2px 3px #000;
+  pointer-events: none;
+  animation: csdm-killcam-in 220ms ease-out both;
+}
+
+.match-stage__killcam[hidden] { display: none; }
+@keyframes csdm-killcam-in { from { opacity: 0; transform: translate(-50%, -50%) scale(1.08); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
