@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 const _direction = new THREE.Vector3(); 
-const _firePos = new THREE.Vector3(); // Gemini Feedback: Pre-allocated scratch vector for fire position
+const _firePos = new THREE.Vector3(); 
 
 export class Projectile {
     constructor(scene, startPos, target, damage, speed, color) {
@@ -43,7 +43,6 @@ export class Projectile {
         if (!this.alive) return;
         this.alive = false;
         this.scene.remove(this.mesh);
-        // Gemini Feedback: Dispose resources to prevent memory leaks
         if (this.mesh.geometry) this.mesh.geometry.dispose();
         if (this.mesh.material) this.mesh.material.dispose();
     }
@@ -93,15 +92,14 @@ export class Tower {
         this.mesh.add(this.rangeIndicator);
     }
 
+    // Gemini Feedback: Return a single projectile instead of an array to reduce allocations
     update(deltaTime, enemies, currentTime) {
-        const newProjectiles = [];
-        
         if (currentTime - this.lastFireTime > 1000 / this.config.attackSpeed) {
             const target = this.findTarget(enemies);
             if (target) {
-                // Gemini Feedback: Use pre-allocated vector for fire position
                 _firePos.set(this.position.x, 15, this.position.z);
-                const projectile = new Projectile(
+                this.lastFireTime = currentTime;
+                return new Projectile(
                     this.scene,
                     _firePos,
                     target,
@@ -109,12 +107,9 @@ export class Tower {
                     this.config.projectileSpeed || 100,
                     this.config.color
                 );
-                newProjectiles.push(projectile);
-                this.lastFireTime = currentTime;
             }
         }
-
-        return newProjectiles;
+        return null;
     }
 
     findTarget(enemies) {
@@ -136,7 +131,6 @@ export class Tower {
 
     remove() {
         this.scene.remove(this.mesh);
-        // Gemini Feedback: Traverse and dispose all resources
         this.mesh.traverse(obj => {
             if (obj.geometry) obj.geometry.dispose();
             if (obj.material) {
