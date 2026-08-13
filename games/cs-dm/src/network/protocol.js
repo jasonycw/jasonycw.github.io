@@ -346,7 +346,9 @@ export function createSnapshotDisplayBuffer(previousSnapshot, nextSnapshot, inte
         y: previousPlayer.position.y + (nextPlayer.position.y - previousPlayer.position.y) * clampedAlpha,
         z: previousPlayer.position.z + (nextPlayer.position.z - previousPlayer.position.z) * clampedAlpha,
       })
-      : freezeVector({ x: 0, y: 0, z: 0 });
+      : isPlainRecord(nextPlayer.position) && Number.isFinite(nextPlayer.position.x) && Number.isFinite(nextPlayer.position.y) && Number.isFinite(nextPlayer.position.z)
+        ? freezeVector(nextPlayer.position)
+        : freezeVector({ x: 0, y: 0, z: 0 });
 
     return Object.freeze({
       slotIndex: nextPlayer.slotIndex,
