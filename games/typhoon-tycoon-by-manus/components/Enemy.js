@@ -43,11 +43,22 @@ export class Enemy {
         }
         this.group.add(this.vortex);
         
-        // Central core
-        const coreGeom = new THREE.OctahedronGeometry(0.4);
-        const coreMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x00ffff });
+        // Central core: A spinning diamond with glow
+        const coreGeom = new THREE.OctahedronGeometry(0.5);
+        const coreMat = new THREE.MeshStandardMaterial({ 
+            color: 0xffffff, 
+            emissive: 0x00ffff,
+            emissiveIntensity: 2,
+            metalness: 1,
+            roughness: 0
+        });
         this.core = new THREE.Mesh(coreGeom, coreMat);
         this.group.add(this.core);
+        
+        // Add a point light to the typhoon
+        this.light = new THREE.PointLight(0x00ffff, 2, 5);
+        this.light.position.y = 1;
+        this.group.add(this.light);
 
         this.scene.add(this.group);
         this.createHealthBar();

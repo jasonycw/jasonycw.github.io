@@ -44,6 +44,44 @@ export class Map {
 
         // Initialize Grid and Hitarea
         await this.initializeGrid();
+        this.createScenery();
+    }
+
+    createScenery() {
+        const treeGeom = new THREE.ConeGeometry(0.2, 0.5, 8);
+        const treeMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32 });
+        const trunkGeom = new THREE.CylinderGeometry(0.05, 0.05, 0.2);
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5d4037 });
+
+        const buildingGeom = new THREE.BoxGeometry(0.4, 0.8, 0.4);
+        const buildingMat = new THREE.MeshStandardMaterial({ color: 0x78909c });
+
+        // Randomly place trees and buildings on land
+        this.grid.forEach(cell => {
+            if (cell.isLand && Math.random() > 0.6) {
+                const count = Math.floor(Math.random() * 3) + 1;
+                for (let i = 0; i < count; i++) {
+                    const ox = (Math.random() - 0.5) * 1.5;
+                    const oz = (Math.random() - 0.5) * 1.5;
+                    
+                    if (Math.random() > 0.3) {
+                        const tree = new THREE.Group();
+                        const leaves = new THREE.Mesh(treeGeom, treeMat);
+                        leaves.position.y = 0.35;
+                        const trunk = new THREE.Mesh(trunkGeom, trunkMat);
+                        trunk.position.y = 0.1;
+                        tree.add(leaves);
+                        tree.add(trunk);
+                        tree.position.set(cell.wx + ox, 0, cell.wz + oz);
+                        this.scene.add(tree);
+                    } else {
+                        const b = new THREE.Mesh(buildingGeom, buildingMat);
+                        b.position.set(cell.wx + ox, 0.4, cell.wz + oz);
+                        this.scene.add(b);
+                    }
+                }
+            }
+        });
     }
 
     async initializeGrid() {

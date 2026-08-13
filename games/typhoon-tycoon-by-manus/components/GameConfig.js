@@ -88,6 +88,33 @@ export const GameConfig = {
             attackSpeed: 0.5,
             color: 0xff9800,
             description: 'High damage and long range.'
+        },
+        Nuclear: {
+            name: 'Nuclear Plant',
+            cost: 5000,
+            powerGen: 100,
+            powerUsage: 0,
+            isLandOnly: true,
+            color: 0xccff00,
+            description: 'Massive power generation.'
+        },
+        Uni: {
+            name: 'University',
+            cost: 3000,
+            powerGen: 0,
+            powerUsage: 5,
+            isLandOnly: true,
+            color: 0x9c27b0,
+            description: 'Increases passive income.'
+        },
+        Research: {
+            name: 'Research Lab',
+            cost: 4000,
+            powerGen: 0,
+            powerUsage: 10,
+            isLandOnly: true,
+            color: 0x3f51b5,
+            description: 'Increases tower efficiency.'
         }
     }
 };

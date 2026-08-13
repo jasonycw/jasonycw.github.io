@@ -31,6 +31,12 @@ export class Tower {
             headGeom = new THREE.CylinderGeometry(0.2, 0.4, 1, 8);
         } else if (this.type === 'FreezeTower') {
             headGeom = new THREE.OctahedronGeometry(0.5);
+        } else if (this.type === 'Nuclear') {
+            headGeom = new THREE.CylinderGeometry(0.6, 0.8, 1.5, 16);
+        } else if (this.type === 'Uni') {
+            headGeom = new THREE.TorusKnotGeometry(0.4, 0.1, 64, 8);
+        } else if (this.type === 'Research') {
+            headGeom = new THREE.IcosahedronGeometry(0.6);
         } else {
             headGeom = new THREE.TorusGeometry(0.4, 0.1, 8, 16);
         }

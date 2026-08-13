@@ -41,7 +41,14 @@ export class GameManager {
         // Passive Income
         this.incomeTimer += dt;
         if (this.incomeTimer >= 1) {
-            this.money += Math.floor(this.hsi / 1000) * 2 + GameConfig.player.passiveIncome;
+            let income = Math.floor(this.hsi / 1000) * 2 + GameConfig.player.passiveIncome;
+            
+            // Bonuses from buildings
+            const uniCount = this.towers.filter(t => t.type === 'Uni').length;
+            const researchCount = this.towers.filter(t => t.type === 'Research').length;
+            income += uniCount * 10;
+            this.money += income;
+            
             this.incomeTimer = 0;
             this.updateUI();
         }
