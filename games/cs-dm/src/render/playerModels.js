@@ -191,9 +191,14 @@ export function buildPlayerModel(THREE, modelId) {
     states: PLAYER_MODEL_STATE_IDS,
   });
 
+  const materialsCache = new Map();
   for (const part of variant.parts) {
     const geometry = createGeometry(THREE, part);
-    const material = new THREE.MeshStandardMaterial({ color: variant.palette[part.colorToken], roughness: 0.9 });
+    let material = materialsCache.get(part.colorToken);
+    if (!material) {
+      material = new THREE.MeshStandardMaterial({ color: variant.palette[part.colorToken], roughness: 0.9 });
+      materialsCache.set(part.colorToken, material);
+    }
     const mesh = new THREE.Mesh(geometry, material);
     applyTransform(mesh, part);
     group.add(mesh);
