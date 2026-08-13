@@ -342,12 +342,12 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
     });
 
     if (matchState.lastLocalShot) {
-      fireFeedbackUntil = performance.now() + 95;
+      fireFeedbackUntil = performance.now() + 160;
     }
   };
 
   const triggerFireFeedback = () => {
-    fireFeedbackUntil = performance.now() + 95;
+    fireFeedbackUntil = performance.now() + 160;
   };
 
   const onResize = () => {
