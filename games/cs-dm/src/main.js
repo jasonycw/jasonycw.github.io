@@ -1,5 +1,5 @@
 ﻿import { INPUT_BUTTONS, validatePlayerName } from './core/index.js';
-import { getWeaponById } from './config/index.js';
+import { LOCAL_PLAYER_SLOT_INDEX, getWeaponById } from './config/index.js';
 import { AudioEvent, createAudioController } from './audio/index.js';
 import { OFFLINE_TICK_RATE, advanceOfflineMatchTick, buyOfflineWeapon, createOfflineMatch, deriveOfflineMatchHud, reloadOfflineWeapon, summarizeOfflinePerformance, switchOfflineWeaponSlot } from './gameplay/index.js';
 import { DEFAULT_MOUSE_SETTINGS, InputAction, createDefaultBindingMap, getConfiguredMouseLookDelta, getLiveBindingCandidates, getMouseSensitivityPercent, normalizeMouseSettings, readStoredKeybindings, readStoredMouseSettings, readStoredPlayerName, writeStoredKeybindings, writeStoredMouseSettings, writeStoredPlayerName } from './input/index.js';
