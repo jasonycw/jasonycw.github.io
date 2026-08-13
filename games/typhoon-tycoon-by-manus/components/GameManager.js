@@ -66,9 +66,12 @@ export class GameManager {
             }
         }
 
-        // Gemini Feedback: Simplified projectile collection
+        // Gemini Feedback: Handle single projectile return
         for (const tower of this.towers) {
-            this.projectiles.push(...tower.update(deltaTime, this.enemies, currentTime));
+            const projectile = tower.update(deltaTime, this.enemies, currentTime);
+            if (projectile) {
+                this.projectiles.push(projectile);
+            }
         }
 
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
