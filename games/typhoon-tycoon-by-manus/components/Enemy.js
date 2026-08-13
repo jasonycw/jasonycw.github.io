@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GameConfig } from './GameConfig.js';
 
-// Gemini Feedback: Shared resources to avoid per-instance allocation
+// Shared resources to avoid per-instance allocation
 const enemyGeometry = new THREE.ConeGeometry(5, 15, 8);
 const enemyMaterial = new THREE.MeshPhongMaterial({ color: 0xFF4500 });
 const barGeometry = new THREE.PlaneGeometry(10, 1.2);
@@ -36,9 +36,14 @@ export class Enemy {
     }
 
     createMesh() {
-        this.mesh = new THREE.Mesh(enemyGeometry, enemyMaterial);
+        // Gemini Feedback: Use a Group to allow cone rotation while keeping health bars stable
+        this.mesh = new THREE.Group();
         this.mesh.position.copy(this.path[0]);
         this.mesh.position.y = 7.5;
+
+        this.cone = new THREE.Mesh(enemyGeometry, enemyMaterial);
+        this.mesh.add(this.cone);
+
         this.scene.add(this.mesh);
 
         this.createHealthBar();
@@ -68,7 +73,6 @@ export class Enemy {
             this.progress = 0;
 
             if (this.pathIndex >= this.path.length - 1) {
-                // Gemini Feedback: Use die() for consistency
                 this.die();
                 return true;
             }
@@ -85,7 +89,10 @@ export class Enemy {
             this.healthBarFg.quaternion.copy(camera.quaternion);
         }
 
-        this.mesh.rotation.y += deltaTime * 5;
+        // Gemini Feedback: Rotate only the cone mesh
+        if (this.cone) {
+            this.cone.rotation.y += deltaTime * 5;
+        }
 
         return false;
     }
@@ -95,6 +102,8 @@ export class Enemy {
         const healthRatio = Math.max(0, this.hp / this.maxHP);
         this.healthBarFg.scale.x = healthRatio;
         this.healthBarFg.position.x = (healthRatio - 1) * 5;
+        // Gemini Feedback: Hide bar when health is 0
+        this.healthBarFg.visible = healthRatio > 0;
 
         if (this.hp <= 0 && this.alive) {
             this.die();
@@ -107,9 +116,7 @@ export class Enemy {
         if (!this.alive) return;
         this.alive = false;
         this.scene.remove(this.mesh);
-        // Gemini Feedback: Resources are shared, so we don't dispose them here.
-        // If they were instance-specific, we would traverse and dispose.
-        // However, the mesh itself should be cleared from memory.
+        // Note: Geometries and materials are shared, so we don't dispose them here.
     }
 
     getPosition() {
