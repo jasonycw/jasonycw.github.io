@@ -26,25 +26,25 @@ const repoRoot = path.resolve(here, '..', '..', '..', '..');
 const evidenceDir = path.join(repoRoot, '.sisyphus', 'evidence');
 
 const requiredCallouts = [
-  'Raider Gate',
-  'Guard Yard',
-  'Market Mid',
-  'Twin Gate',
-  'Split Crates',
-  'Sunwalk Long',
-  'Long Gate',
-  'Catwalk Spur',
-  'Upper Cistern',
-  'Lower Cistern',
-  'Vault Tunnel',
-  'Sun Court',
-  'Cistern Court',
-  'Cistern Doors',
-  'Guard Window',
-  'Sun Court Crates',
+  'T Spawn',
+  'CT Spawn',
+  'Middle',
+  'Mid Doors',
+  'Xbox',
+  'Long A',
+  'Long Doors',
+  'Short A / Catwalk',
+  'Upper Tunnels',
+  'Lower Tunnels',
+  'B Tunnels',
+  'A Site',
+  'B Site',
+  'B Doors',
+  'Window',
+  'A Site Boxes',
 ];
 
-const requiredTourNames = ['Market Mid', 'Sunwalk Long', 'Cistern Tunnels', 'Sun Court', 'Cistern Court'];
+const requiredTourNames = ['Middle', 'Long A', 'Upper Tunnels', 'A Site', 'B Site'];
 
 const waypointById = (id) => MAP_WAYPOINTS.find((waypoint) => waypoint.id === id);
 
@@ -52,7 +52,7 @@ const requiredVisualRoles = ['crates', 'doors', 'ramps', 'tunnels', 'siteMarking
 
 const tests = [
   ['exports original three-lane desert tactical map data', () => {
-    assert.equal(MAP_NAME, 'Sunspire Yard');
+    assert.equal(MAP_NAME, 'Dust II');
     assert.equal(MAP_CALLOUTS.length >= requiredCallouts.length, true);
     assert.equal(MAP_COLLISION_VOLUMES.length >= 10, true);
     assert.equal(MAP_GEOMETRY_PRIMITIVES.length >= 30, true);
@@ -61,16 +61,15 @@ const tests = [
     assert.equal(MAP_DEBUG_OVERLAY.enabled, false);
   }],
 
-  ['includes the required homage callouts without exact Dust2 naming', () => {
+  ['includes the required Dust II clean-room callouts', () => {
     const calloutNames = new Set(MAP_CALLOUTS.map((callout) => callout.callout));
     for (const requiredCallout of requiredCallouts) {
       assert.equal(calloutNames.has(requiredCallout), true, `${requiredCallout} should exist`);
     }
-    assert.equal(MAP_LANDMARKS.A_SITE_BOXES.callout, 'Sun Court Crates');
-    assert.equal(calloutNames.has('Dust2 Blockout'), false);
-    assert.equal(calloutNames.has('Xbox'), false);
-    assert.equal(MAP_NAME.includes('Dust'), false);
-    assert.equal(MAP_VISUAL_STYLE.tone.includes('three-lane tactical arena'), true);
+    assert.equal(MAP_LANDMARKS.A_SITE_BOXES.callout, 'A Site Boxes');
+    assert.equal(calloutNames.has('Xbox'), true);
+    assert.equal(MAP_NAME, 'Dust II');
+    assert.equal(MAP_VISUAL_STYLE.tone.includes('three-lane desert combat map'), true);
   }],
 
   ['keeps 16 spawn points clear of collision volumes', () => {

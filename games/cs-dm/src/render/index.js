@@ -37,7 +37,7 @@ const createWallMaterial = (THREE, baseColor, accentColor) => {
   texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(6, 4);
   texture.colorSpace = THREE.SRGBColorSpace;
-  return new THREE.MeshStandardMaterial({ color: '#d0ad73', map: texture, roughness: 0.96 });
+  return new THREE.MeshStandardMaterial({ color: baseColor, map: texture, roughness: 0.96 });
 };
 
 const createBox = (THREE, size, position, material) => {
@@ -127,7 +127,11 @@ const buildViewModelGroup = (THREE, weaponId, materials) => {
 };
 
 const createMapMaterialRegistry = (THREE) => Object.freeze(Object.fromEntries(Object.values(MAP_MATERIALS).map((material) => {
-  const wallMaterial = createWallMaterial(THREE, material.tint, '#f1d08a');
+  const accentColor = material.id === MAP_MATERIALS.METAL.id ? '#b7c0bd'
+    : material.id === MAP_MATERIALS.WOOD.id ? '#d18a45'
+      : material.id === MAP_MATERIALS.SITE_PAINT.id ? '#f6d768'
+        : '#f1d08a';
+  const wallMaterial = createWallMaterial(THREE, material.tint, accentColor);
   wallMaterial.name = `map-material-${material.id}`;
   return [material.id, wallMaterial];
 })));
@@ -145,6 +149,23 @@ const addMapAccentGeometry = (THREE, scene, descriptor, materials) => {
   const accent = createBox(THREE, accentSize, { x: descriptor.position.x, y: descriptor.position.y + descriptor.size.y / 2 + accentHeight / 2, z: descriptor.position.z }, trimMaterial);
   accent.name = `map-${descriptor.id}-accent`;
   scene.add(accent);
+
+  if (descriptor.kind === 'doorway') {
+    const panelMaterial = materials[MAP_MATERIALS.METAL.id];
+    const panelSize = { x: Math.max(0.06, descriptor.size.x * 0.38), y: Math.max(0.35, descriptor.size.y * 0.72), z: Math.max(0.04, descriptor.size.z * 0.08) };
+    [-0.22, 0.22].forEach((offset, index) => {
+      const panel = createBox(THREE, panelSize, { x: descriptor.position.x + descriptor.size.x * offset, y: descriptor.position.y + descriptor.size.y * 0.42, z: descriptor.position.z + descriptor.size.z * 0.51 }, panelMaterial);
+      panel.name = `map-${descriptor.id}-door-panel-${index}`;
+      scene.add(panel);
+    });
+  }
+
+  if (descriptor.kind === 'cover') {
+    const sideMaterial = materials[MAP_MATERIALS.WOOD.id];
+    const side = createBox(THREE, { x: Math.max(0.04, descriptor.size.x * 0.08), y: descriptor.size.y * 0.82, z: descriptor.size.z * 0.92 }, { x: descriptor.position.x - descriptor.size.x * 0.42, y: descriptor.position.y, z: descriptor.position.z }, sideMaterial);
+    side.name = `map-${descriptor.id}-crate-side`;
+    scene.add(side);
+  }
 };
 
 const createMapMesh = (THREE, descriptor, materials) => {

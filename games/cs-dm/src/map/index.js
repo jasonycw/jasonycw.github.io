@@ -21,8 +21,8 @@ const freezeWaypoints = (entries) => Object.freeze(entries.map((entry) => Object
   links: Object.freeze([...entry.links]),
 })));
 
-export const MAP_ID = 'sunspire-yard';
-export const MAP_NAME = 'Sunspire Yard';
+export const MAP_ID = 'de_dust2-clean-room';
+export const MAP_NAME = 'Dust II';
 
 export const MAP_DEBUG_FLAGS = Object.freeze({
   showCallouts: false,
@@ -58,7 +58,7 @@ export const MAP_VISUAL_STYLE = Object.freeze({
     oxidizedMetal: '#7f8c8d',
     siteMarking: '#f1c75b',
   }),
-  tone: 'original sandy three-lane tactical arena with long sightline, central door cross, catwalk connector, tunnel pressure, and paired objective courtyards',
+  tone: 'clean-room Dust II-inspired three-lane desert combat map with Long A, Short A/Catwalk, Mid Doors, B Tunnels, and paired bombsite courtyards',
   provenance: 'Original generated homage descriptors only; no copied Counter-Strike layout, textures, screenshots, meshes, or remote images.',
   materialRoles: Object.freeze({
     crates: Object.freeze({ material: MAP_MATERIALS.WOOD.id, readableStyle: 'warm battered crate wood with high-contrast bevel tint' }),
@@ -72,30 +72,30 @@ export const MAP_VISUAL_STYLE = Object.freeze({
 });
 
 export const MAP_LANDMARKS = Object.freeze({
-  T_SPAWN: Object.freeze({ id: 't-spawn', name: 'Raider Gate', callout: 'Raider Gate', position: freezePoint(12, 0, 88) }),
-  CT_SPAWN: Object.freeze({ id: 'ct-spawn', name: 'Guard Yard', callout: 'Guard Yard', position: freezePoint(86, 0, 14) }),
-  MID: Object.freeze({ id: 'mid', name: 'Market Mid', callout: 'Market Mid', position: freezePoint(50, 0, 50), visualRole: 'doors', debugTourId: 'tour-mid' }),
-  MID_DOORS: Object.freeze({ id: 'mid-doors', name: 'Twin Gate', callout: 'Twin Gate', position: freezePoint(56, 0, 50) }),
-  XBOX: Object.freeze({ id: 'xbox', name: 'Split Crates', callout: 'Split Crates', position: freezePoint(54, 0, 58), visualRole: 'crates' }),
-  LONG_A: Object.freeze({ id: 'long-a', name: 'Sunwalk Long', callout: 'Sunwalk Long', position: freezePoint(78, 0, 78), visualRole: 'ramps', debugTourId: 'tour-long-a' }),
-  LONG_A_DOORS: Object.freeze({ id: 'long-a-doors', name: 'Long Gate', callout: 'Long Gate', position: freezePoint(58, 0, 82) }),
-  SHORT_A: Object.freeze({ id: 'short-a', name: 'Catwalk Spur', callout: 'Catwalk Spur', position: freezePoint(68, 0, 62) }),
-  UPPER_TUNNELS: Object.freeze({ id: 'upper-tunnels', name: 'Upper Cistern', callout: 'Upper Cistern', position: freezePoint(26, 0, 68), visualRole: 'tunnels', debugTourId: 'tour-tunnels' }),
-  LOWER_TUNNELS: Object.freeze({ id: 'lower-tunnels', name: 'Lower Cistern', callout: 'Lower Cistern', position: freezePoint(34, 0, 56) }),
-  B_TUNNELS: Object.freeze({ id: 'b-tunnels', name: 'Vault Tunnel', callout: 'Vault Tunnel', position: freezePoint(20, 0, 40), visualRole: 'tunnels' }),
-  B_SITE: Object.freeze({ id: 'b-site', name: 'Cistern Court', callout: 'Cistern Court', position: freezePoint(22, 0, 18), visualRole: 'siteMarkings', debugTourId: 'tour-b-site' }),
-  B_DOORS: Object.freeze({ id: 'b-doors', name: 'Cistern Doors', callout: 'Cistern Doors', position: freezePoint(36, 0, 22), visualRole: 'doors' }),
-  WINDOW: Object.freeze({ id: 'window', name: 'Guard Window', callout: 'Guard Window', position: freezePoint(46, 0, 26) }),
-  A_SITE: Object.freeze({ id: 'a-site', name: 'Sun Court', callout: 'Sun Court', position: freezePoint(86, 0, 82), visualRole: 'siteMarkings', debugTourId: 'tour-a-site' }),
-  A_SITE_BOXES: Object.freeze({ id: 'a-site-boxes', name: 'Sun Court Crates', callout: 'Sun Court Crates', position: freezePoint(86, 0, 82) }),
+  T_SPAWN: Object.freeze({ id: 't-spawn', name: 'T Spawn', callout: 'T Spawn', position: freezePoint(12, 0, 88) }),
+  CT_SPAWN: Object.freeze({ id: 'ct-spawn', name: 'CT Spawn', callout: 'CT Spawn', position: freezePoint(86, 0, 14) }),
+  MID: Object.freeze({ id: 'mid', name: 'Middle', callout: 'Middle', position: freezePoint(50, 0, 50), visualRole: 'doors', debugTourId: 'tour-mid' }),
+  MID_DOORS: Object.freeze({ id: 'mid-doors', name: 'Mid Doors', callout: 'Mid Doors', position: freezePoint(56, 0, 50) }),
+  XBOX: Object.freeze({ id: 'xbox', name: 'Xbox', callout: 'Xbox', position: freezePoint(54, 0, 58), visualRole: 'crates' }),
+  LONG_A: Object.freeze({ id: 'long-a', name: 'Long A', callout: 'Long A', position: freezePoint(78, 0, 78), visualRole: 'ramps', debugTourId: 'tour-long-a' }),
+  LONG_A_DOORS: Object.freeze({ id: 'long-a-doors', name: 'Long Doors', callout: 'Long Doors', position: freezePoint(58, 0, 82) }),
+  SHORT_A: Object.freeze({ id: 'short-a', name: 'Short A / Catwalk', callout: 'Short A / Catwalk', position: freezePoint(68, 0, 62) }),
+  UPPER_TUNNELS: Object.freeze({ id: 'upper-tunnels', name: 'Upper Tunnels', callout: 'Upper Tunnels', position: freezePoint(26, 0, 68), visualRole: 'tunnels', debugTourId: 'tour-tunnels' }),
+  LOWER_TUNNELS: Object.freeze({ id: 'lower-tunnels', name: 'Lower Tunnels', callout: 'Lower Tunnels', position: freezePoint(34, 0, 56) }),
+  B_TUNNELS: Object.freeze({ id: 'b-tunnels', name: 'B Tunnels', callout: 'B Tunnels', position: freezePoint(20, 0, 40), visualRole: 'tunnels' }),
+  B_SITE: Object.freeze({ id: 'b-site', name: 'B Site', callout: 'B Site', position: freezePoint(22, 0, 18), visualRole: 'siteMarkings', debugTourId: 'tour-b-site' }),
+  B_DOORS: Object.freeze({ id: 'b-doors', name: 'B Doors', callout: 'B Doors', position: freezePoint(36, 0, 22), visualRole: 'doors' }),
+  WINDOW: Object.freeze({ id: 'window', name: 'Window', callout: 'Window', position: freezePoint(46, 0, 26) }),
+  A_SITE: Object.freeze({ id: 'a-site', name: 'A Site', callout: 'A Site', position: freezePoint(86, 0, 82), visualRole: 'siteMarkings', debugTourId: 'tour-a-site' }),
+  A_SITE_BOXES: Object.freeze({ id: 'a-site-boxes', name: 'A Site Boxes', callout: 'A Site Boxes', position: freezePoint(86, 0, 82) }),
 });
 
 export const MAP_DEBUG_TOUR_TARGETS = Object.freeze([
-  Object.freeze({ id: 'tour-mid', landmarkId: MAP_LANDMARKS.MID.id, name: 'Market Mid', screenshotTarget: 'market-mid-debug-tour', materialRole: 'doors', camera: freezeCamera(48, 7, 40, 0, -12) }),
-  Object.freeze({ id: 'tour-long-a', landmarkId: MAP_LANDMARKS.LONG_A.id, name: 'Sunwalk Long', screenshotTarget: 'sunwalk-long-debug-tour', materialRole: 'ramps', camera: freezeCamera(68, 7, 72, 36, -10) }),
-  Object.freeze({ id: 'tour-tunnels', landmarkId: MAP_LANDMARKS.UPPER_TUNNELS.id, name: 'Cistern Tunnels', screenshotTarget: 'cistern-tunnels-debug-tour', materialRole: 'tunnels', camera: freezeCamera(24, 6, 72, -26, -8) }),
-  Object.freeze({ id: 'tour-a-site', landmarkId: MAP_LANDMARKS.A_SITE.id, name: 'Sun Court', screenshotTarget: 'sun-court-debug-tour', materialRole: 'siteMarkings', camera: freezeCamera(78, 8, 74, 48, -14) }),
-  Object.freeze({ id: 'tour-b-site', landmarkId: MAP_LANDMARKS.B_SITE.id, name: 'Cistern Court', screenshotTarget: 'cistern-court-debug-tour', materialRole: 'siteMarkings', camera: freezeCamera(28, 7, 28, -135, -12) }),
+  Object.freeze({ id: 'tour-mid', landmarkId: MAP_LANDMARKS.MID.id, name: 'Middle', screenshotTarget: 'market-mid-debug-tour', materialRole: 'doors', camera: freezeCamera(48, 7, 40, 0, -12) }),
+  Object.freeze({ id: 'tour-long-a', landmarkId: MAP_LANDMARKS.LONG_A.id, name: 'Long A', screenshotTarget: 'sunwalk-long-debug-tour', materialRole: 'ramps', camera: freezeCamera(68, 7, 72, 36, -10) }),
+  Object.freeze({ id: 'tour-tunnels', landmarkId: MAP_LANDMARKS.UPPER_TUNNELS.id, name: 'Upper Tunnels', screenshotTarget: 'cistern-tunnels-debug-tour', materialRole: 'tunnels', camera: freezeCamera(24, 6, 72, -26, -8) }),
+  Object.freeze({ id: 'tour-a-site', landmarkId: MAP_LANDMARKS.A_SITE.id, name: 'A Site', screenshotTarget: 'sun-court-debug-tour', materialRole: 'siteMarkings', camera: freezeCamera(78, 8, 74, 48, -14) }),
+  Object.freeze({ id: 'tour-b-site', landmarkId: MAP_LANDMARKS.B_SITE.id, name: 'B Site', screenshotTarget: 'cistern-court-debug-tour', materialRole: 'siteMarkings', camera: freezeCamera(28, 7, 28, -135, -12) }),
 ]);
 
 export const MAP_COLLISION_VOLUMES = Object.freeze([
