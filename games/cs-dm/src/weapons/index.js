@@ -222,7 +222,7 @@ export const fireWeapon = (weaponState, { nowMs = 0, seed = 1, moving = false, o
   const selectedWeapon = getWeaponById(weaponState.weaponId);
 
   if (!selectedWeapon) {
-    throw new Error(`Unknown weapon id: ${weaponState.weaponId}`);
+    return Object.freeze({ ok: false, reason: 'unknown-weapon', state: weaponState, shot: null });
   }
 
   // Melee weapons bypass magazine/ammo/reload checks

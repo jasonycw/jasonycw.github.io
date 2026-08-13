@@ -99,6 +99,15 @@ const tests = [
     assert.equal(coolingDown.reason, 'cooldown');
   }],
 
+  ['invalid weapon ids fail safely without throwing', () => {
+    const invalidState = Object.freeze({ weaponId: 'missing-weapon', ammoInMagazine: 0, reserveAmmo: 0, nextFireAtMs: 0, isReloading: false, reloadCompleteAtMs: 0, shotsFired: 0 });
+    const result = fireWeapon(invalidState, { nowMs: 0 });
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, 'unknown-weapon');
+    assert.equal(result.state, invalidState);
+    assert.equal(result.shot, null);
+  }],
+
   ['reload transfers reserve ammo only after reload time completes', () => {
     const firstShot = fireWeapon(createWeaponState(WEAPONS.USP.id), { nowMs: 0, seed: 7 });
     const reloadStarted = startReload(firstShot.state, 1000);
