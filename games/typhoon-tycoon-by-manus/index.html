@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Typhoon Tycoon 2.5D - Superior Edition</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Typhoon Tycoon 2.5D | Manus Superior Edition</title>
     <link rel="stylesheet" href="style.css">
     <script type="importmap">
     {
@@ -16,35 +16,59 @@
 <body>
     <div id="game-container">
         <canvas id="game-canvas"></canvas>
-        <div id="ui-overlay">
-            <div id="hud">
-                <div class="hud-item">
+        
+        <!-- HUD -->
+        <div id="hud">
+            <div class="hud-top">
+                <div class="stat-card year">
                     <span class="label">YEAR</span>
-                    <span id="wave-count" class="value">0</span>
+                    <span id="year-val" class="value">0</span>
                 </div>
-                <div class="hud-item">
-                    <span class="label">HSI</span>
-                    <span id="money-count" class="value">1500</span>
+                <div class="stat-card hsi">
+                    <span class="label">HSI INDEX</span>
+                    <span id="hsi-val" class="value">5000</span>
                 </div>
-                <div class="hud-item">
-                    <span class="label">LIVES</span>
-                    <span id="lives-count" class="value">10</span>
+                <div class="stat-card money">
+                    <span class="label">FUNDS</span>
+                    <span class="currency">$</span><span id="money-val" class="value">2000</span>
                 </div>
-                <div class="hud-item power-container">
-                    <span class="label">POWER</span>
-                    <div class="power-bar">
+                <div class="stat-card power">
+                    <span class="label">POWER GRID</span>
+                    <div class="power-bar-container">
                         <div id="power-fill" class="power-fill"></div>
                     </div>
+                    <span id="power-text" class="power-text">0 / 10</span>
                 </div>
             </div>
-
-            <div id="game-status-container">
-                <h2 id="game-status">READY TO DEFEND?</h2>
-                <button id="start-button" class="main-btn">START DEFENSE</button>
+            
+            <div id="toolbar" class="hud-bottom">
+                <!-- Tool buttons injected here -->
             </div>
+        </div>
 
-            <div id="tower-toolbar">
-                <!-- Buttons will be injected here -->
+        <!-- Start Overlay -->
+        <div id="start-overlay" class="overlay">
+            <div class="modal">
+                <h1>TYPHOON TYCOON</h1>
+                <p class="subtitle">MANUS SUPERIOR EDITION</p>
+                <div class="instructions">
+                    <p>Defend Hong Kong from incoming super typhoons.</p>
+                    <ul>
+                        <li>Build <strong>Power Plants</strong> on land to generate electricity.</li>
+                        <li>Build <strong>Defensive Towers</strong> at sea to intercept typhoons.</li>
+                        <li>Maintain the <strong>HSI Index</strong> to survive the years.</li>
+                    </ul>
+                </div>
+                <button id="start-btn" class="action-btn">INITIALIZE DEFENSE</button>
+            </div>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="game-over-overlay" class="overlay" style="display: none;">
+            <div class="modal">
+                <h1 id="game-over-title">CITY DESTROYED</h1>
+                <p>The HSI has collapsed. The city is in ruins.</p>
+                <button id="restart-btn" class="action-btn">RETRY DEFENSE</button>
             </div>
         </div>
     </div>

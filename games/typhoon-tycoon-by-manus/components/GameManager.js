@@ -9,170 +9,164 @@ export class GameManager {
         this.scene = scene;
         this.map = map;
         this.effects = new VisualEffects(scene);
+        
         this.state = 'idle';
-        this.wave = 0;
-        this.lives = GameConfig.player.initialLives;
+        this.year = 0;
+        this.hsi = GameConfig.player.initialHSI;
         this.money = GameConfig.player.initialMoney;
+        this.powerMax = GameConfig.player.initialPower;
         this.powerUsed = 0;
-        this.powerGen = GameConfig.player.initialPower;
         
         this.enemies = [];
         this.towers = [];
-        this.projectiles = [];
-        this.timeSinceLastWave = 0;
-        this.enemiesSpawnedThisWave = 0;
-        this.timeSinceLastSpawn = 0;
+        
+        this.yearTimer = 0;
+        this.spawnTimer = 0;
+        this.enemiesSpawnedInYear = 0;
+        
+        this.incomeTimer = 0;
     }
 
     startGame() {
         this.state = 'playing';
-        this.wave = 1;
-        this.timeSinceLastWave = 0;
-        this.enemiesSpawnedThisWave = 0;
-        this.timeSinceLastSpawn = 0;
+        this.year = 1;
+        this.yearTimer = GameConfig.wave.yearDuration;
         this.updateUI();
     }
 
-    update(deltaTime, currentTime, camera) {
-        this.effects.update(deltaTime);
+    update(dt, currentTime, camera) {
+        this.effects.update(dt);
         if (this.state !== 'playing') return;
 
-        let stateChanged = false;
-        const enemiesThisWave = GameConfig.wave.enemyCountPerWave(this.wave);
-        
-        if (this.enemiesSpawnedThisWave < enemiesThisWave) {
-            this.timeSinceLastSpawn += deltaTime;
-            if (this.timeSinceLastSpawn >= GameConfig.enemy.spawnInterval / 1000) {
-                this.spawnEnemy();
-                this.enemiesSpawnedThisWave++;
-                this.timeSinceLastSpawn = 0;
-            }
-        } else if (this.enemies.length === 0) {
-            this.timeSinceLastWave += deltaTime;
-            if (this.timeSinceLastWave >= GameConfig.wave.waveInterval) {
-                this.nextWave();
-                stateChanged = true;
-            }
-        }
-
-        for (let i = this.enemies.length - 1; i >= 0; i--) {
-            const reachedEnd = this.enemies[i].update(deltaTime, camera);
-            if (reachedEnd) {
-                this.lives -= this.enemies[i].damage;
-                this.enemies.splice(i, 1);
-                stateChanged = true;
-                if (this.lives <= 0) {
-                    this.lives = 0;
-                    this.state = 'lost';
-                }
-            } else if (!this.enemies[i].isAlive()) {
-                this.money += this.enemies[i].reward;
-                this.enemies.splice(i, 1);
-                stateChanged = true;
-            }
-        }
-
-        const hasPower = this.powerUsed <= this.powerGen;
-        for (const tower of this.towers) {
-            const projectile = tower.update(deltaTime, this.enemies, currentTime, hasPower);
-            if (projectile) {
-                this.projectiles.push(projectile);
-            }
-        }
-
-        for (let i = this.projectiles.length - 1; i >= 0; i--) {
-            this.projectiles[i].update(deltaTime);
-            if (!this.projectiles[i].isAlive()) {
-                this.projectiles.splice(i, 1);
-            }
-        }
-
-        if (stateChanged) {
+        // Passive Income
+        this.incomeTimer += dt;
+        if (this.incomeTimer >= 1) {
+            this.money += Math.floor(this.hsi / 1000) * 2 + GameConfig.player.passiveIncome;
+            this.incomeTimer = 0;
             this.updateUI();
+        }
+
+        // Year/Wave Logic
+        this.yearTimer -= dt;
+        if (this.yearTimer <= 0) {
+            this.nextYear();
+        }
+
+        // Spawning
+        if (this.enemiesSpawnedInYear < GameConfig.wave.enemyCountPerYear(this.year)) {
+            this.spawnTimer -= dt;
+            if (this.spawnTimer <= 0) {
+                this.spawnEnemy();
+                this.enemiesSpawnedInYear++;
+                this.spawnTimer = GameConfig.enemy.spawnInterval;
+            }
+        }
+
+        // Update Enemies
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+            const reachedCenter = this.enemies[i].update(dt, camera);
+            if (reachedCenter) {
+                this.hsi -= GameConfig.enemy.baseDamage;
+                this.enemies.splice(i, 1);
+                if (this.hsi <= 0) {
+                    this.hsi = 0;
+                    this.gameOver('lost');
+                }
+                this.updateUI();
+            } else if (!this.enemies[i].alive) {
+                this.money += GameConfig.enemy.reward;
+                this.enemies.splice(i, 1);
+                this.updateUI();
+            }
+        }
+
+        // Update Towers
+        const hasPower = this.powerUsed <= this.powerMax;
+        for (const tower of this.towers) {
+            tower.update(dt, this.enemies, currentTime, hasPower);
         }
     }
 
     spawnEnemy() {
-        const enemy = new Enemy(this.scene, this.map.path, this.wave, this.effects);
+        const enemy = new Enemy(this.scene, this.effects, this.year);
         this.enemies.push(enemy);
     }
 
-    nextWave() {
-        this.wave++;
-        this.enemiesSpawnedThisWave = 0;
-        this.timeSinceLastWave = 0;
-        if (this.wave > GameConfig.gameEnd.waveToWin) {
-            this.state = 'won';
+    nextYear() {
+        if (this.year >= GameConfig.wave.maxYears) {
+            this.gameOver('won');
+            return;
         }
+        this.year++;
+        this.yearTimer = GameConfig.wave.yearDuration;
+        this.enemiesSpawnedInYear = 0;
+        this.updateUI();
     }
 
-    placeTower(x, z, towerType) {
-        if (!this.map.isValidTowerPlacement(x, z)) return false;
+    placeStructure(wx, wz, type) {
+        if (!this.map.isReady) return false;
+        if (!this.map.isValidPlacement(wx, wz, type)) return false;
         
-        const towerConfig = GameConfig.tower[towerType];
-        if (this.money < towerConfig.cost) return false;
+        const config = GameConfig.structures[type];
+        if (this.money < config.cost) return false;
 
-        const towerPosition = new THREE.Vector3(x, 0, z);
-        const minDistance = 20; 
-        const minDistanceSq = minDistance * minDistance;
+        const cell = this.map.getGridCell(wx, wz);
+        const pos = new THREE.Vector3(cell.wx, 0, cell.wz);
         
-        for (const existingTower of this.towers) {
-            if (existingTower.position.distanceToSquared(towerPosition) < minDistanceSq) {
-                return false;
-            }
-        }
-
-        const tower = new Tower(this.scene, towerPosition, towerType, towerConfig);
+        const tower = new Tower(this.scene, pos, type, config, this.effects);
         this.towers.push(tower);
-        this.money -= towerConfig.cost;
+        cell.occupied = tower;
         
-        if (towerConfig.powerGen) {
-            this.powerGen += towerConfig.powerGen;
-        } else if (towerConfig.powerUsage) {
-            this.powerUsed += towerConfig.powerUsage;
-        }
-
+        this.money -= config.cost;
+        if (config.powerGen) this.powerMax += config.powerGen;
+        if (config.powerUsage) this.powerUsed += config.powerUsage;
+        
         this.updateUI();
         return true;
     }
 
     updateUI() {
-        document.getElementById('wave-count').textContent = this.wave;
-        document.getElementById('lives-count').textContent = this.lives;
-        document.getElementById('money-count').textContent = this.money;
+        document.getElementById('year-val').textContent = this.year;
+        document.getElementById('hsi-val').textContent = this.hsi;
+        document.getElementById('money-val').textContent = this.money;
         
         const powerFill = document.getElementById('power-fill');
-        if (powerFill) {
-            const powerRatio = Math.min(1, this.powerUsed / this.powerGen);
-            powerFill.style.width = `${powerRatio * 100}%`;
-            powerFill.style.backgroundColor = this.powerUsed > this.powerGen ? '#ff3333' : '#00ffcc';
-        }
+        const powerText = document.getElementById('power-text');
+        const ratio = Math.min(1, this.powerUsed / this.powerMax);
+        powerFill.style.width = `${ratio * 100}%`;
+        powerText.textContent = `${this.powerUsed} / ${this.powerMax}`;
         
-        const statusText = document.getElementById('game-status');
-        if (this.state === 'won') statusText.textContent = 'VICTORY!';
-        else if (this.state === 'lost') statusText.textContent = 'DEFEAT';
-        else if (this.state === 'playing') statusText.textContent = `Year ${this.wave}`;
-        else statusText.textContent = 'Ready?';
+        if (this.powerUsed > this.powerMax) {
+            powerFill.style.backgroundColor = '#ff4444';
+        } else {
+            powerFill.style.backgroundColor = '#00ffcc';
+        }
     }
 
-    restart(scene) {
-        for (const tower of this.towers) tower.remove();
-        for (const enemy of this.enemies) enemy.die(false);
-        for (const proj of this.projectiles) proj.die();
-        this.effects.clear();
+    gameOver(status) {
+        this.state = status;
+        const overlay = document.getElementById('game-over-overlay');
+        const title = document.getElementById('game-over-title');
+        overlay.style.display = 'flex';
+        title.textContent = status === 'won' ? 'VICTORY' : 'CITY DESTROYED';
+    }
 
+    restart() {
+        this.towers.forEach(t => t.remove());
+        this.enemies.forEach(e => e.die(false));
+        this.effects.clear();
+        this.map.grid.forEach(c => c.occupied = null);
+        
         this.state = 'idle';
-        this.wave = 0;
-        this.lives = GameConfig.player.initialLives;
+        this.year = 0;
+        this.hsi = GameConfig.player.initialHSI;
         this.money = GameConfig.player.initialMoney;
+        this.powerMax = GameConfig.player.initialPower;
         this.powerUsed = 0;
-        this.powerGen = GameConfig.player.initialPower;
         this.enemies = [];
         this.towers = [];
-        this.projectiles = [];
-        this.timeSinceLastWave = 0;
-        this.enemiesSpawnedThisWave = 0;
-        this.timeSinceLastSpawn = 0;
-        this.updateUI();
+        
+        document.getElementById('game-over-overlay').style.display = 'none';
+        this.startGame();
     }
 }

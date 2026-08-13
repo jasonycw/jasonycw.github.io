@@ -1,142 +1,132 @@
 import * as THREE from 'three';
 import { GameConfig } from './GameConfig.js';
 
-// Shared resources
-const enemyGeometry = new THREE.TorusKnotGeometry(4, 1.2, 64, 8);
-const enemyMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0x888888, 
-    roughness: 0.3, 
-    metalness: 0.8,
-    emissive: 0x222222
-});
-const barGeometry = new THREE.PlaneGeometry(12, 1.5);
-const bgMaterial = new THREE.MeshBasicMaterial({ color: 0x330000, transparent: true, opacity: 0.7 });
-const fgMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
-
 export class Enemy {
-    constructor(scene, path, waveNumber = 1, effects) {
+    constructor(scene, effects, year) {
         this.scene = scene;
-        this.path = path;
         this.effects = effects;
-        this.pathIndex = 0;
-        this.progress = 0;
+        this.year = year;
         this.alive = true;
-        this.waveNumber = waveNumber;
-
-        this.maxHP = GameConfig.enemy.maxHP * GameConfig.wave.enemyHealthMultiplier(waveNumber);
+        
+        this.maxHP = GameConfig.enemy.baseHP * GameConfig.wave.healthMultiplier(year);
         this.hp = this.maxHP;
-        this.speed = GameConfig.enemy.speed;
-        this.damage = GameConfig.enemy.damage;
-        this.reward = GameConfig.enemy.reward;
-
-        this.segmentLength = 0;
-        this.updateSegmentLength();
-
+        this.speed = GameConfig.enemy.baseSpeed * GameConfig.wave.speedMultiplier(year);
+        
+        // Spawn at random edge point
+        const angle = Math.random() * Math.PI * 2;
+        const radius = GameConfig.world.mapSize / 2;
+        this.position = new THREE.Vector3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+        
         this.createMesh();
     }
 
-    updateSegmentLength() {
-        if (this.pathIndex < this.path.length - 1) {
-            this.segmentLength = this.path[this.pathIndex].distanceTo(this.path[this.pathIndex + 1]);
-        }
-    }
-
     createMesh() {
-        this.mesh = new THREE.Group();
-        this.mesh.position.copy(this.path[0]);
-        this.mesh.position.y = 10;
-
-        // Visual "Typhoon" core
-        this.core = new THREE.Mesh(enemyGeometry, enemyMaterial);
-        this.mesh.add(this.core);
+        this.group = new THREE.Group();
+        this.group.position.copy(this.position);
         
-        // Add a glow light
-        this.light = new THREE.PointLight(0x00ffcc, 1, 30);
-        this.light.position.y = 5;
-        this.mesh.add(this.light);
+        // Vortex effect: multiple rotating rings
+        this.vortex = new THREE.Group();
+        const ringGeom = new THREE.TorusGeometry(0.8, 0.05, 8, 32);
+        for(let i=0; i<5; i++) {
+            const mat = new THREE.MeshStandardMaterial({ 
+                color: 0x88ccff, 
+                transparent: true, 
+                opacity: 0.6,
+                emissive: 0x00ffff,
+                emissiveIntensity: 0.5
+            });
+            const ring = new THREE.Mesh(ringGeom, mat);
+            ring.rotation.x = Math.random() * Math.PI;
+            ring.rotation.y = Math.random() * Math.PI;
+            ring.scale.setScalar(0.5 + i * 0.3);
+            this.vortex.add(ring);
+        }
+        this.group.add(this.vortex);
+        
+        // Central core
+        const coreGeom = new THREE.OctahedronGeometry(0.4);
+        const coreMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x00ffff });
+        this.core = new THREE.Mesh(coreGeom, coreMat);
+        this.group.add(this.core);
 
-        this.scene.add(this.mesh);
+        this.scene.add(this.group);
         this.createHealthBar();
     }
 
     createHealthBar() {
-        this.healthBarBg = new THREE.Mesh(barGeometry, bgMaterial);
-        this.healthBarBg.position.y = 25;
-        this.mesh.add(this.healthBarBg);
+        const barGeom = new THREE.PlaneGeometry(1.5, 0.2);
+        const bgMat = new THREE.MeshBasicMaterial({ color: 0x330000 });
+        this.healthBg = new THREE.Mesh(barGeom, bgMat);
+        this.healthBg.position.y = 2.5;
+        this.group.add(this.healthBg);
 
-        this.healthBarFg = new THREE.Mesh(barGeometry, fgMaterial);
-        this.healthBarFg.position.y = 25;
-        this.healthBarFg.position.z = 0.1;
-        this.mesh.add(this.healthBarFg);
+        const fgMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
+        this.healthFg = new THREE.Mesh(barGeom, fgMat);
+        this.healthFg.position.y = 2.5;
+        this.healthFg.position.z = 0.01;
+        this.group.add(this.healthFg);
     }
 
-    update(deltaTime, camera) {
-        if (!this.alive) return false;
+    update(dt, camera) {
+        if (!this.alive) return;
 
-        const moveDistance = this.speed * deltaTime;
-        if (this.segmentLength > 0) {
-            this.progress += moveDistance / this.segmentLength;
-        }
+        // Move towards center (0,0,0)
+        const dir = new THREE.Vector3(0, 0, 0).sub(this.group.position).normalize();
+        this.group.position.add(dir.multiplyScalar(this.speed * dt));
+        
+        // Vortex rotation
+        this.vortex.children.forEach((ring, i) => {
+            ring.rotation.y += dt * (i + 1) * 2;
+            ring.rotation.z += dt * (i + 1) * 1.5;
+        });
+        this.core.rotation.x += dt * 5;
 
-        if (this.progress >= 1) {
-            this.pathIndex++;
-            this.progress = 0;
-
-            if (this.pathIndex >= this.path.length - 1) {
-                this.die(false);
-                return true;
-            }
-            this.updateSegmentLength();
-        }
-
-        const currentWaypoint = this.path[this.pathIndex];
-        const nextWaypoint = this.path[this.pathIndex + 1];
-        this.mesh.position.lerpVectors(currentWaypoint, nextWaypoint, this.progress);
-        this.mesh.position.y = 10 + Math.sin(Date.now() * 0.005) * 2; // Hover effect
-
+        // Billboard health bar
         if (camera) {
-            this.healthBarBg.quaternion.copy(camera.quaternion);
-            this.healthBarFg.quaternion.copy(camera.quaternion);
+            this.healthBg.quaternion.copy(camera.quaternion);
+            this.healthFg.quaternion.copy(camera.quaternion);
         }
 
-        if (this.core) {
-            this.core.rotation.y += deltaTime * 3;
-            this.core.rotation.x += deltaTime * 2;
+        // Check if reached center
+        if (this.group.position.length() < 0.5) {
+            this.die(false);
+            return true; // Reached center
         }
-
         return false;
     }
 
     takeDamage(amount) {
         this.hp -= amount;
-        const healthRatio = Math.max(0, this.hp / this.maxHP);
-        this.healthBarFg.scale.x = healthRatio;
-        this.healthBarFg.position.x = (healthRatio - 1) * 6;
-        this.healthBarFg.visible = healthRatio > 0;
+        const ratio = Math.max(0, this.hp / this.maxHP);
+        this.healthFg.scale.x = ratio;
+        this.healthFg.position.x = (ratio - 1) * 0.75;
+        this.healthFg.visible = ratio > 0;
 
-        if (this.hp <= 0 && this.alive) {
+        if (this.hp <= 0) {
             this.die(true);
             return true;
         }
         return false;
     }
 
-    die(killed = true) {
+    die(killed) {
         if (!this.alive) return;
         this.alive = false;
-        
-        if (killed && this.effects) {
-            this.effects.spawnBurst(this.mesh.position.x, this.mesh.position.y, this.mesh.position.z, 0x00ffcc, 15);
+        if (killed) {
+            this.effects.spawnBurst(this.group.position, 0x00ffff, 20);
         }
-        
-        this.scene.remove(this.mesh);
+        this.scene.remove(this.group);
+        // Disposal
+        this.group.traverse(obj => {
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) {
+                if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+                else obj.material.dispose();
+            }
+        });
     }
 
     getPosition() {
-        return this.mesh.position;
-    }
-
-    isAlive() {
-        return this.alive;
+        return this.group.position;
     }
 }

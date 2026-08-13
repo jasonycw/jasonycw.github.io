@@ -1,165 +1,111 @@
 import * as THREE from 'three';
 
-const _direction = new THREE.Vector3(); 
-const _firePos = new THREE.Vector3(); 
-
-export class Projectile {
-    constructor(scene, startPos, target, damage, speed, color) {
-        this.scene = scene;
-        this.target = target;
-        this.damage = damage;
-        this.speed = speed;
-        this.alive = true;
-
-        const geometry = new THREE.SphereGeometry(2, 8, 8);
-        const material = new THREE.MeshBasicMaterial({ color: color });
-        this.mesh = new THREE.Mesh(geometry, material);
-        this.mesh.position.copy(startPos);
-        
-        // Add glow to projectile
-        this.light = new THREE.PointLight(color, 1, 20);
-        this.mesh.add(this.light);
-        
-        this.scene.add(this.mesh);
-    }
-
-    update(deltaTime) {
-        if (!this.alive) return;
-
-        if (!this.target || !this.target.isAlive()) {
-            this.die();
-            return;
-        }
-
-        const targetPos = this.target.getPosition();
-        _direction.subVectors(targetPos, this.mesh.position).normalize();
-        const moveDistance = this.speed * deltaTime;
-
-        const distSq = this.mesh.position.distanceToSquared(targetPos);
-        if (distSq < moveDistance * moveDistance) {
-            this.target.takeDamage(this.damage);
-            this.die();
-        } else {
-            this.mesh.position.addScaledVector(_direction, moveDistance);
-        }
-    }
-
-    die() {
-        if (!this.alive) return;
-        this.alive = false;
-        this.scene.remove(this.mesh);
-        if (this.mesh.geometry) this.mesh.geometry.dispose();
-        if (this.mesh.material) this.mesh.material.dispose();
-    }
-
-    isAlive() {
-        return this.alive;
-    }
-}
-
 export class Tower {
-    constructor(scene, position, type, config) {
+    constructor(scene, pos, type, config, effects) {
         this.scene = scene;
-        this.position = position;
+        this.position = pos;
         this.type = type;
         this.config = config;
+        this.effects = effects;
+        this.lastAttack = 0;
         
-        this.lastFireTime = 0;
-        this.rangeSq = this.config.range * this.config.range;
-
         this.createMesh();
     }
 
     createMesh() {
-        const group = new THREE.Group();
-        
-        // Base
-        const baseGeom = new THREE.BoxGeometry(16, 8, 16);
-        const baseMat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.8, roughness: 0.2 });
-        const base = new THREE.Mesh(baseGeom, baseMat);
-        base.position.y = 4;
-        group.add(base);
+        this.group = new THREE.Group();
+        this.group.position.copy(this.position);
 
-        // Turret / Head
-        let turretGeom;
+        // Base
+        const baseGeom = new THREE.CylinderGeometry(0.8, 1, 0.4, 8);
+        const baseMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.8, roughness: 0.2 });
+        const base = new THREE.Mesh(baseGeom, baseMat);
+        base.position.y = 0.2;
+        this.group.add(base);
+
+        // Body
+        let headGeom;
         if (this.type === 'PowerPlant') {
-            turretGeom = new THREE.CylinderGeometry(6, 6, 20, 16);
+            headGeom = new THREE.BoxGeometry(0.8, 1.2, 0.8);
+        } else if (this.type === 'LaserTower') {
+            headGeom = new THREE.CylinderGeometry(0.2, 0.4, 1, 8);
+        } else if (this.type === 'FreezeTower') {
+            headGeom = new THREE.OctahedronGeometry(0.5);
         } else {
-            turretGeom = new THREE.OctahedronGeometry(6);
+            headGeom = new THREE.TorusGeometry(0.4, 0.1, 8, 16);
         }
-        
-        const turretMat = new THREE.MeshStandardMaterial({ 
+
+        const headMat = new THREE.MeshStandardMaterial({ 
             color: this.config.color, 
             emissive: this.config.color,
             emissiveIntensity: 0.5
         });
-        this.turret = new THREE.Mesh(turretGeom, turretMat);
-        this.turret.position.y = 15;
-        group.add(this.turret);
+        this.head = new THREE.Mesh(headGeom, headMat);
+        this.head.position.y = 1;
+        this.group.add(this.head);
 
-        this.mesh = group;
-        this.mesh.position.copy(this.position);
-        this.scene.add(this.mesh);
-
-        // Range indicator
+        // Range indicator (hidden by default)
         if (this.type !== 'PowerPlant') {
-            const rangeGeom = new THREE.RingGeometry(this.config.range - 1, this.config.range, 64);
-            const rangeMat = new THREE.MeshBasicMaterial({ color: this.config.color, side: THREE.DoubleSide, transparent: true, opacity: 0.2 });
-            this.rangeIndicator = new THREE.Mesh(rangeGeom, rangeMat);
-            this.rangeIndicator.rotation.x = Math.PI / 2;
-            this.rangeIndicator.position.y = 0.5;
-            this.mesh.add(this.rangeIndicator);
+            const rangeGeom = new THREE.RingGeometry(this.config.range - 0.1, this.config.range + 0.1, 64);
+            const rangeMat = new THREE.MeshBasicMaterial({ color: this.config.color, transparent: true, opacity: 0.2, side: THREE.DoubleSide });
+            this.rangeRing = new THREE.Mesh(rangeGeom, rangeMat);
+            this.rangeRing.rotation.x = -Math.PI / 2;
+            this.rangeRing.position.y = 0.05;
+            this.group.add(this.rangeRing);
         }
+
+        this.scene.add(this.group);
     }
 
-    update(deltaTime, enemies, currentTime, hasPower) {
+    update(dt, enemies, currentTime, hasPower) {
         if (this.type === 'PowerPlant') {
-            this.turret.rotation.y += deltaTime * 2;
-            return null;
+            this.head.rotation.y += dt * 2;
+            return;
         }
 
-        this.turret.rotation.y += deltaTime * 1;
+        this.head.rotation.y += dt;
 
-        if (!hasPower) return null;
+        if (!hasPower) return;
 
-        if (currentTime - this.lastFireTime > 1000 / this.config.attackSpeed) {
+        if (currentTime - this.lastAttack > 1000 / this.config.attackSpeed) {
             const target = this.findTarget(enemies);
             if (target) {
-                _firePos.set(this.position.x, 15, this.position.z);
-                this.lastFireTime = currentTime;
-                return new Projectile(
-                    this.scene,
-                    _firePos,
-                    target,
-                    this.config.damage,
-                    this.config.projectileSpeed || 100,
-                    this.config.color
-                );
+                this.attack(target);
+                this.lastAttack = currentTime;
             }
         }
-        return null;
     }
 
     findTarget(enemies) {
-        let closestEnemy = null;
-        let minDistanceSq = this.rangeSq;
+        let bestTarget = null;
+        let minDistSq = this.config.range * this.config.range;
 
-        for (const enemy of enemies) {
-            if (enemy.isAlive()) {
-                const distSq = this.mesh.position.distanceToSquared(enemy.getPosition());
-                if (distSq < minDistanceSq) {
-                    minDistanceSq = distSq;
-                    closestEnemy = enemy;
-                }
+        for (const e of enemies) {
+            const distSq = this.position.distanceToSquared(e.getPosition());
+            if (distSq < minDistSq) {
+                minDistSq = distSq;
+                bestTarget = e;
             }
         }
+        return bestTarget;
+    }
 
-        return closestEnemy;
+    attack(target) {
+        const start = this.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+        const end = target.getPosition();
+        
+        this.effects.spawnLaser(start, end, this.config.color);
+        target.takeDamage(this.config.damage);
+        
+        if (this.type === 'FreezeTower') {
+            // Apply slow (simplified)
+            target.speed *= 0.95; 
+        }
     }
 
     remove() {
-        this.scene.remove(this.mesh);
-        this.mesh.traverse(obj => {
+        this.scene.remove(this.group);
+        this.group.traverse(obj => {
             if (obj.geometry) obj.geometry.dispose();
             if (obj.material) {
                 if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());

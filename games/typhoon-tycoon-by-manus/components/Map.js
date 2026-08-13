@@ -4,87 +4,124 @@ import { GameConfig } from './GameConfig.js';
 export class Map {
     constructor(scene) {
         this.scene = scene;
-        this.path = GameConfig.map.path.map(p => new THREE.Vector3(p.x, 0, p.z));
-        this.createGround();
-        this.createPath();
+        this.grid = [];
+        this.isReady = false;
+        
+        this.createWorld();
     }
 
-    createGround() {
-        // Ground with high-quality material
-        const geometry = new THREE.PlaneGeometry(GameConfig.map.width, GameConfig.map.height);
-        const material = new THREE.MeshStandardMaterial({ 
-            color: GameConfig.map.groundColor,
+    async createWorld() {
+        const textureLoader = new THREE.TextureLoader();
+        
+        // Map Plane
+        const mapTexture = await textureLoader.loadAsync('assets/map.png');
+        const mapGeom = new THREE.PlaneGeometry(GameConfig.world.mapSize, GameConfig.world.mapSize);
+        const mapMat = new THREE.MeshStandardMaterial({ 
+            map: mapTexture,
             roughness: 0.8,
             metalness: 0.1
         });
-        this.ground = new THREE.Mesh(geometry, material);
-        this.ground.rotation.x = -Math.PI / 2;
-        this.ground.receiveShadow = true;
-        this.scene.add(this.ground);
+        this.mapMesh = new THREE.Mesh(mapGeom, mapMat);
+        this.mapMesh.rotation.x = -Math.PI / 2;
+        this.mapMesh.receiveShadow = true;
+        this.scene.add(this.mapMesh);
 
-        // Add a futuristic grid
-        const grid = new THREE.GridHelper(GameConfig.map.width, 40, 0x00ffcc, 0x00ffcc);
-        grid.material.opacity = 0.05;
-        grid.material.transparent = true;
-        grid.position.y = 0.2;
-        this.scene.add(grid);
-        
-        // Add outer "Sea" area
-        const seaGeom = new THREE.PlaneGeometry(GameConfig.map.width * 2, GameConfig.map.height * 2);
-        const seaMat = new THREE.MeshStandardMaterial({ color: GameConfig.map.seaColor });
-        const sea = new THREE.Mesh(seaGeom, seaMat);
-        sea.rotation.x = -Math.PI / 2;
-        sea.position.y = -2;
-        this.scene.add(sea);
-    }
-
-    createPath() {
-        // Path line (Glow effect)
-        const pathGeometry = new THREE.BufferGeometry().setFromPoints(this.path);
-        const pathMaterial = new THREE.LineBasicMaterial({ color: 0x00ffcc, linewidth: 5 });
-        const pathLine = new THREE.Line(pathGeometry, pathMaterial);
-        pathLine.position.y = 0.5;
-        this.scene.add(pathLine);
-
-        // Path segments (Visual road)
-        for (let i = 0; i < this.path.length - 1; i++) {
-            const start = this.path[i];
-            const end = this.path[i+1];
-            const direction = end.clone().sub(start);
-            const length = direction.length();
-            const geometry = new THREE.PlaneGeometry(GameConfig.map.pathWidth, length);
-            const material = new THREE.MeshStandardMaterial({ 
-                color: 0x111111, 
-                roughness: 0.5,
-                metalness: 0.5
+        // Danger Zone Rings
+        const rings = [5, 10, 15];
+        rings.forEach(r => {
+            const ringGeom = new THREE.RingGeometry(r - 0.05, r + 0.05, 64);
+            const ringMat = new THREE.MeshBasicMaterial({ 
+                color: 0xffffff, 
+                transparent: true, 
+                opacity: 0.1,
+                side: THREE.DoubleSide
             });
-            const segment = new THREE.Mesh(geometry, material);
-            
-            const center = start.clone().add(direction.clone().multiplyScalar(0.5));
-            segment.position.set(center.x, 0.1, center.z);
-            segment.rotation.x = -Math.PI / 2;
-            segment.rotation.z = -Math.atan2(direction.x, direction.z);
-            segment.receiveShadow = true;
-            this.scene.add(segment);
-        }
+            const ring = new THREE.Mesh(ringGeom, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.y = 0.01;
+            this.scene.add(ring);
+        });
+
+        // Initialize Grid and Hitarea
+        await this.initializeGrid();
     }
 
-    isValidTowerPlacement(x, z) {
-        const point = new THREE.Vector3(x, 0, z);
-        for (let i = 0; i < this.path.length - 1; i++) {
-            const start = this.path[i];
-            const end = this.path[i+1];
-            const dist = this.pointToSegmentDistance(point, start, end);
-            if (dist < GameConfig.map.pathWidth) return false;
-        }
-        return Math.abs(x) < GameConfig.map.width / 2 && Math.abs(z) < GameConfig.map.height / 2;
+    async initializeGrid() {
+        const hitareaImg = new Image();
+        hitareaImg.src = 'assets/map-hitarea.png';
+        
+        await new Promise((resolve) => {
+            hitareaImg.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = hitareaImg.width;
+                canvas.height = hitareaImg.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(hitareaImg, 0, 0);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+                const size = GameConfig.world.gridSize;
+                const half = Math.floor(size / 2);
+                const cellS = GameConfig.world.cellSize;
+
+                for (let x = -half; x <= half; x++) {
+                    for (let z = -half; z <= half; z++) {
+                        const wx = x * cellS;
+                        const wz = z * cellS;
+                        
+                        // Sample hitarea
+                        const uvx = (wx + GameConfig.world.mapSize / 2) / GameConfig.world.mapSize;
+                        const uvy = (wz + GameConfig.world.mapSize / 2) / GameConfig.world.mapSize;
+                        
+                        let isLand = false;
+                        if (uvx >= 0 && uvx <= 1 && uvy >= 0 && uvy <= 1) {
+                            const px = Math.floor(uvx * hitareaImg.width);
+                            const py = Math.floor((1 - uvy) * hitareaImg.height);
+                            const idx = (py * hitareaImg.width + px) * 4;
+                            isLand = imageData[idx] > 128;
+                        }
+
+                        this.grid.push({
+                            x, z, wx, wz, isLand, occupied: null
+                        });
+                    }
+                }
+                this.isReady = true;
+                resolve();
+            };
+            hitareaImg.onerror = () => {
+                console.warn("Hitarea failed to load, falling back to circular island.");
+                // Fallback logic
+                const size = GameConfig.world.gridSize;
+                const half = Math.floor(size / 2);
+                for (let x = -half; x <= half; x++) {
+                    for (let z = -half; z <= half; z++) {
+                        const wx = x * GameConfig.world.cellSize;
+                        const wz = z * GameConfig.world.cellSize;
+                        const isLand = Math.sqrt(wx*wx + wz*wz) < GameConfig.world.islandRadius;
+                        this.grid.push({ x, z, wx, wz, isLand, occupied: null });
+                    }
+                }
+                this.isReady = true;
+                resolve();
+            };
+        });
     }
 
-    pointToSegmentDistance(p, a, b) {
-        const ab = b.clone().sub(a);
-        const ap = p.clone().sub(a);
-        const t = Math.max(0, Math.min(1, ap.dot(ab) / ab.lengthSq()));
-        const projection = a.clone().add(ab.multiplyScalar(t));
-        return p.distanceTo(projection);
+    getGridCell(wx, wz) {
+        const cellS = GameConfig.world.cellSize;
+        const x = Math.round(wx / cellS);
+        const z = Math.round(wz / cellS);
+        return this.grid.find(c => c.x === x && c.z === z);
+    }
+
+    isValidPlacement(wx, wz, type) {
+        const cell = this.getGridCell(wx, wz);
+        if (!cell || cell.occupied) return false;
+        
+        const config = GameConfig.structures[type];
+        if (config.isLandOnly && !cell.isLand) return false;
+        if (!config.isLandOnly && cell.isLand) return false;
+        
+        return true;
     }
 }

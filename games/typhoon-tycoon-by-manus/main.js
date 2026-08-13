@@ -3,99 +3,94 @@ import { Map } from './components/Map.js';
 import { GameManager } from './components/GameManager.js';
 import { GameConfig } from './components/GameConfig.js';
 
+// Scene Setup
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x050a0f);
-scene.fog = new THREE.FogExp2(0x050a0f, 0.0015);
+scene.background = new THREE.Color(0x0a1628);
+scene.fog = new THREE.Fog(0x0a1628, 20, 60);
 
-const aspectRatio = window.innerWidth / window.innerHeight;
-const frustumSize = 250;
-const camera = new THREE.OrthographicCamera(
-    frustumSize * aspectRatio / -2,
-    frustumSize * aspectRatio / 2,
-    frustumSize / 2,
-    frustumSize / -2,
-    1,
-    2000
+// Camera Setup
+const camera = new THREE.PerspectiveCamera(
+    GameConfig.camera.fov,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
 );
-camera.position.set(400, 400, 400);
+camera.position.set(20, 20, 20);
 camera.lookAt(0, 0, 0);
 
+// Renderer Setup
 const renderer = new THREE.WebGLRenderer({ 
     antialias: true, 
     canvas: document.getElementById('game-canvas'),
     powerPreference: "high-performance"
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
 
-// Enhanced Lighting
-const ambientLight = new THREE.AmbientLight(0x404040, 2);
+// Lighting
+const ambientLight = new THREE.AmbientLight(0x4466aa, 0.8);
 scene.add(ambientLight);
 
-const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
-mainLight.position.set(200, 500, 200);
-mainLight.castShadow = true;
-mainLight.shadow.mapSize.width = 2048;
-mainLight.shadow.mapSize.height = 2048;
-mainLight.shadow.camera.left = -300;
-mainLight.shadow.camera.right = 300;
-mainLight.shadow.camera.top = 300;
-mainLight.shadow.camera.bottom = -300;
-scene.add(mainLight);
+const dirLight = new THREE.DirectionalLight(0xffeedd, 1.5);
+dirLight.position.set(15, 25, 10);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.setScalar(2048);
+dirLight.shadow.camera.left = -20;
+dirLight.shadow.camera.right = 20;
+dirLight.shadow.camera.top = 20;
+dirLight.shadow.camera.bottom = -20;
+scene.add(dirLight);
 
+const hemiLight = new THREE.HemisphereLight(0x8888ff, 0x444422, 0.5);
+scene.add(hemiLight);
+
+// Game Objects
 const map = new Map(scene);
 const gameManager = new GameManager(scene, map);
 
-let selectedTowerType = 'basicTower';
-let lastFrameTime = performance.now();
+let selectedStructure = 'LaserTower';
+let lastTime = performance.now();
 
-function initializeUI() {
-    const toolbar = document.getElementById('tower-toolbar');
+function initUI() {
+    const toolbar = document.getElementById('toolbar');
     toolbar.innerHTML = '';
 
-    for (const [key, config] of Object.entries(GameConfig.tower)) {
-        const button = document.createElement('button');
-        button.className = 'tower-btn';
-        if (key === selectedTowerType) button.classList.add('active');
+    for (const [key, config] of Object.entries(GameConfig.structures)) {
+        const btn = document.createElement('button');
+        btn.className = 'tool-btn';
+        if (key === selectedStructure) btn.classList.add('active');
         
-        button.innerHTML = `
-            <span class="name">${config.name}</span>
-            <span class="cost">$${config.cost}</span>
+        btn.innerHTML = `
+            <div class="icon" style="background-color: #${config.color.toString(16).padStart(6, '0')}"></div>
+            <div class="details">
+                <span class="name">${config.name}</span>
+                <span class="cost">$${config.cost}</span>
+            </div>
         `;
         
-        button.onclick = () => {
-            selectedTowerType = key;
-            document.querySelectorAll('.tower-btn').forEach(b => b.classList.remove('active'));
-            button.classList.add('active');
+        btn.onclick = () => {
+            selectedStructure = key;
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
         };
-        toolbar.appendChild(button);
+        toolbar.appendChild(btn);
     }
 
-    const startButton = document.getElementById('start-button');
-    const statusContainer = document.getElementById('game-status-container');
-    
-    startButton.onclick = () => {
-        gameManager.restart(scene);
+    document.getElementById('start-btn').onclick = () => {
+        document.getElementById('start-overlay').style.display = 'none';
         gameManager.startGame();
-        statusContainer.style.display = 'none';
+    };
+
+    document.getElementById('restart-btn').onclick = () => {
+        gameManager.restart();
     };
 }
 
-// Observe game state to show/hide start menu
-function updateGameStateUI() {
-    const statusContainer = document.getElementById('game-status-container');
-    const statusText = document.getElementById('game-status');
-    const startButton = document.getElementById('start-button');
-
-    if (gameManager.state === 'won' || gameManager.state === 'lost') {
-        statusContainer.style.display = 'block';
-        statusText.textContent = gameManager.state === 'won' ? 'VICTORY SURVIVED' : 'CITY DESTROYED';
-        startButton.textContent = 'RETRY DEFENSE';
-    }
-}
-
+// Interaction
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
@@ -106,36 +101,31 @@ renderer.domElement.addEventListener('mousedown', (event) => {
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
-
-    const intersects = raycaster.intersectObject(map.ground);
+    const intersects = raycaster.intersectObject(map.mapMesh);
+    
     if (intersects.length > 0) {
-        const point = intersects[0].point;
-        gameManager.placeTower(point.x, point.z, selectedTowerType);
+        const p = intersects[0].point;
+        gameManager.placeStructure(p.x, p.z, selectedStructure);
     }
 });
 
+// Resize
 window.addEventListener('resize', () => {
-    const newAspectRatio = window.innerWidth / window.innerHeight;
-    camera.left = frustumSize * newAspectRatio / -2;
-    camera.right = frustumSize * newAspectRatio / 2;
-    camera.top = frustumSize / 2;
-    camera.bottom = frustumSize / -2;
+    camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+// Main Loop
 function animate(currentTime) {
     requestAnimationFrame(animate);
+    
+    const dt = (currentTime - lastTime) / 1000;
+    lastTime = currentTime;
 
-    const deltaTime = (currentTime - lastFrameTime) / 1000;
-    lastFrameTime = currentTime;
-
-    const cappedDeltaTime = Math.min(deltaTime, 0.1);
-
-    gameManager.update(cappedDeltaTime, currentTime, camera);
-    updateGameStateUI();
+    gameManager.update(Math.min(dt, 0.1), currentTime, camera);
     renderer.render(scene, camera);
 }
 
-initializeUI();
+initUI();
 requestAnimationFrame(animate);
