@@ -622,6 +622,18 @@ const advanceOfflineMatchWithFeedback = (options = {}) => {
     lastLocalShotRegistered = true;
   }
   handleOfflineAudioFeedback(previousState, offlineMatchState, tickOptions);
+  const localController = offlineMatchState.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX];
+  if (localController?.movement.grounded && pressedMovementButtons.size > 0) {
+    const speed = Math.hypot(localController.velocity.x, localController.velocity.z);
+    if (speed > 0.1) {
+      const stepInterval = localController.movement.crouching ? 420 : 260;
+      const now = Date.now();
+      if (now - lastFootstepAt > stepInterval) {
+        lastFootstepAt = now;
+        playAudioEvent(AudioEvent.FOOTSTEP, { unlock: true });
+      }
+    }
+  }
   renderOfflineHud();
   syncRendererState();
 };
@@ -1106,11 +1118,6 @@ document.addEventListener('keydown', (event) => {
       localJumpQueued = true;
     }
     pressedMovementButtons = new Set([...pressedMovementButtons, movementButton]);
-    const now = Date.now();
-    if (now - lastFootstepAt > 260) {
-      lastFootstepAt = now;
-      playAudioEvent(AudioEvent.FOOTSTEP, { unlock: true });
-    }
     return;
   }
 
