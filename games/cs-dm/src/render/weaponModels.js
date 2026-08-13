@@ -29,7 +29,7 @@ const vector = (x = 0, y = 0, z = 0) => Object.freeze({ x, y, z });
 export const VIEWMODEL_CAMERA_ALIGNMENT = freezeDeep({
   coordinateContract: Object.freeze({ screenRight: '+X', up: '+Y', forward: '-Z' }),
   rotation: vector(0, 0, 0),
-  scale: 0.76,
+  scale: 0.64,
   camera: Object.freeze({ fovDegrees: 68, aspect: 16 / 9, near: 0.1 }),
   orthographic: Object.freeze({ left: -1.6, right: 1.6, top: 0.9, bottom: -0.9 }),
 });

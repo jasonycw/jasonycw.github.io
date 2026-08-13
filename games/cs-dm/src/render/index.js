@@ -59,11 +59,11 @@ const createPartMesh = (THREE, part, materials) => {
 
 const createWeaponMaterialRegistry = (THREE) => Object.freeze({
   'matte-gunmetal': new THREE.MeshStandardMaterial({ color: '#20231f', metalness: 0.35, roughness: 0.58 }),
-  'oiled-black-steel': new THREE.MeshStandardMaterial({ color: '#171915', metalness: 0.42, roughness: 0.48 }),
+  'oiled-black-steel': new THREE.MeshStandardMaterial({ color: '#2a2a22', metalness: 0.42, roughness: 0.48 }),
   'dark-bore': new THREE.MeshStandardMaterial({ color: '#080907', metalness: 0.55, roughness: 0.42 }),
   'charcoal-polymer': new THREE.MeshStandardMaterial({ color: '#1c211d', roughness: 0.74 }),
   'ribbed-black': new THREE.MeshStandardMaterial({ color: '#11140f', roughness: 0.86 }),
-  'warm-wood': new THREE.MeshStandardMaterial({ color: '#9a5f2f', roughness: 0.7 }),
+  'warm-wood': new THREE.MeshStandardMaterial({ color: '#b4763a', roughness: 0.72 }),
   'forest-polymer': new THREE.MeshStandardMaterial({ color: '#4f5a38', roughness: 0.76 }),
   'black-glass': new THREE.MeshStandardMaterial({ color: '#050706', metalness: 0.2, roughness: 0.22 }),
   'blued-steel': new THREE.MeshStandardMaterial({ color: '#202b31', metalness: 0.42, roughness: 0.52 }),
@@ -75,7 +75,7 @@ const createWeaponMaterialRegistry = (THREE) => Object.freeze({
 });
 
 const createPartOutline = (THREE, part) => {
-  const outline = new THREE.Mesh(new THREE.BoxGeometry(part.size.x * 1.025, part.size.y * 1.025, part.size.z * 1.025), new THREE.MeshBasicMaterial({ color: '#050403', transparent: true, opacity: 0.28 }));
+  const outline = new THREE.Mesh(new THREE.BoxGeometry(part.size.x * 1.025, part.size.y * 1.025, part.size.z * 1.025), new THREE.MeshBasicMaterial({ color: '#050403', transparent: true, opacity: 0.16 }));
   outline.position.set(part.position.x, part.position.y, part.position.z);
   outline.rotation.set(part.rotation.x, part.rotation.y, part.rotation.z);
   outline.name = `${part.id}-shadow-outline`;
