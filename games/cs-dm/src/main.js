@@ -1168,7 +1168,7 @@ gameCanvas.addEventListener('contextmenu', (event) => {
 });
 
 gameCanvas.addEventListener('mousemove', (event) => {
-  if (!offlineMatchState || document.pointerLockElement === null) {
+  if (!offlineMatchState || !document.pointerLockElement || !gameCanvas.contains(document.pointerLockElement)) {
     return;
   }
 
