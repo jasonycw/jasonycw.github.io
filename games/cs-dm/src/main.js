@@ -666,7 +666,13 @@ const startOfflineLoop = () => {
     localFireQueued = false;
     localAltFireQueued = false;
     localReloadQueued = false;
-    advanceOfflineMatchWithFeedback({ localInput });
+    try {
+      advanceOfflineMatchWithFeedback({ localInput });
+    } catch (error) {
+      stopOfflineLoop();
+      setTextContent(perfSummary, `SIM ERROR: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('Offline deathmatch loop stopped', error);
+    }
   }, 1000 / OFFLINE_TICK_RATE);
 };
 
