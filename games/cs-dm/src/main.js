@@ -76,6 +76,8 @@ const audioMuteToggle = document.getElementById('audio-mute-toggle');
 const audioVolume = document.getElementById('audio-volume');
 const audioStatus = document.getElementById('audio-status');
 const matchAudioToggle = document.getElementById('match-audio-toggle');
+const matchStageNotice = document.getElementById('match-stage-notice');
+const matchStageHitmarker = document.querySelector('.match-stage__hitmarker');
 
 const mainButtons = [offlineStartButton, hostGameButton, joinGameButton];
 const panelMap = {
@@ -457,6 +459,18 @@ const renderOfflineHud = () => {
   setTextContent(hudHealth, String(hud.localPlayer.health));
   setTextContent(hudArmor, String(hud.localPlayer.armor));
   setTextContent(hudPhase, offlineMatchState.matchState.mode ?? hud.sessionClock.phase);
+  if (matchStageNotice) {
+    const localPlayer = offlineMatchState.matchState.players[offlineMatchState.matchState.localSlotIndex];
+    const isProtected = localPlayer.spawnProtectionUntilMs > offlineMatchState.nowMs;
+    const isDead = localPlayer.lifeState !== 'alive';
+    setTextContent(matchStageNotice, isDead ? 'RESPAWNING' : isProtected ? 'SPAWN PROTECTED' : 'FREE FOR ALL');
+    matchStageNotice.classList.toggle('match-stage__notice--protected', isProtected);
+    matchStageNotice.classList.toggle('match-stage__notice--danger', isDead);
+  }
+  if (matchStageHitmarker) {
+    const localShotHit = Boolean(offlineMatchState.lastLocalShot?.hit);
+    matchStageHitmarker.classList.toggle('match-stage__hitmarker--active', localShotHit);
+  }
   renderRadar(hud.radar);
   renderKillfeed();
   renderPerfSummary();
@@ -522,6 +536,11 @@ const handleOfflineAudioFeedback = (previousState, nextState, { localInput = nul
   const nextLocalPlayer = nextState.matchState.players[nextState.matchState.localSlotIndex];
 
   if (localInput?.fire && nextState.lastLocalShot) {
+    if (matchStageHitmarker && nextState.lastLocalShot.hit) {
+      matchStageHitmarker.classList.remove('match-stage__hitmarker--active');
+      void matchStageHitmarker.offsetWidth;
+      matchStageHitmarker.classList.add('match-stage__hitmarker--active');
+    }
     playAudioEvent(AudioEvent.FIRE, { unlock: true });
     if (nextState.lastLocalShot.hit) {
       playAudioEvent(AudioEvent.HIT);

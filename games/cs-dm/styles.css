@@ -1244,3 +1244,131 @@ body.in-game-settings-open .overlay-card {
     grid-row: auto;
   }
 }
+
+
+/* CS 1.6-inspired combat pass: dense, readable, and intentionally low-fi. */
+.match-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  padding: 0;
+  overflow: hidden;
+  background: #121410;
+}
+
+.match-panel > .eyebrow,
+.match-panel > h2,
+.match-panel > .subtitle,
+.match-panel > .overlay-card {
+  position: absolute;
+  z-index: 18;
+  left: -9999px;
+}
+
+.match-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.match-stage {
+  min-height: 100vh;
+  height: 100vh;
+  background: #1b1d17;
+  isolation: isolate;
+}
+
+.match-stage__grid {
+  display: none;
+}
+
+.match-stage__vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 36%, rgba(0,0,0,.12) 62%, rgba(0,0,0,.72) 100%), linear-gradient(180deg, rgba(21,29,25,.22), transparent 34%, rgba(24,15,7,.22));
+  mix-blend-mode: multiply;
+}
+
+.match-stage__topbar {
+  position: absolute;
+  z-index: 8;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 22px 10px;
+  border-bottom: 1px solid rgba(255,220,135,.17);
+  background: linear-gradient(180deg, rgba(10,13,10,.76), rgba(10,13,10,0));
+  color: rgba(236,216,161,.82);
+  font-family: "Lucida Console", "Courier New", monospace;
+  font-size: 11px;
+  letter-spacing: .17em;
+  text-shadow: 0 2px 2px #000;
+  pointer-events: none;
+}
+
+.match-stage__mapname { color: #e6be6b; font-weight: 700; }
+.match-stage__mode { color: rgba(230,229,205,.62); }
+.match-stage__location { color: rgba(168,221,133,.82); }
+
+.match-stage__crosshair {
+  position: absolute;
+  z-index: 7;
+  top: 50%;
+  left: 50%;
+  width: 34px;
+  height: 34px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.match-stage__crosshair i,
+.match-stage__crosshair b { position: absolute; display: block; background: rgba(218,244,190,.88); box-shadow: 0 1px 2px #000; }
+.match-stage__crosshair i:nth-child(1) { width: 3px; height: 9px; top: 0; left: 16px; }
+.match-stage__crosshair i:nth-child(2) { width: 3px; height: 9px; bottom: 0; left: 16px; }
+.match-stage__crosshair i:nth-child(3) { width: 9px; height: 3px; left: 0; top: 16px; }
+.match-stage__crosshair i:nth-child(4) { width: 9px; height: 3px; right: 0; top: 16px; }
+.match-stage__crosshair b { width: 3px; height: 3px; top: 16px; left: 16px; background: #f3df8c; }
+.match-stage__hitmarker { position: absolute; z-index: 8; top: 50%; left: 50%; color: #f1dfac; font: 700 26px/1 Arial, sans-serif; opacity: 0; transform: translate(-50%, -50%); text-shadow: 0 2px 3px #000; pointer-events: none; }
+.match-stage__notice { position: absolute; z-index: 8; top: 74px; left: 50%; transform: translateX(-50%); padding: 5px 12px; border: 1px solid rgba(230,190,107,.28); background: rgba(18,20,15,.52); color: rgba(235,214,161,.72); font: 700 10px/1 "Lucida Console", monospace; letter-spacing: .22em; text-shadow: 0 2px #000; pointer-events: none; }
+
+.match-hud__radar { top: 54px; left: 22px; width: 136px; height: 136px; border-color: rgba(168,221,133,.76); background-color: rgba(10,23,12,.64); }
+.match-hud__killfeed { top: 58px; right: 22px; width: min(420px, 42vw); font-size: 11px; }
+.match-hud__label { right: 22px; bottom: 138px; padding: 0; background: transparent; color: rgba(232,210,151,.75); font-size: 10px; letter-spacing: .18em; }
+.match-hud__weapon { right: 22px; bottom: 76px; color: #f1c36d; font-size: 19px; letter-spacing: .12em; }
+.match-hud__weapon::before { font-size: 11px; opacity: .8; }
+.match-hud__weapon::after { font-size: 21px; }
+.match-hud__stat { bottom: 21px; font-size: 15px; }
+.match-hud__stat strong { font-size: 1.45em; }
+.match-hud__stat--health { left: 22px; min-width: 120px; }
+.match-hud__stat--armor { left: 160px; min-width: 120px; }
+
+.match-stage__viewport { z-index: 2; }
+.match-stage__label { left: 22px; bottom: 78px; padding: 7px 10px; border: 1px solid rgba(235,211,147,.26); border-radius: 0; background: rgba(17,20,14,.78); color: #e8d39b; font: 11px/1.35 "Lucida Console", monospace; text-transform: uppercase; }
+
+.scoreboard { top: 13%; width: min(760px, 86%); background: linear-gradient(180deg, rgba(30,30,23,.94), rgba(10,12,10,.94)); }
+.scoreboard table { font-size: 12px; }
+
+@media (max-width: 720px) {
+  .match-stage__topbar { padding-inline: 12px; font-size: 9px; letter-spacing: .08em; }
+  .match-stage__mode { display: none; }
+  .match-hud__radar { top: 44px; left: 12px; width: 104px; height: 104px; }
+  .match-hud__killfeed { right: 12px; top: 44px; width: 52vw; font-size: 9px; }
+  .match-hud__stat--health { left: 12px; }
+  .match-hud__stat--armor { left: 112px; }
+  .match-hud__weapon, .match-hud__label { right: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .match-stage__hitmarker { transition: none; }
+}
+
+
+.match-stage__hitmarker--active { animation: csdm-hitmarker 180ms ease-out both; }
+.match-stage__notice--protected { border-color: rgba(142,219,119,.5); color: #b8df9d; }
+.match-stage__notice--danger { border-color: rgba(220,86,62,.58); color: #ef9b83; }
+@keyframes csdm-hitmarker { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.65); } 22% { opacity: 1; transform: translate(-50%, -50%) scale(1.12); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1); } }
