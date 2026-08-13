@@ -34,12 +34,18 @@ async def main():
                 'autoRepeat': False,
             })
 
+        async def move_mouse(delta_x, delta_y):
+            await command('Input.dispatchMouseEvent', {
+                'type': 'mouseMoved', 'x': 640, 'y': 360, 'button': 'none', 'buttons': 0,
+                'deltaX': delta_x, 'deltaY': delta_y,
+            })
+
         async def fire():
             await command('Input.dispatchMouseEvent', {
-                'type': 'mousePressed', 'x': 640, 'y': 360, 'button': 'left', 'clickCount': 1,
+                'type': 'mousePressed', 'x': 640, 'y': 360, 'button': 'left', 'buttons': 1, 'clickCount': 1,
             })
             await command('Input.dispatchMouseEvent', {
-                'type': 'mouseReleased', 'x': 640, 'y': 360, 'button': 'left', 'clickCount': 1,
+                'type': 'mouseReleased', 'x': 640, 'y': 360, 'button': 'left', 'buttons': 0, 'clickCount': 1,
             })
 
         await command('Page.enable')
@@ -48,7 +54,7 @@ async def main():
         })
         os.makedirs('/home/ubuntu/cs16-pr17/capture-frames', exist_ok=True)
         held = set()
-        for frame in range(240):
+        for frame in range(360):
             if frame == 0:
                 await key('KeyW', 'w', True); held.add('KeyW')
             if frame == 48:
@@ -60,8 +66,10 @@ async def main():
             if frame == 144:
                 await key('KeyA', 'a', False); held.discard('KeyA')
                 await key('KeyW', 'w', True); held.add('KeyW')
-            if frame in {18, 26, 34, 56, 64, 72, 110, 118, 126, 162, 170, 178}:
+            if (frame < 60 and frame % 4 == 0) or frame in {70, 78, 96, 102, 108, 114, 156, 162, 168, 174, 204, 210, 216, 222, 270, 276, 282}:
                 await fire()
+            if frame in {72, 84, 106, 128, 150, 174, 198, 222, 246, 270, 294, 318}:
+                await move_mouse(46 if (frame // 22) % 2 == 0 else -62, -8 if frame % 44 == 0 else 3)
             if frame == 80:
                 await key('KeyR', 'r', True); await key('KeyR', 'r', False)
             if frame == 138:
