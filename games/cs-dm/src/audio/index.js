@@ -124,6 +124,11 @@ const playDescriptor = (audioContext, descriptor, volume) => {
     noise.stop(audioContext.currentTime + durationSeconds);
   }
 
+  setTimeout(() => {
+    if (typeof output.disconnect === 'function') {
+      output.disconnect();
+    }
+  }, (durationSeconds + 0.1) * 1000);
 };
 
 export function createAudioController({ environment = globalThis, storage = environment?.localStorage, descriptors = GENERATED_SOUND_DESCRIPTORS } = {}) {
