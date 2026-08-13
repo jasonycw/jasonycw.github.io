@@ -672,7 +672,7 @@ const segmentIntersectsBox2d = (start, end, box) => {
   const maxX = box.center.x + halfWidth;
   const minZ = box.center.z - halfDepth;
   const maxZ = box.center.z + halfDepth;
-  const steps = Math.max(2, Math.ceil(distance2d(start, end) / 4));
+  const steps = Math.max(2, Math.ceil(distance2d(start, end) / 1.5));
 
   for (let step = 1; step < steps; step += 1) {
     const progress = step / steps;
