@@ -1,11 +1,18 @@
+:root {
+    --primary: #00ffcc;
+    --bg-dark: rgba(10, 15, 20, 0.85);
+    --border-glow: 0 0 10px rgba(0, 255, 204, 0.4);
+}
+
 body, html {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
     overflow: hidden;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #000;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #050a0f;
+    color: white;
 }
 
 #game-container {
@@ -22,66 +29,142 @@ body, html {
 
 #ui-overlay {
     position: absolute;
-    top: 20px;
-    left: 20px;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
-    color: white;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-}
-
-#info-panel {
-    background: rgba(0, 0, 0, 0.6);
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    margin-bottom: 20px;
-    pointer-events: auto;
-}
-
-#info-panel h1 {
-    margin: 0 0 10px 0;
-    font-size: 24px;
-    color: #00f2ff;
-}
-
-#info-panel p {
-    margin: 5px 0;
-    font-size: 18px;
-}
-
-#tower-selection {
-    pointer-events: auto;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    justify-content: space-between;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* HUD Top Bar */
+#hud {
+    display: flex;
+    gap: 20px;
+    pointer-events: auto;
+}
+
+.hud-item {
+    background: var(--bg-dark);
+    padding: 10px 20px;
+    border-radius: 4px;
+    border-left: 3px solid var(--primary);
+    display: flex;
+    flex-direction: column;
+    min-width: 100px;
+    box-shadow: var(--border-glow);
+}
+
+.hud-item .label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #888;
+    margin-bottom: 4px;
+}
+
+.hud-item .value {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--primary);
+}
+
+.power-container {
+    flex-grow: 1;
+    max-width: 300px;
+}
+
+.power-bar {
+    width: 100%;
+    height: 8px;
+    background: #222;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.power-fill {
+    width: 50%;
+    height: 100%;
+    background: var(--primary);
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+/* Center Status */
+#game-status-container {
+    text-align: center;
+}
+
+#game-status {
+    font-size: 48px;
+    letter-spacing: 8px;
+    margin-bottom: 20px;
+    text-shadow: 0 0 20px rgba(0, 255, 204, 0.6);
+}
+
+.main-btn {
+    pointer-events: auto;
+    background: transparent;
+    border: 2px solid var(--primary);
+    color: var(--primary);
+    padding: 15px 40px;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border-radius: 4px;
+}
+
+.main-btn:hover {
+    background: var(--primary);
+    color: #000;
+    box-shadow: 0 0 30px var(--primary);
+}
+
+/* Bottom Toolbar */
+#tower-toolbar {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    pointer-events: auto;
 }
 
 .tower-btn {
-    background: rgba(50, 50, 50, 0.8);
+    background: var(--bg-dark);
+    border: 1px solid #333;
     color: white;
-    border: 2px solid #555;
-    padding: 10px 20px;
-    border-radius: 5px;
+    padding: 12px;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 16px;
     transition: all 0.2s;
-    text-align: left;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 120px;
 }
 
 .tower-btn:hover {
-    background: rgba(80, 80, 80, 0.9);
-    border-color: #888;
+    border-color: var(--primary);
+    transform: translateY(-5px);
 }
 
 .tower-btn.active {
-    background: #005f73;
-    border-color: #00f2ff;
-    box-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+    border-color: var(--primary);
+    background: rgba(0, 255, 204, 0.1);
+    box-shadow: var(--border-glow);
 }
 
-#start-button {
-    pointer-events: auto;
+.tower-btn .name {
+    font-size: 12px;
     font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    margin-bottom: 5px;
+}
+
+.tower-btn .cost {
+    font-size: 14px;
+    color: var(--primary);
 }

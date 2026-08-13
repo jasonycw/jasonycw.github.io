@@ -1,10 +1,11 @@
-// Game configuration and constants
+// Enhanced Game configuration and constants
 export const GameConfig = {
     // Map and path configuration
     map: {
         width: 400,
         height: 400,
         groundColor: 0x228B22,
+        seaColor: 0x006994,
         path: [
             { x: -180, z: -150 },
             { x: -100, z: -50 },
@@ -17,61 +18,80 @@ export const GameConfig = {
 
     // Enemy configuration
     enemy: {
-        maxHP: 200,
-        speed: 40, 
+        maxHP: 100,
+        speed: 35, 
         damage: 1, 
         reward: 50,
-        spawnInterval: 1000 // ms
+        spawnInterval: 1200 // ms
     },
 
-    // Wave configuration
+    // Wave/Year configuration
     wave: {
         initialDelay: 5,
-        waveInterval: 8,
-        maxWaves: 15,
-        enemyCountPerWave: (waveNumber) => 5 + waveNumber * 2,
-        enemyHealthMultiplier: (waveNumber) => 1 + (waveNumber * 0.25),
+        waveInterval: 10,
+        maxWaves: 20,
+        enemyCountPerWave: (waveNumber) => 3 + Math.floor(waveNumber * 1.5),
+        enemyHealthMultiplier: (waveNumber) => 1 + (waveNumber * 0.3),
     },
 
     // Player configuration
     player: {
         initialLives: 10,
-        initialMoney: 3000,
+        initialMoney: 1500,
+        initialPower: 50,
+        maxPower: 100,
     },
 
     // Tower configuration
     tower: {
         basicTower: {
             name: 'Laser Tower',
+            type: 'LaserTower',
             cost: 500,
-            range: 60,
-            damage: 20,
-            attackSpeed: 1.5,
-            color: 0xFF0000,
-            projectileSpeed: 150
+            powerUsage: 3,
+            range: 70,
+            damage: 25,
+            attackSpeed: 2.0,
+            color: 0xFF3333,
+            projectileSpeed: 200,
+            description: 'Shoots rapid lasers at typhoons.'
         },
         rapidTower: {
             name: 'Freeze Tower',
-            cost: 700,
-            range: 50,
-            damage: 5,
-            attackSpeed: 3,
-            color: 0x00FFFF,
-            projectileSpeed: 200
+            type: 'FreezeTower',
+            cost: 800,
+            powerUsage: 5,
+            range: 60,
+            damage: 8,
+            attackSpeed: 4.0,
+            color: 0x33FFFF,
+            projectileSpeed: 250,
+            description: 'High fire rate, slows down targets.'
         },
         heavyTower: {
             name: 'Repel Tower',
-            cost: 2500,
-            range: 100,
-            damage: 100,
-            attackSpeed: 0.5,
-            color: 0xFFA500,
-            projectileSpeed: 100
+            type: 'RepelTower',
+            cost: 2000,
+            powerUsage: 12,
+            range: 120,
+            damage: 150,
+            attackSpeed: 0.6,
+            color: 0xFFAA33,
+            projectileSpeed: 120,
+            description: 'Massive damage with long range.'
         },
+        powerPlant: {
+            name: 'Power Plant',
+            type: 'PowerPlant',
+            cost: 1000,
+            powerGen: 15,
+            color: 0x33FF33,
+            description: 'Generates power for your towers.'
+        }
     },
 
     // Game win/lose conditions
     gameEnd: {
-        waveToWin: 15,
+        waveToWin: 20,
     },
 };

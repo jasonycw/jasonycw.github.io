@@ -1,16 +1,21 @@
 import { GameConfig } from './GameConfig.js';
 import { Enemy } from './Enemy.js';
 import { Tower } from './Tower.js';
+import { VisualEffects } from './VisualEffects.js';
 import * as THREE from 'three';
 
 export class GameManager {
     constructor(scene, map) {
         this.scene = scene;
         this.map = map;
+        this.effects = new VisualEffects(scene);
         this.state = 'idle';
         this.wave = 0;
         this.lives = GameConfig.player.initialLives;
         this.money = GameConfig.player.initialMoney;
+        this.powerUsed = 0;
+        this.powerGen = GameConfig.player.initialPower;
+        
         this.enemies = [];
         this.towers = [];
         this.projectiles = [];
@@ -29,6 +34,7 @@ export class GameManager {
     }
 
     update(deltaTime, currentTime, camera) {
+        this.effects.update(deltaTime);
         if (this.state !== 'playing') return;
 
         let stateChanged = false;
@@ -66,9 +72,9 @@ export class GameManager {
             }
         }
 
-        // Gemini Feedback: Handle single projectile return
+        const hasPower = this.powerUsed <= this.powerGen;
         for (const tower of this.towers) {
-            const projectile = tower.update(deltaTime, this.enemies, currentTime);
+            const projectile = tower.update(deltaTime, this.enemies, currentTime, hasPower);
             if (projectile) {
                 this.projectiles.push(projectile);
             }
@@ -87,7 +93,7 @@ export class GameManager {
     }
 
     spawnEnemy() {
-        const enemy = new Enemy(this.scene, this.map.path, this.wave);
+        const enemy = new Enemy(this.scene, this.map.path, this.wave, this.effects);
         this.enemies.push(enemy);
     }
 
@@ -107,8 +113,8 @@ export class GameManager {
         if (this.money < towerConfig.cost) return false;
 
         const towerPosition = new THREE.Vector3(x, 0, z);
-        const minDistance = 15; 
-        const minDistanceSq = minDistance * minDistance; // Gemini Feedback: Use distanceToSquared
+        const minDistance = 20; 
+        const minDistanceSq = minDistance * minDistance;
         
         for (const existingTower of this.towers) {
             if (existingTower.position.distanceToSquared(towerPosition) < minDistanceSq) {
@@ -119,6 +125,13 @@ export class GameManager {
         const tower = new Tower(this.scene, towerPosition, towerType, towerConfig);
         this.towers.push(tower);
         this.money -= towerConfig.cost;
+        
+        if (towerConfig.powerGen) {
+            this.powerGen += towerConfig.powerGen;
+        } else if (towerConfig.powerUsage) {
+            this.powerUsed += towerConfig.powerUsage;
+        }
+
         this.updateUI();
         return true;
     }
@@ -128,22 +141,32 @@ export class GameManager {
         document.getElementById('lives-count').textContent = this.lives;
         document.getElementById('money-count').textContent = this.money;
         
+        const powerFill = document.getElementById('power-fill');
+        if (powerFill) {
+            const powerRatio = Math.min(1, this.powerUsed / this.powerGen);
+            powerFill.style.width = `${powerRatio * 100}%`;
+            powerFill.style.backgroundColor = this.powerUsed > this.powerGen ? '#ff3333' : '#00ffcc';
+        }
+        
         const statusText = document.getElementById('game-status');
         if (this.state === 'won') statusText.textContent = 'VICTORY!';
         else if (this.state === 'lost') statusText.textContent = 'DEFEAT';
-        else if (this.state === 'playing') statusText.textContent = 'Wave Active';
+        else if (this.state === 'playing') statusText.textContent = `Year ${this.wave}`;
         else statusText.textContent = 'Ready?';
     }
 
     restart(scene) {
         for (const tower of this.towers) tower.remove();
-        for (const enemy of this.enemies) enemy.die();
+        for (const enemy of this.enemies) enemy.die(false);
         for (const proj of this.projectiles) proj.die();
+        this.effects.clear();
 
         this.state = 'idle';
         this.wave = 0;
         this.lives = GameConfig.player.initialLives;
         this.money = GameConfig.player.initialMoney;
+        this.powerUsed = 0;
+        this.powerGen = GameConfig.player.initialPower;
         this.enemies = [];
         this.towers = [];
         this.projectiles = [];
