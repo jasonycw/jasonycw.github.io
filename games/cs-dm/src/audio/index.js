@@ -72,16 +72,19 @@ export const writeAudioSettings = (storage, settings) => {
 
 const getAudioContextCtor = (environment) => environment?.AudioContext ?? environment?.webkitAudioContext ?? null;
 
-const createNoiseBuffer = (audioContext, durationSeconds) => {
+const getNoiseBuffer = (audioContext) => {
+  if (audioContext._noiseBuffer) {
+    return audioContext._noiseBuffer;
+  }
+
   const sampleRate = audioContext.sampleRate || 44100;
-  const frameCount = Math.max(1, Math.floor(sampleRate * durationSeconds));
+  const frameCount = Math.max(1, Math.floor(sampleRate * 2));
   const buffer = audioContext.createBuffer(1, frameCount, sampleRate);
   const data = buffer.getChannelData(0);
-
   for (let index = 0; index < frameCount; index += 1) {
     data[index] = Math.random() * 2 - 1;
   }
-
+  audioContext._noiseBuffer = buffer;
   return buffer;
 };
 
@@ -113,12 +116,14 @@ const playDescriptor = (audioContext, descriptor, volume) => {
     const noiseGain = audioContext.createGain();
     noiseGain.gain.value = descriptor.noise ?? 0.2;
     const noise = audioContext.createBufferSource();
-    noise.buffer = createNoiseBuffer(audioContext, durationSeconds);
+    noise.buffer = getNoiseBuffer(audioContext);
+    noise.loop = true;
     noise.connect(noiseGain);
     noiseGain.connect(output);
     noise.start();
     noise.stop(audioContext.currentTime + durationSeconds);
   }
+
 };
 
 export function createAudioController({ environment = globalThis, storage = environment?.localStorage, descriptors = GENERATED_SOUND_DESCRIPTORS } = {}) {
