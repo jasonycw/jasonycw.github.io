@@ -92,7 +92,7 @@ const tests = [
     assert.deepEqual(radar.blocks[0], { id: 'radar-block-0', x: 50, y: 50, width: 100, height: 100 });
     assert.equal(radar.blips.length, 2);
     assert.deepEqual(radar.blips[0].point, { x: 50, y: 50 });
-    assert.deepEqual(radar.blips[1].point, { x: 100, y: 100 });
+    assert.deepEqual(radar.blips[1].point, { x: 85.355, y: 85.355 });
   }],
 
   ['keeps the local radar blip centered while other players move relative to it', () => {

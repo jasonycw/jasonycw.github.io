@@ -131,9 +131,18 @@ const normalizeRadarPoint = (position, bounds, localPosition = null) => {
   const depth = Math.max(1, bounds.maxZ - bounds.minZ);
 
   if (localPosition) {
+    const dx = ((position.x - localPosition.x) / width) * 100;
+    const dy = ((position.z - localPosition.z) / depth) * 100;
+    const distance = Math.hypot(dx, dy);
+    if (distance > 50) {
+      return Object.freeze({
+        x: Number((50 + (dx / distance) * 50).toFixed(3)),
+        y: Number((50 + (dy / distance) * 50).toFixed(3)),
+      });
+    }
     return Object.freeze({
-      x: Number(clampPercent(50 + ((position.x - localPosition.x) / width) * 100).toFixed(3)),
-      y: Number(clampPercent(50 + ((position.z - localPosition.z) / depth) * 100).toFixed(3)),
+      x: Number(clampPercent(50 + dx).toFixed(3)),
+      y: Number(clampPercent(50 + dy).toFixed(3)),
     });
   }
 
