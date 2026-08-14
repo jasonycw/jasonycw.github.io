@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { Config } from '../core/Config.js';
 
 /**
