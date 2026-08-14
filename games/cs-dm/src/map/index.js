@@ -167,7 +167,8 @@ export const MAP_COLLISION_VOLUMES = Object.freeze([
 export const MAP_GEOMETRY_PRIMITIVES = Object.freeze([
   ...MAP_STRUCTURE_PRIMITIVES,
   Object.freeze({ id: 'long-a-open-lane', kind: 'corridor', material: MAP_MATERIALS.SANDSTONE.id, visualRole: 'ramps', footprint: freezeBox(80, 0, 74, 24, 1, 34) }),
-  Object.freeze({ id: 'mid-approach-doors', kind: 'doorway', material: MAP_MATERIALS.METAL.id, visualRole: 'doors', footprint: freezeBox(25, 0, 72, 10, 5, 2) }),
+  Object.freeze({ id: 'mid-approach-door-left', kind: 'door-panel', material: MAP_MATERIALS.METAL.id, visualRole: 'doors', footprint: freezeBox(22.25, 2.1, 72, 4.2, 4.2, 0.55) }),
+  Object.freeze({ id: 'mid-approach-door-right', kind: 'door-panel', material: MAP_MATERIALS.METAL.id, visualRole: 'doors', footprint: freezeBox(27.75, 2.1, 72, 4.2, 4.2, 0.55) }),
   Object.freeze({ id: 'mid-approach-arch', kind: 'arch', material: MAP_MATERIALS.SANDSTONE.id, visualRole: 'arches', footprint: freezeBox(25, 0, 72, 14, 5, 2) }),
   Object.freeze({ id: 'long-a-doors', kind: 'doorway', material: MAP_MATERIALS.METAL.id, visualRole: 'doors', footprint: freezeBox(80, 0, 56, 8, 5, 10) }),
   Object.freeze({ id: 'short-a-bridge', kind: 'bridge', material: MAP_MATERIALS.CONCRETE.id, visualRole: 'ramps', footprint: freezeBox(69, 3, 38, 14, 2, 24) }),
