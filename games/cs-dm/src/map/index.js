@@ -72,7 +72,7 @@ export const MAP_VISUAL_STYLE = Object.freeze({
 });
 
 export const MAP_LANDMARKS = Object.freeze({
-  T_SPAWN: Object.freeze({ id: 't-spawn', name: 'T Spawn', callout: 'T Spawn', position: freezePoint(12, 0, 88) }),
+  T_SPAWN: Object.freeze({ id: 't-spawn', name: 'T Spawn', callout: 'T Spawn', position: freezePoint(20, 0, 88) }),
   CT_SPAWN: Object.freeze({ id: 'ct-spawn', name: 'CT Spawn', callout: 'CT Spawn', position: freezePoint(86, 0, 14) }),
   MID: Object.freeze({ id: 'mid', name: 'Middle', callout: 'Middle', position: freezePoint(50, 0, 50), visualRole: 'doors', debugTourId: 'tour-mid' }),
   MID_DOORS: Object.freeze({ id: 'mid-doors', name: 'Mid Doors', callout: 'Mid Doors', position: freezePoint(56, 0, 50) }),
@@ -156,7 +156,7 @@ export const MAP_GEOMETRY_PRIMITIVES = Object.freeze([
 
 export const MAP_SPAWN_POINTS = Object.freeze(SPAWN_REFERENCES.map((spawnReference, index) => {
   const positions = [
-    { x: 12, y: 0, z: 88 },
+    { x: 20, y: 0, z: 88 },
     { x: 40, y: 0, z: 88 },
     { x: 26, y: 0, z: 88 },
     { x: 32, y: 0, z: 82 },
