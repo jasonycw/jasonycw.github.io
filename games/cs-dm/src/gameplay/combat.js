@@ -92,11 +92,18 @@ const getTargetRecords = (matchState, controllersBySlotIndex, shooterSlotIndex) 
     const controller = controllersBySlotIndex[player.slotIndex] ?? {};
     const position = controller.position ?? MAP_SPAWN_POINTS[player.slotIndex]?.position ?? { x: 0, y: 0, z: 0 };
     const bodyHeight = controller.movement?.height ?? PLAYER_MOVEMENT_DEFAULTS.standingHeight;
+    const collisionRadius = Math.max(0.62, controller.radius ?? PLAYER_MOVEMENT_DEFAULTS.collisionRadius);
+    const torsoCenter = freezeVector({ x: position.x, y: position.y + bodyHeight * 0.53, z: position.z });
+    const headCenter = freezeVector({ x: position.x, y: position.y + bodyHeight * 0.86, z: position.z });
     return Object.freeze({
       id: String(player.slotIndex),
       slotIndex: player.slotIndex,
-      position: freezeVector({ x: position.x, y: position.y + bodyHeight * 0.56, z: position.z }),
-      radius: Math.max(0.62, controller.radius ?? PLAYER_MOVEMENT_DEFAULTS.collisionRadius),
+      position: torsoCenter,
+      radius: collisionRadius,
+      hitboxes: Object.freeze([
+        Object.freeze({ id: 'torso', position: torsoCenter, radius: collisionRadius }),
+        Object.freeze({ id: 'head', position: headCenter, radius: Math.max(0.28, collisionRadius * 0.58) }),
+      ]),
     });
   });
 

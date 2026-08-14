@@ -1216,8 +1216,8 @@ export function advanceBotAiTick(state, { blockers = MAP_COLLISION_VOLUMES } = {
   let matchState = advanceRespawnTimers(Object.freeze({ ...state.matchState, tick }), { nowMs });
   let controllersBySlotIndex = { ...state.controllersBySlotIndex };
   let weaponStatesBySlotIndex = { ...state.weaponStatesBySlotIndex };
-  let metrics = state.metrics;
-
+    let metrics = state.metrics;
+  let visualFeedbackBySlotIndex = { ...(state.visualFeedbackBySlotIndex ?? {}) };
   // Respawn detection
   for (const player of matchState.players) {
     const beforePlayer = previousPlayers[player.slotIndex];
@@ -1336,6 +1336,17 @@ export function advanceBotAiTick(state, { blockers = MAP_COLLISION_VOLUMES } = {
     matchState = withBotForSlot(combatResult.matchState, player.slotIndex, combatResult.bot);
     weaponStatesBySlotIndex[player.slotIndex] = combatResult.weaponState;
     metrics = combatResult.metrics;
+    if (combatResult.shot?.hit && combatResult.damage?.damageApplied > 0) {
+      const victimSlotIndex = Number(combatResult.shot.hit.targetId);
+      const previousFeedback = visualFeedbackBySlotIndex[victimSlotIndex];
+      visualFeedbackBySlotIndex[victimSlotIndex] = Object.freeze({
+        recentDamageAtMs: nowMs,
+        recentDamage: combatResult.damage.damageApplied,
+        recentHitboxId: combatResult.shot.hit.hitboxId ?? 'body',
+        recentAttackerSlotIndex: player.slotIndex,
+        recentDeathAtMs: combatResult.damage.killed ? nowMs : previousFeedback?.recentDeathAtMs ?? null,
+      });
+    }
 
     // ── Death detection ──
     for (const nextPlayer of matchState.players) {
@@ -1352,6 +1363,7 @@ export function advanceBotAiTick(state, { blockers = MAP_COLLISION_VOLUMES } = {
     matchState,
     controllersBySlotIndex: Object.freeze(controllersBySlotIndex),
     weaponStatesBySlotIndex: Object.freeze(weaponStatesBySlotIndex),
+    visualFeedbackBySlotIndex: Object.freeze(visualFeedbackBySlotIndex),
     tick,
     nowMs,
     metrics,

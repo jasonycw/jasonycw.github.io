@@ -77,6 +77,7 @@ const updateFeedbackForLocalShot = (state, shot, damageResult) => {
     [victimSlotIndex]: Object.freeze({
       recentDamageAtMs: state.nowMs,
       recentDamage: damageResult.damageApplied,
+      recentHitboxId: shot.hit.hitboxId ?? 'body',
       recentAttackerSlotIndex: LOCAL_PLAYER_SLOT_INDEX,
       recentDeathAtMs: damageResult.killed ? state.nowMs : state.visualFeedbackBySlotIndex?.[victimSlotIndex]?.recentDeathAtMs ?? null,
     }),

@@ -78,7 +78,8 @@ const audioStatus = document.getElementById('audio-status');
 const matchAudioToggle = document.getElementById('match-audio-toggle');
 const matchStageNotice = document.getElementById('match-stage-notice');
 const matchStageKillcam = document.getElementById('match-stage-killcam');
-const matchStageHitmarker = document.querySelector('.match-stage__hitmarker');
+const matchStageHitmarker = document.getElementById('match-stage-hitmarker');
+const matchStageDamage = document.getElementById('match-stage-damage');
 
 const mainButtons = [offlineStartButton, hostGameButton, joinGameButton];
 const panelMap = {
@@ -483,6 +484,23 @@ const renderOfflineHud = () => {
   if (matchStageHitmarker) {
     const localShotHit = Boolean(offlineMatchState.lastLocalShot?.hit);
     matchStageHitmarker.classList.toggle('match-stage__hitmarker--active', localShotHit);
+  }
+  if (matchStageDamage) {
+    const localFeedback = offlineMatchState.visualFeedbackBySlotIndex?.[LOCAL_PLAYER_SLOT_INDEX];
+    const feedbackAgeMs = Number.isFinite(localFeedback?.recentDamageAtMs)
+      ? offlineMatchState.nowMs - localFeedback.recentDamageAtMs
+      : Number.POSITIVE_INFINITY;
+    const feedbackVisible = feedbackAgeMs >= 0 && feedbackAgeMs < 900 && Number(localFeedback?.recentDamage) > 0;
+    const incoming = Number(localFeedback?.recentAttackerSlotIndex) !== LOCAL_PLAYER_SLOT_INDEX;
+    matchStageDamage.hidden = !feedbackVisible;
+    matchStageDamage.classList.toggle('match-stage__damage--incoming', feedbackVisible && incoming);
+    matchStageDamage.classList.toggle('match-stage__damage--hit', feedbackVisible && !incoming);
+    if (feedbackVisible) {
+      const zoneLabel = localFeedback.recentHitboxId === 'head' ? 'HEADSHOT' : 'HIT';
+      setTextContent(matchStageDamage, incoming
+        ? `-${localFeedback.recentDamage} HP`
+        : `${zoneLabel} -${localFeedback.recentDamage}`);
+    }
   }
   renderRadar(hud.radar);
   renderKillfeed();

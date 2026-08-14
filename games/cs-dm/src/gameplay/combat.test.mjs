@@ -28,6 +28,33 @@ const customLoadout = Object.freeze({
 });
 
 const tests = [
+  ['torso and head hitboxes return the hit zone for deterministic feedback', () => {
+    const basePlayers = createOfflineSlots('HitboxTester');
+    const matchState = withPlayers(setPlayer(basePlayers, 1, {
+      health: COMBAT_DEFAULTS.maxHealth,
+      armor: 0,
+      spawnProtectionUntilMs: 0,
+    }));
+    const shotResult = applyCombatShot(matchState, {
+      shooterSlotIndex: 0,
+      weaponState: createWeaponState(WEAPONS.DEAGLE.id),
+      nowMs: 10,
+      seed: 7,
+      controllersBySlotIndex: Object.freeze({
+        0: Object.freeze({ position: Object.freeze({ x: 0, y: 0, z: 0 }) }),
+        1: Object.freeze({ position: Object.freeze({ x: 0, y: 0, z: 30 }), radius: 0.6 }),
+      }),
+      origin: { x: 0, y: 1.55, z: 0 },
+      direction: { x: 0, y: -0.02924, z: 1 },
+    });
+
+    assert.equal(shotResult.ok, true);
+    assert.equal(shotResult.shot.hit.targetId, '1');
+    assert.equal(shotResult.shot.hit.hitboxId, 'head');
+    assert.equal(shotResult.damage.damageApplied > 0, true);
+    assert.equal(shotResult.matchState.players[1].health < COMBAT_DEFAULTS.maxHealth, true);
+  }],
+
   ['combat shot applies hitscan damage, death, score, respawn, and loadout persistence', () => {
     const basePlayers = createOfflineSlots('Sharpshooter');
     const matchState = withPlayers(setPlayer(basePlayers, 1, {

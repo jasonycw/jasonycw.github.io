@@ -187,32 +187,42 @@ export const traceHitscan = ({ origin, direction, maxRange, targets = [] }) => {
   let closestHit = null;
 
   targets.forEach((target) => {
-    const radius = target.radius ?? 0.5;
-    const toTarget = {
-      x: target.position.x - origin.x,
-      y: target.position.y - origin.y,
-      z: target.position.z - origin.z,
-    };
-    const distanceAlongRay = toTarget.x * rayDirection.x + toTarget.y * rayDirection.y + toTarget.z * rayDirection.z;
+    const hitboxes = target.hitboxes?.length > 0
+      ? target.hitboxes
+      : [{ id: 'body', position: target.position, radius: target.radius ?? 0.5 }];
 
-    if (distanceAlongRay < 0 || distanceAlongRay > maxRange) {
-      return;
-    }
+    hitboxes.forEach((hitbox) => {
+      const radius = hitbox.radius ?? 0.5;
+      const toTarget = {
+        x: hitbox.position.x - origin.x,
+        y: hitbox.position.y - origin.y,
+        z: hitbox.position.z - origin.z,
+      };
+      const distanceAlongRay = toTarget.x * rayDirection.x + toTarget.y * rayDirection.y + toTarget.z * rayDirection.z;
 
-    const closestPoint = {
-      x: origin.x + rayDirection.x * distanceAlongRay,
-      y: origin.y + rayDirection.y * distanceAlongRay,
-      z: origin.z + rayDirection.z * distanceAlongRay,
-    };
-    const missDistance = Math.hypot(
-      target.position.x - closestPoint.x,
-      target.position.y - closestPoint.y,
-      target.position.z - closestPoint.z,
-    );
+      if (distanceAlongRay < 0 || distanceAlongRay > maxRange) {
+        return;
+      }
 
-    if (missDistance <= radius && (closestHit === null || distanceAlongRay < closestHit.distance)) {
-      closestHit = Object.freeze({ targetId: target.id, distance: Number(distanceAlongRay.toFixed(3)) });
-    }
+      const closestPoint = {
+        x: origin.x + rayDirection.x * distanceAlongRay,
+        y: origin.y + rayDirection.y * distanceAlongRay,
+        z: origin.z + rayDirection.z * distanceAlongRay,
+      };
+      const missDistance = Math.hypot(
+        hitbox.position.x - closestPoint.x,
+        hitbox.position.y - closestPoint.y,
+        hitbox.position.z - closestPoint.z,
+      );
+
+      if (missDistance <= radius && (closestHit === null || distanceAlongRay < closestHit.distance)) {
+        closestHit = Object.freeze({
+          targetId: target.id,
+          hitboxId: hitbox.id,
+          distance: Number(distanceAlongRay.toFixed(3)),
+        });
+      }
+    });
   });
 
   return closestHit;
