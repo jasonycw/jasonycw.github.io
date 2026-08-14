@@ -169,14 +169,25 @@ export class Game {
 
     handleInteraction(event) {
         if (this.state !== 'playing') return;
-        this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        const canvas = this.engine.renderer.domElement;
+        const bounds = canvas.getBoundingClientRect();
+        const normalizedX = (event.clientX - bounds.left) / bounds.width;
+        const normalizedY = (event.clientY - bounds.top) / bounds.height;
+        if (normalizedX < 0 || normalizedX > 1 || normalizedY < 0 || normalizedY > 1) return;
+
+        this.mouse.x = normalizedX * 2 - 1;
+        this.mouse.y = -normalizedY * 2 + 1;
         this.raycaster.setFromCamera(this.mouse, this.engine.camera);
-        const intersects = this.raycaster.intersectObject(this.map.mesh);
-        if (intersects.length > 0) {
-            const point = intersects[0].point;
-            this.placeStructure(point.x, point.z);
+        const intersects = this.raycaster.intersectObject(this.map.mesh, false);
+        if (intersects.length === 0) return;
+
+        const point = intersects[0].point;
+        const cell = this.map.getGridCell(point.x, point.z);
+        if (!cell) {
+            this.ui.showEvent('OUTSIDE GRID', 'Choose a highlighted map cell inside the defense perimeter.');
+            return;
         }
+        this.placeStructure(cell.wx, cell.wz);
     }
 
     placeStructure(worldX, worldZ) {

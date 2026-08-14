@@ -82,7 +82,12 @@ export class Map {
                 let isLand = false;
                 if (u >= 0 && u <= 1 && v >= 0 && v <= 1) {
                     const pixelX = Math.min(image.width - 1, Math.floor(u * image.width));
-                    const pixelY = Math.min(image.height - 1, Math.floor((1 - v) * image.height));
+                    // PlaneGeometry is rotated so its positive local Y maps to negative world Z.
+                    // With the texture's normal image orientation, the rendered top of the map is
+                    // therefore the negative-Z side of the world. Keep the mask aligned with the
+                    // visible map instead of classifying the water-side cells as land.
+                    const pixelY = Math.min(image.height - 1, Math.floor(v * image.height));
+
                     const index = (pixelY * image.width + pixelX) * 4;
                     isLand = pixels[index] > 128;
                 }
@@ -106,7 +111,7 @@ export class Map {
         const buildingMaterial = new THREE.MeshStandardMaterial({ color: 0x99aabb, roughness: 0.4 });
         const windowMaterial = new THREE.MeshBasicMaterial({ color: 0xffffaa });
 
-        const cityPoint = new THREE.Vector2(-4, 4.5);
+        const cityPoint = new THREE.Vector2(-4, -4.5);
 
         this.grid.forEach(cell => {
             if (!cell.isLand) return;
@@ -150,7 +155,7 @@ export class Map {
 
     createCityLandmark() {
         const city = new THREE.Group();
-        city.position.set(-4, 0, 4.5);
+        city.position.set(-4, 0, -4.5);
 
         const baseGeom = new THREE.CylinderGeometry(2, 2.2, 0.4, 32);
         const baseMat = new THREE.MeshStandardMaterial({ color: 0x556677 });
@@ -194,11 +199,21 @@ export class Map {
                 blending: THREE.AdditiveBlending
             });
             const foam = new THREE.Mesh(geometry, material);
-            foam.position.set(
-                (Math.random() - 0.5) * Config.WORLD.SIZE,
-                0.02,
-                (Math.random() - 0.5) * Config.WORLD.SIZE
-            );
+            let foamCell;
+            let attempts = 0;
+            do {
+                const foamX = (Math.random() - 0.5) * Config.WORLD.SIZE;
+                const foamZ = (Math.random() - 0.5) * Config.WORLD.SIZE;
+                foamCell = this.getGridCell(foamX, foamZ);
+                if (!foamCell || !foamCell.isLand) {
+                    foam.position.set(foamX, 0.02, foamZ);
+                    break;
+                }
+                attempts += 1;
+            } while (attempts < 12);
+            if (!foam.position.x && !foam.position.z) {
+                foam.position.set(0, 0.02, Config.WORLD.SIZE * 0.35);
+            }
             foam.rotation.x = -Math.PI / 2;
             foam.rotation.z = Math.random() * Math.PI;
             this.scene.add(foam);
