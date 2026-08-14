@@ -121,7 +121,7 @@ export class Game {
         if (this.enemiesSpawnedInYear >= Config.WAVE.COUNT_FUNC(this.year)) return;
         this.spawnTimer -= dt;
         if (this.spawnTimer <= 0) {
-            this.enemies.push(new Enemy(this.engine.scene, this.assets, this.effects, this.year));
+            this.enemies.push(new Enemy(this.engine.scene, this.assets, this.effects, this.year, this.map));
             this.enemiesSpawnedInYear += 1;
             this.spawnTimer = Config.ENEMY.SPAWN_INTERVAL;
         }
