@@ -1174,7 +1174,12 @@ gameCanvas.addEventListener('contextmenu', (event) => {
 });
 
 gameCanvas.addEventListener('mousemove', (event) => {
-  if (!offlineMatchState || !document.pointerLockElement || !gameCanvas.contains(document.pointerLockElement)) {
+  if (!offlineMatchState || !gameCanvas.contains(event.target)) {
+    return;
+  }
+
+  const pointerLockOwner = document.pointerLockElement;
+  if (pointerLockOwner && !gameCanvas.contains(pointerLockOwner)) {
     return;
   }
 
