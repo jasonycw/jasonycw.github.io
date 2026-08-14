@@ -28,6 +28,10 @@ async function bootstrap() {
     engine.onUpdate = (dt, currentTime) => game.update(dt, currentTime);
     engine.onInteraction = (event) => game.handleInteraction(event);
 
+    if (new URLSearchParams(window.location.search).has('debug')) {
+        window.__TYCOON__ = { assets, engine, game, map, ui };
+    }
+
     engine.start();
 }
 

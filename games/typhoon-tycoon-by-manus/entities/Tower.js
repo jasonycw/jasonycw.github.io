@@ -2,20 +2,27 @@ import * as THREE from 'three';
 import { Config } from '../core/Config.js';
 
 /**
- * Defensive Tower Entity
- * Addressing: update return value, distanceToSquared, disposal
- * LLM-Model: gpt-4.1-mini
+ * Defensive Tower and Structure Entity
+ * LLM-Model: deepseek-v4-flash-free
  */
 export class Tower {
-    constructor(scene, pos, type, effects) {
+    constructor(scene, pos, type, assets, effects) {
         this.scene = scene;
         this.position = pos;
         this.type = type;
-        this.config = Config.STRUCTURES[type];
+        this.assets = assets;
         this.effects = effects;
+        this.config = Config.STRUCTURES[type];
+
         this.lastAttack = 0;
-        
-        this.rangeSq = this.config.range * this.config.range;
+        this.level = 1;
+
+        // Dynamic stats
+        this.damage = this.config.damage || 0;
+        this.range = this.config.range || 0;
+        this.attackSpeed = this.config.attackSpeed || 1;
+        this.repelForce = this.config.repelForce || 0;
+
         this.createMesh();
     }
 
@@ -23,45 +30,49 @@ export class Tower {
         this.group = new THREE.Group();
         this.group.position.copy(this.position);
 
-        // Base
-        const baseGeom = new THREE.CylinderGeometry(0.7, 0.9, 0.4, 8);
-        const baseMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.2 });
+        // Base - Metallic Sci-fi look
+        const baseGeom = new THREE.CylinderGeometry(0.8, 1.0, 0.5, 6);
+        const baseMat = new THREE.MeshStandardMaterial({
+            color: 0x333333,
+            metalness: 0.9,
+            roughness: 0.1
+        });
         const base = new THREE.Mesh(baseGeom, baseMat);
-        base.position.y = 0.2;
-        base.castShadow = true;
-        base.receiveShadow = true;
+        base.position.y = 0.25;
         this.group.add(base);
 
-        // Turret Head
-        let headGeom;
-        if (this.type === 'PowerPlant') {
-            headGeom = new THREE.BoxGeometry(0.7, 1.2, 0.7);
-        } else if (this.type === 'LaserTower') {
-            headGeom = new THREE.CylinderGeometry(0.2, 0.4, 1.0, 8);
-        } else if (this.type === 'FreezeTower') {
-            headGeom = new THREE.OctahedronGeometry(0.5);
-        } else {
-            headGeom = new THREE.TorusGeometry(0.4, 0.15, 8, 16);
+        // Sprite Icon above tower
+        const spriteTex = this.assets.get(this.config.sprite);
+        if (spriteTex) {
+            const spriteMat = new THREE.SpriteMaterial({
+                map: spriteTex,
+                transparent: true
+            });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.position.y = 1.5;
+            sprite.scale.set(1.5, 1.5, 1);
+            this.group.add(sprite);
         }
 
-        const headMat = new THREE.MeshStandardMaterial({ 
-            color: this.config.color, 
+        // Visual indicator for type
+        const headGeom = new THREE.BoxGeometry(0.4, 0.8, 0.4);
+        const headMat = new THREE.MeshStandardMaterial({
+            color: this.config.color,
             emissive: this.config.color,
-            emissiveIntensity: 0.6
+            emissiveIntensity: 0.5
         });
         this.head = new THREE.Mesh(headGeom, headMat);
-        this.head.position.y = 1.0;
-        this.head.castShadow = true;
+        this.head.position.y = 0.8;
         this.group.add(this.head);
 
-        // Range indicator
-        if (this.type !== 'PowerPlant') {
-            const rangeGeom = new THREE.RingGeometry(this.config.range - 0.1, this.config.range + 0.1, 64);
-            const rangeMat = new THREE.MeshBasicMaterial({ 
-                color: this.config.color, 
-                transparent: true, 
-                opacity: 0.2, 
-                side: THREE.DoubleSide 
+        // Range ring
+        if (this.range > 0) {
+            const rangeGeom = new THREE.RingGeometry(this.range - 0.1, this.range + 0.1, 64);
+            const rangeMat = new THREE.MeshBasicMaterial({
+                color: this.config.color,
+                transparent: true,
+                opacity: 0.15,
+                side: THREE.DoubleSide
             });
             this.rangeRing = new THREE.Mesh(rangeGeom, rangeMat);
             this.rangeRing.rotation.x = -Math.PI / 2;
@@ -72,18 +83,18 @@ export class Tower {
         this.scene.add(this.group);
     }
 
-    update(dt, enemies, currentTime, hasPower) {
-        if (this.type === 'PowerPlant') {
-            this.head.rotation.y += dt * 2;
+    update(dt, enemies, currentTime, hasPower, buffs) {
+        // Apply buffs
+        this.applyBuffs(buffs);
+
+        if (this.range === 0) return;
+        if (!hasPower) {
+            this.head.material.emissiveIntensity = 0;
             return;
         }
+        this.head.material.emissiveIntensity = 0.5 + Math.sin(currentTime * 0.005) * 0.2;
 
-        this.head.rotation.y += dt;
-
-        if (!hasPower) return;
-
-        // Attack Logic (Addressing Gemini Feedback: Check cooldown correctly)
-        if (currentTime - this.lastAttack > 1000 / this.config.attackSpeed) {
+        if (currentTime - this.lastAttack > 1000 / this.attackSpeed) {
             const target = this.findTarget(enemies);
             if (target) {
                 this.attack(target);
@@ -92,13 +103,40 @@ export class Tower {
         }
     }
 
+    applyBuffs(buffs) {
+        if (!buffs) return;
+
+        let d = this.config.damage || 0;
+        let r = this.config.range || 0;
+        let s = this.config.attackSpeed || 1;
+        let f = this.config.repelForce || 0;
+
+        if (this.type === 'LaserTower') {
+            d += (buffs.laserDamage || 0);
+            r += (buffs.laserRange || 0);
+        } else if (this.type === 'FreezeTower') {
+            d += (buffs.freezeDamage || 0);
+            r += (buffs.freezeRange || 0);
+        } else if (this.type === 'RepelTower') {
+            r += (buffs.repelRange || 0);
+            f += (buffs.repelForce || 0);
+        }
+
+        this.damage = d;
+        this.range = r;
+        this.attackSpeed = s;
+        this.repelForce = f;
+
+        if (this.rangeRing) {
+            this.rangeRing.scale.setScalar(this.range / this.config.range);
+        }
+    }
+
     findTarget(enemies) {
         let bestTarget = null;
-        let minDistSq = this.rangeSq;
-
+        let minDistSq = this.range * this.range;
         for (const e of enemies) {
             if (!e.alive) continue;
-            // Use distanceToSquared for performance (Addressing Gemini Feedback)
             const distSq = this.position.distanceToSquared(e.getPosition());
             if (distSq < minDistSq) {
                 minDistSq = distSq;
@@ -111,12 +149,20 @@ export class Tower {
     attack(target) {
         const start = this.position.clone().add(new THREE.Vector3(0, 1.2, 0));
         const end = target.getPosition();
-        
-        this.effects.spawnLaser(start, end, this.config.color);
-        target.takeDamage(this.config.damage);
-        
-        if (this.type === 'FreezeTower') {
-            target.speed *= 0.98; // Cumulative slow
+
+        if (this.type === 'LaserTower') {
+            this.effects.spawnLaser(start, end, this.config.color);
+            target.takeDamage(this.damage);
+        } else if (this.type === 'FreezeTower') {
+            this.effects.spawnLaser(start, end, this.config.color, 0.2);
+            target.takeDamage(this.damage);
+            target.speed *= this.config.slowFactor; // Temp slow
+        } else if (this.type === 'RepelTower') {
+            this.effects.spawnBurst(end, this.config.color, 20);
+            target.takeDamage(this.damage);
+            // Repel logic: push back from center
+            const pushDir = target.getPosition().clone().normalize();
+            target.group.position.addScaledVector(pushDir, this.repelForce);
         }
     }
 
