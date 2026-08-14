@@ -52,10 +52,10 @@ export class Enemy {
         for (let i = 0; i < 8; i++) {
             ctx.rotate(Math.PI / 4);
             const grad = ctx.createRadialGradient(0, 0, 20, 0, 0, 250);
-            grad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-            grad.addColorStop(0.2, 'rgba(200, 230, 255, 0.7)');
-            grad.addColorStop(0.6, 'rgba(100, 160, 220, 0.4)');
-            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            grad.addColorStop(0, 'rgba(230, 248, 255, 0.55)');
+            grad.addColorStop(0.18, 'rgba(160, 215, 248, 0.42)');
+            grad.addColorStop(0.55, 'rgba(65, 125, 190, 0.24)');
+            grad.addColorStop(1, 'rgba(8, 25, 58, 0)');
             
             ctx.fillStyle = grad;
             ctx.beginPath();
@@ -68,6 +68,16 @@ export class Enemy {
             }
             ctx.lineTo(0, 250);
             ctx.fill();
+
+            ctx.beginPath();
+            for (let radius = 34; radius < 230; radius += 26) {
+                const start = radius / 62;
+                const end = start + 1.15;
+                ctx.arc(0, 0, radius, start, end);
+            }
+            ctx.strokeStyle = 'rgba(190, 230, 255, 0.26)';
+            ctx.lineWidth = 5;
+            ctx.stroke();
         }
         ctx.restore();
 
@@ -94,13 +104,15 @@ export class Enemy {
         // Create volumetric effect with multiple rotating layers
         for (let i = 0; i < 6; i++) {
             const size = 8 + i * 1.5;
-            const opacity = 0.9 - i * 0.12;
+            const opacity = 0.32 - i * 0.035;
             const mat = new THREE.SpriteMaterial({
                 map: texture,
+                color: i < 2 ? 0x9bdcff : 0x5e8fc6,
                 transparent: true,
                 opacity: opacity,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false
+                blending: THREE.NormalBlending,
+                depthWrite: false,
+                depthTest: false
             });
             const sprite = new THREE.Sprite(mat);
             sprite.scale.set(size, size, 1);
@@ -116,12 +128,12 @@ export class Enemy {
         // Add a core "eye wall" mesh for more 3D feel
         const eyeWallGeom = new THREE.CylinderGeometry(1.2, 3.2, 3.0, 24, 1, true);
         const eyeWallMat = new THREE.MeshStandardMaterial({
-            color: 0x99ccff,
+            color: 0x4b9ed0,
             transparent: true,
-            opacity: 0.4,
+            opacity: 0.2,
             side: THREE.DoubleSide,
-            emissive: 0x336699,
-            emissiveIntensity: 0.5
+            emissive: 0x183d67,
+            emissiveIntensity: 0.2
         });
         const eyeWall = new THREE.Mesh(eyeWallGeom, eyeWallMat);
         eyeWall.position.y = 1.5;
