@@ -156,7 +156,7 @@ export class Tower {
         } else if (this.type === 'FreezeTower') {
             this.effects.spawnLaser(start, end, this.config.color, 0.2);
             target.takeDamage(this.damage);
-            target.speed *= this.config.slowFactor; // Temp slow
+            target.applySlow(this.config.slowFactor, 1.5);
         } else if (this.type === 'RepelTower') {
             this.effects.spawnBurst(end, this.config.color, 20);
             target.takeDamage(this.damage);

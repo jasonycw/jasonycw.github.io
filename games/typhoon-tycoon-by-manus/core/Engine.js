@@ -9,7 +9,8 @@ export class Engine {
     constructor() {
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x123a55);
-        this.scene.fog = new THREE.Fog(0x123a55, 55, 150);
+        // Fog removed for better clarity as requested by user
+        // this.scene.fog = new THREE.Fog(0x123a55, 55, 150);
 
         this.initCamera();
         this.initRenderer();
@@ -51,10 +52,10 @@ export class Engine {
     }
 
     initLights() {
-        const ambient = new THREE.AmbientLight(0xb8d8ec, 1.8);
+        const ambient = new THREE.AmbientLight(0xb8d8ec, 2.2);
         this.scene.add(ambient);
 
-        const sun = new THREE.DirectionalLight(0xfff1d2, 3.0);
+        const sun = new THREE.DirectionalLight(0xfff1d2, 3.5);
         sun.position.set(15, 35, 10);
         sun.castShadow = true;
         sun.shadow.mapSize.setScalar(2048);
