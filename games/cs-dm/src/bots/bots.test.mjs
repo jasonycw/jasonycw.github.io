@@ -120,13 +120,15 @@ const tests = [
   }],
 
   ['difficulty settings create measurable reaction and aim differences', () => {
-    const origin = { x: 0, y: 0, z: 0 };
-    const target = { x: 30, y: 0, z: 30 };
+    const origin = { x: 0, y: 1.5, z: 0 };
+    const target = { x: 30, y: 0.95, z: 30 };
     const easyAim = createBotAimDirection({ origin, target, difficulty: BOT_DIFFICULTIES.EASY, slotIndex: 1, tick: 5 });
     const hardAim = createBotAimDirection({ origin, target, difficulty: BOT_DIFFICULTIES.HARD, slotIndex: 1, tick: 5 });
 
     assert.equal(BOT_DIFFICULTIES.EASY.reactionTicks > BOT_DIFFICULTIES.HARD.reactionTicks, true);
     assert.equal(easyAim.errorRadians > hardAim.errorRadians, true);
+    assert.equal(easyAim.direction.y < 0, true);
+    assert.equal(Math.abs(Math.hypot(easyAim.direction.x, easyAim.direction.y, easyAim.direction.z) - 1) < 0.000001, true);
     assert.notDeepEqual(selectBotLoadout({ slotIndex: 2, difficultyId: 'easy' }), selectBotLoadout({ slotIndex: 2, difficultyId: 'hard' }));
   }],
 

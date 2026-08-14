@@ -721,7 +721,17 @@ export function chooseVisibleBotTarget({ matchState, controllersBySlotIndex, slo
 }
 
 export function createBotAimDirection({ origin, target, difficulty, slotIndex = 0, tick = 0 } = {}) {
-  const direction = normalize2d({ x: target.x - origin.x, z: target.z - origin.z });
+  const delta = {
+    x: target.x - origin.x,
+    y: target.y - origin.y,
+    z: target.z - origin.z,
+  };
+  const length = Math.hypot(delta.x, delta.y, delta.z) || 1;
+  const direction = {
+    x: delta.x / length,
+    y: delta.y / length,
+    z: delta.z / length,
+  };
   const errorRadians = (difficulty.aimErrorDegrees * Math.PI) / 180;
   const wobble = (((slotIndex * 37 + tick * 17) % 11) - 5) / 5;
   const appliedError = errorRadians * wobble * 0.18;
@@ -729,7 +739,11 @@ export function createBotAimDirection({ origin, target, difficulty, slotIndex = 
   const sin = Math.sin(appliedError);
 
   return Object.freeze({
-    direction: freezeVector({ x: direction.x * cos - direction.z * sin, y: 0, z: direction.x * sin + direction.z * cos }),
+    direction: freezeVector({
+      x: direction.x * cos - direction.z * sin,
+      y: direction.y,
+      z: direction.x * sin + direction.z * cos,
+    }),
     errorRadians: round(Math.abs(appliedError)),
   });
 }
