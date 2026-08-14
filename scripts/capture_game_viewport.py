@@ -67,21 +67,15 @@ async def main():
         for frame in range(240):
             if frame == 0:
                 await key('KeyW', 'w', True); held.add('KeyW')
-            if frame == 36:
-                await key('KeyW', 'w', False); held.discard('KeyW')
-                await key('KeyD', 'd', True); held.add('KeyD')
             if frame == 72:
-                await key('KeyD', 'd', False); held.discard('KeyD')
-                await key('KeyW', 'w', True); held.add('KeyW')
-            if frame == 108:
                 await key('KeyW', 'w', False); held.discard('KeyW')
                 await key('KeyA', 'a', True); held.add('KeyA')
-            if frame == 144:
+            if frame == 108:
                 await key('KeyA', 'a', False); held.discard('KeyA')
             if frame in {12, 20, 28, 46, 54, 62, 80, 88, 96, 114, 122, 130, 148, 156, 164, 182, 190, 198, 216, 224, 232}:
                 await fire()
             if frame in {8, 20, 32, 44, 56, 68, 80, 92, 104, 116, 128, 140, 152, 164, 176, 188, 200, 212, 224, 236}:
-                horizontal_delta = 82 if (frame // 12) % 2 == 0 else -82
+                horizontal_delta = 40 if (frame // 12) % 2 == 0 else -40
                 vertical_delta = 12 if frame in {8, 20, 32} else (-8 if frame in {80, 92, 104} else 0)
                 await move_mouse(horizontal_delta, vertical_delta)
             result = await command('Page.captureScreenshot', {
