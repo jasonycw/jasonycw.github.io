@@ -32,6 +32,16 @@ const cylinder = (id, role, radiusTop, radiusBottom, height, position, colorToke
   ...extras,
 });
 
+const sphere = (id, role, radius, position, colorToken, extras = {}) => Object.freeze({
+  id,
+  role,
+  shape: 'sphere',
+  radius,
+  position: Object.freeze(position),
+  colorToken,
+  ...extras,
+});
+
 export const PLAYER_MODEL_IDS = Object.freeze({
   CT_RANGER: 'ct-ranger',
   T_RAIDER: 't-raider',
@@ -86,7 +96,7 @@ export const PLAYER_MODEL_VARIANTS = freezeDeep({
       box('ct-left-glove', 'hands', { x: 0.18, y: 0.16, z: 0.18 }, { x: -0.55, y: 0.74, z: 0.24 }, 'boots'),
       box('ct-right-glove', 'hands', { x: 0.18, y: 0.16, z: 0.18 }, { x: 0.55, y: 0.74, z: 0.24 }, 'boots'),
       cylinder('ct-neck', 'neck', 0.16, 0.18, 0.18, { x: 0, y: 1.52, z: 0 }, 'fabric', { segments: 8 }),
-      cylinder('ct-head', 'head', 0.24, 0.26, 0.26, { x: 0, y: 1.68, z: 0 }, 'skin', { segments: 10 }),
+      sphere('ct-head', 'head', 0.26, { x: 0, y: 1.68, z: 0 }, 'skin', { segments: 10 }),
       cylinder('ct-helmet', 'headgear', 0.3, 0.34, 0.28, { x: 0, y: 1.78, z: 0 }, 'helmet', { segments: 12 }),
       box('ct-helmet-brow', 'headgear', { x: 0.56, y: 0.08, z: 0.16 }, { x: 0, y: 1.84, z: 0.2 }, 'helmet'),
       box('ct-visor', 'face', { x: 0.4, y: 0.1, z: 0.04 }, { x: 0, y: 1.75, z: 0.31 }, 'visor'),
@@ -140,7 +150,7 @@ export const PLAYER_MODEL_VARIANTS = freezeDeep({
       box('t-left-hand', 'hands', { x: 0.18, y: 0.16, z: 0.18 }, { x: -0.55, y: 0.72, z: 0.24 }, 'skin'),
       box('t-right-hand', 'hands', { x: 0.18, y: 0.16, z: 0.18 }, { x: 0.55, y: 0.72, z: 0.24 }, 'skin'),
       cylinder('t-neck', 'neck', 0.15, 0.17, 0.16, { x: 0, y: 1.51, z: 0 }, 'scarf', { segments: 8 }),
-      cylinder('t-face', 'head', 0.22, 0.24, 0.22, { x: 0, y: 1.66, z: 0.02 }, 'skin', { segments: 10 }),
+      sphere('t-face', 'head', 0.24, { x: 0, y: 1.66, z: 0.02 }, 'skin', { segments: 10 }),
       cylinder('t-wrapped-head', 'headgear', 0.3, 0.31, 0.32, { x: 0, y: 1.76, z: 0 }, 'scarf', { segments: 10 }),
       box('t-face-wrap', 'face', { x: 0.42, y: 0.1, z: 0.08 }, { x: 0, y: 1.64, z: 0.28 }, 'scarf'),
       box('t-scarf-tail', 'silhouette', { x: 0.14, y: 0.52, z: 0.12 }, { x: 0.34, y: 1.47, z: -0.2 }, 'scarf', { rotation: { x: 0, y: 0, z: -0.22 } }),
@@ -191,6 +201,12 @@ const applyTransform = (mesh, part) => {
 const createGeometry = (THREE, part) => {
   if (part.shape === 'cylinder') {
     return new THREE.CylinderGeometry(part.radiusTop, part.radiusBottom, part.height, part.segments ?? 8);
+  }
+  if (part.shape === 'sphere') {
+    if (typeof THREE.SphereGeometry === 'function') {
+      return new THREE.SphereGeometry(part.radius, part.segments ?? 10, Math.max(6, Math.floor((part.segments ?? 10) * 0.7)));
+    }
+    return new THREE.CylinderGeometry(part.radius, part.radius, part.radius * 2, part.segments ?? 10);
   }
   return new THREE.BoxGeometry(part.size.x, part.size.y, part.size.z);
 };
