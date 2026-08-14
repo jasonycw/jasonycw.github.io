@@ -10,7 +10,7 @@ import {
 import { createMatchState, createOfflineSlots } from '../core/index.js';
 import { applyCombatShot, advanceRespawnTimers } from '../gameplay/combat.js';
 import { MAP_COLLISION_VOLUMES, MAP_SPAWN_POINTS } from '../map/index.js';
-import { createPlayerControllerState, simulatePlayerMovementStep } from '../player/index.js';
+import { PLAYER_MOVEMENT_DEFAULTS, createPlayerControllerState, simulatePlayerMovementStep } from '../player/index.js';
 import { selectBuyPurchase } from '../ui/buyMenu.js';
 import { deriveHudData } from '../ui/hudData.js';
 import { completeReload, createWeaponState, getWeaponById, startReload } from '../weapons/index.js';
@@ -272,6 +272,17 @@ export function applyOfflineLocalInput(state, {
       });
       matchState = result.matchState;
       weaponStatesBySlotIndex = Object.freeze({ ...weaponStatesBySlotIndex, [LOCAL_PLAYER_SLOT_INDEX]: result.weaponState });
+      if (result.shot?.recoil) {
+        const recoilView = Object.freeze({
+          ...controller.view,
+          yaw: controller.view.yaw + result.shot.recoil.yaw,
+          pitch: Math.max(PLAYER_MOVEMENT_DEFAULTS.minPitch, Math.min(PLAYER_MOVEMENT_DEFAULTS.maxPitch, controller.view.pitch + result.shot.recoil.pitch)),
+        });
+        controllersBySlotIndex = Object.freeze({
+          ...controllersBySlotIndex,
+          [LOCAL_PLAYER_SLOT_INDEX]: Object.freeze({ ...controller, view: recoilView }),
+        });
+      }
       shot = result.shot;
       if (result.ok) {
         state = Object.freeze({ ...state, visualFeedbackBySlotIndex: updateFeedbackForLocalShot(state, shot, result.damage) });

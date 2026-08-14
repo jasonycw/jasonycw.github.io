@@ -252,6 +252,10 @@ export const fireWeapon = (weaponState, { nowMs = 0, seed = 1, moving = false, o
   const shotIndex = weaponState.shotsFired;
   const spreadOffset = computeSpreadOffset(selectedWeapon, { seed, shotIndex, moving });
   const shotDirection = applySpreadToDirection(normalizeDirection(direction), spreadOffset);
+  const recoil = Object.freeze({
+    yaw: Number((selectedWeapon.recoil.yaw * 0.01 * (shotIndex % 2 === 0 ? 1 : -1)).toFixed(6)),
+    pitch: Number((selectedWeapon.recoil.pitch * 0.015).toFixed(6)),
+  });
   const hit = traceHitscan({ origin, direction: shotDirection, maxRange: effectiveRangeMax, targets });
 
   // Compute damage: alt-fire melee uses alt damage values (flat, no falloff)
@@ -282,6 +286,7 @@ export const fireWeapon = (weaponState, { nowMs = 0, seed = 1, moving = false, o
       weaponId: selectedWeapon.id,
       direction: shotDirection,
       spreadOffset,
+      recoil,
       hit,
       damage,
     }),
