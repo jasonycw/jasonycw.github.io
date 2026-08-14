@@ -1,0 +1,236 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Counter Strike - Deathmatch</title>
+    <link rel="icon" type="image/x-icon" href="../../img/favicon.ico" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.165.0/build/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="menu-card panel" data-shell-panel="menu" aria-labelledby="game-title">
+        <p class="eyebrow">Offline deathmatch</p>
+        <h1 id="game-title">Counter Strike - Deathmatch</h1>
+        <p class="subtitle">Jump into a fast 16-player free-for-all with bots, classic controls, and instant weapon buying.</p>
+
+        <label class="field" for="player-name">
+          <span>Player name</span>
+          <input id="player-name" type="text" maxlength="20" autocomplete="nickname" placeholder="Enter a name" />
+        </label>
+        <p id="name-error" class="name-error" role="status" aria-live="polite"></p>
+
+        <div class="actions">
+          <button id="offline-start" type="button">Start Offline Match</button>
+          <button id="host-game" type="button">Host Game</button>
+          <button id="join-game" type="button">Join Game</button>
+          <button id="open-settings" type="button" class="secondary">Settings</button>
+        </div>
+
+        <p class="hint">Enter your player name, start an offline match, then use WASD, mouse fire, B for buy, and Tab for the scoreboard.</p>
+      </section>
+
+      <section class="menu-card panel settings-menu" id="settings-menu" data-shell-panel="settings" hidden aria-labelledby="settings-title" aria-hidden="true" tabindex="-1">
+        <div class="settings-menu__header">
+          <div>
+            <p class="eyebrow">Input settings</p>
+            <h2 id="settings-title">Controls</h2>
+          </div>
+          <button id="settings-close" type="button" class="secondary">Close</button>
+        </div>
+
+        <p id="binding-conflict" class="settings-menu__warning" role="status" aria-live="polite"></p>
+
+        <section class="mouse-settings" aria-labelledby="mouse-settings-title">
+          <div>
+            <p class="eyebrow">Mouse look</p>
+            <h3 id="mouse-settings-title">Aim tuning</h3>
+          </div>
+          <label class="field mouse-settings__sensitivity" for="mouse-sensitivity">
+            <span>Mouse sensitivity <strong id="mouse-sensitivity-value">100%</strong></span>
+            <input id="mouse-sensitivity" type="range" min="0.25" max="3" step="0.05" value="1" />
+          </label>
+          <label class="mouse-settings__invert" for="mouse-invert-y">
+            <input id="mouse-invert-y" type="checkbox" checked />
+            <span>Invert mouse Y</span>
+          </label>
+          <p id="mouse-status" class="mouse-settings__status" role="status" aria-live="polite">Mouse Y is inverted by default.</p>
+        </section>
+
+        <section class="audio-settings" aria-labelledby="audio-settings-title">
+          <div>
+            <p class="eyebrow">Generated sound</p>
+            <h3 id="audio-settings-title">Audio feedback</h3>
+          </div>
+          <button id="audio-mute-toggle" type="button" class="secondary">Audio: On</button>
+          <label class="field audio-settings__volume" for="audio-volume">
+            <span>Volume</span>
+            <input id="audio-volume" type="range" min="0" max="1" step="0.05" value="0.55" />
+          </label>
+          <p id="audio-status" class="audio-settings__status" role="status" aria-live="polite">Audio unlocks after your first click or key press.</p>
+        </section>
+
+        <div id="binding-list" class="settings-menu__bindings" aria-label="Keybindings"></div>
+
+        <label class="field" for="settings-player-name">
+          <span>Player name</span>
+          <input id="settings-player-name" type="text" maxlength="20" autocomplete="nickname" placeholder="Enter a name" />
+        </label>
+        <p id="settings-name-error" class="name-error" role="status" aria-live="polite"></p>
+
+        <div class="actions actions--compact">
+          <button id="settings-reset-defaults" type="button">Reset Defaults</button>
+          <button id="settings-apply-name" type="button" class="secondary">Apply Name</button>
+        </div>
+      </section>
+
+      <section class="menu-card panel" id="host-panel" data-shell-panel="host" hidden aria-labelledby="host-title" aria-hidden="true">
+        <p class="eyebrow">Private lobby</p>
+        <h2 id="host-title">Host lobby</h2>
+        <p class="subtitle">Create a room code, share it with a friend, and paste their answer code to connect.</p>
+
+        <label class="field" for="host-offer-code">
+          <span>Host offer code</span>
+          <textarea id="host-offer-code" rows="4" readonly spellcheck="false"></textarea>
+        </label>
+
+        <div class="actions actions--compact">
+          <button id="host-create-offer" type="button">Generate Offer</button>
+          <button id="host-back" type="button" class="secondary">Back</button>
+        </div>
+
+        <label class="field" for="host-answer-input">
+          <span>Join answer code</span>
+          <textarea id="host-answer-input" rows="4" spellcheck="false" placeholder="Paste the join answer here"></textarea>
+        </label>
+
+        <button id="accept-answer" type="button" class="secondary">Accept Answer</button>
+      </section>
+
+      <section class="network-panel" id="network-panel" hidden aria-label="Network connection status">
+        <p class="network-status">Connection state: <strong data-network-state>idle</strong></p>
+        <p id="network-error" class="network-error" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="menu-card panel" id="join-panel" data-shell-panel="join" hidden aria-labelledby="join-title" aria-hidden="true">
+        <p class="eyebrow">Join a friend</p>
+        <h2 id="join-title">Join lobby</h2>
+        <p class="subtitle">Paste your friend room code, generate an answer, and send it back to join their lobby.</p>
+
+        <label class="field" for="join-offer-input">
+          <span>Host offer code</span>
+          <textarea id="join-offer-input" rows="4" spellcheck="false" placeholder="Paste the host offer here"></textarea>
+        </label>
+
+        <div class="actions actions--compact">
+          <button id="create-answer" type="button">Generate Answer</button>
+          <button id="join-back" type="button" class="secondary">Back</button>
+        </div>
+
+        <label class="field" for="join-answer-code">
+          <span>Join answer code</span>
+          <textarea id="join-answer-code" rows="4" readonly spellcheck="false"></textarea>
+        </label>
+      </section>
+
+      <section class="menu-card panel match-panel" id="match-panel" data-shell-panel="match" hidden aria-labelledby="match-title" aria-hidden="true" tabindex="-1">
+        <p class="eyebrow">Offline free-for-all</p>
+        <h2 id="match-title">Counter Strike - Deathmatch</h2>
+        <p class="subtitle">Roundless 16-player deathmatch is live. Move, aim, buy, fight, and climb the scoreboard.</p>
+
+        <div class="match-hud" aria-label="Match status">
+          <div id="hud-radar" class="match-hud__radar" aria-label="Radar" data-radar-kind="map-radar"></div>
+          <p class="match-hud__label">Current weapon</p>
+          <p id="hud-weapon" class="match-hud__weapon" aria-live="polite">AK-47</p>
+          <ol id="hud-killfeed" class="match-hud__killfeed" aria-label="Kill feed" aria-live="polite" hidden></ol>
+          <p class="match-hud__stat match-hud__stat--health">Health <strong id="hud-health">100</strong></p>
+          <p class="match-hud__stat match-hud__stat--armor">Armor <strong id="hud-armor">0</strong></p>
+          <p class="match-hud__stat match-hud__stat--phase">Phase <strong id="hud-phase">running/free-play</strong></p>
+          <button id="open-buy-menu" type="button" class="secondary match-hud__buy">Buy menu (B)</button>
+          <button id="match-audio-toggle" type="button" class="secondary match-hud__audio">Audio: On</button>
+          <p id="perf-summary" class="match-hud__stat match-hud__stat--perf" aria-live="polite">ticks=0 simMs=0 players=16 botShots=0 kills=0</p>
+        </div>
+
+        <section class="scoreboard" aria-labelledby="scoreboard-title">
+          <h3 id="scoreboard-title">CS DM Scoreboard</h3>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Name</th>
+                <th scope="col">Money</th>
+                <th scope="col">Score</th>
+                <th scope="col">Deaths</th>
+                <th scope="col">Latency</th>
+              </tr>
+            </thead>
+            <tbody id="scoreboard-body"></tbody>
+          </table>
+        </section>
+
+        <div class="match-stage" aria-hidden="true">
+          <div class="match-stage__grid"></div>
+          <div class="match-stage__vignette"></div>
+          <div class="match-stage__topbar">
+            <span class="match-stage__mapname">DUST II</span>
+            <span class="match-stage__mode">FFA · 16 PLAYERS</span>
+            <span class="match-stage__location">MIDDLE</span>
+          </div>
+          <div class="match-stage__crosshair" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b></div>
+          <div class="match-stage__hitmarker" id="match-stage-hitmarker" aria-live="polite">×</div>
+          <div class="match-stage__damage" id="match-stage-damage" aria-live="polite" hidden></div>
+          <div class="match-stage__notice" id="match-stage-notice">FREE FOR ALL</div>
+          <div class="match-stage__killcam" id="match-stage-killcam" hidden>KILLED · RESPAWNING</div>
+          <div id="game-canvas" class="match-stage__viewport" hidden></div>
+          <p id="pointer-lock-help" class="match-stage__label" hidden>
+            Pointer lock was not granted. Click the canvas to try again.
+          </p>
+          <p id="webgl-error" class="match-stage__label match-stage__label--error" hidden>
+            WebGL is unavailable in this browser.
+          </p>
+        </div>
+
+        <section id="buy-menu" class="buy-menu" hidden aria-hidden="true" aria-labelledby="buy-menu-title">
+          <div class="buy-menu__header">
+            <div>
+              <p class="eyebrow">Deathmatch free-buy</p>
+              <h3 id="buy-menu-title">Buy menu</h3>
+            </div>
+            <button id="buy-close" type="button" class="secondary">Close</button>
+          </div>
+          <p id="buy-error" class="buy-menu__error" role="status" aria-live="polite"></p>
+          <div class="buy-menu__layout">
+            <div id="buy-categories" class="buy-menu__categories" aria-label="Buy categories"></div>
+            <div id="buy-weapons" class="buy-menu__weapons" aria-label="Buy weapons"></div>
+          </div>
+        </section>
+
+        <div class="overlay-card" aria-labelledby="rename-title">
+          <p id="rename-title" class="overlay-title">Rename in game</p>
+          <p class="overlay-copy">Safe plain-text validation is shared with the menu name field.</p>
+
+          <label class="field" for="match-player-name">
+            <span>Current player name</span>
+            <input id="match-player-name" type="text" maxlength="20" autocomplete="nickname" />
+          </label>
+          <p id="match-name-error" class="name-error" role="status" aria-live="polite"></p>
+
+          <div class="actions actions--compact">
+            <button id="match-apply-name" type="button">Apply Name</button>
+            <button id="match-back" type="button" class="secondary">Return to Menu</button>
+            <button id="match-open-settings" type="button" class="secondary">Settings</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

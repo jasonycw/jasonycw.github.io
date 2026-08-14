@@ -4,7 +4,7 @@
   "description": "Start creating [jasonycw.github.io](https://jasonycw.github.io/).",
   "main": "webpack.config.js",
   "scripts": {
-    "test": "webpack-dev-server"
+    "test": "node ./games/cs-dm/tests/verify.mjs"
   },
   "repository": {
     "type": "git",
