@@ -59,21 +59,22 @@ async def main():
         })
         os.makedirs('/home/ubuntu/cs16-pr17/capture-frames', exist_ok=True)
         held = set()
-        for frame in range(120):
+        await asyncio.sleep(5.5)
+        for frame in range(240):
             if frame == 0:
-                await key('KeyW', 'w', True); held.add('KeyW')
-            if frame == 30:
-                await key('KeyW', 'w', False); held.discard('KeyW')
+                await key('KeyS', 's', True); held.add('KeyS')
+            if frame == 36:
+                await key('KeyS', 's', False); held.discard('KeyS')
                 await key('KeyD', 'd', True); held.add('KeyD')
-            if frame == 60:
+            if frame == 72:
                 await key('KeyD', 'd', False); held.discard('KeyD')
                 await key('KeyA', 'a', True); held.add('KeyA')
-            if frame == 90:
+            if frame == 108:
                 await key('KeyA', 'a', False); held.discard('KeyA')
-            if frame in {18, 30, 42, 54, 66, 78, 90, 102, 114}:
+            if frame in {12, 20, 28, 46, 54, 62, 80, 88, 96, 114, 122, 130, 148, 156, 164, 182, 190, 198, 216, 224, 232}:
                 await fire()
-            if frame in {16, 32, 48, 64, 80, 96, 112}:
-                await move_mouse(28 if (frame // 16) % 2 == 0 else -28, 2 if frame % 32 else -2)
+            if frame in {8, 20, 32, 44, 56, 68, 80, 92, 104, 116, 128, 140, 152, 164, 176, 188, 200, 212, 224, 236}:
+                await move_mouse(82 if (frame // 12) % 2 == 0 else -82, 0)
             result = await command('Page.captureScreenshot', {
                 'format': 'png', 'fromSurface': True, 'captureBeyondViewport': False,
             })
