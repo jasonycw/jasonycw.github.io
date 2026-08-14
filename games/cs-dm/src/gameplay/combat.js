@@ -91,11 +91,12 @@ const getTargetRecords = (matchState, controllersBySlotIndex, shooterSlotIndex) 
   .map((player) => {
     const controller = controllersBySlotIndex[player.slotIndex] ?? {};
     const position = controller.position ?? MAP_SPAWN_POINTS[player.slotIndex]?.position ?? { x: 0, y: 0, z: 0 };
+    const bodyHeight = controller.movement?.height ?? PLAYER_MOVEMENT_DEFAULTS.standingHeight;
     return Object.freeze({
       id: String(player.slotIndex),
       slotIndex: player.slotIndex,
-      position: freezeVector(position),
-      radius: controller.radius ?? PLAYER_MOVEMENT_DEFAULTS.collisionRadius,
+      position: freezeVector({ x: position.x, y: position.y + bodyHeight * 0.56, z: position.z }),
+      radius: Math.max(0.62, controller.radius ?? PLAYER_MOVEMENT_DEFAULTS.collisionRadius),
     });
   });
 

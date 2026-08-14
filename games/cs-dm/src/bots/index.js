@@ -708,10 +708,12 @@ export function chooseVisibleBotTarget({ matchState, controllersBySlotIndex, slo
     if (!controllersBySlotIndex[player.slotIndex]) { continue; }
 
     const position = getControllerPosition(controllersBySlotIndex, player.slotIndex);
+    const bodyHeight = controllersBySlotIndex[player.slotIndex]?.movement?.height ?? PLAYER_MOVEMENT_DEFAULTS.standingHeight;
+    const aimPosition = { x: position.x, y: position.y + bodyHeight * 0.56, z: position.z };
     const distance = distance2d(origin, position);
     if (hasApproximateLineOfSight(origin, position, { maxRange, blockers })
       && (selected === null || distance < selected.distance)) {
-      selected = Object.freeze({ slotIndex: player.slotIndex, position: freezeVector(position), distance: round(distance) });
+      selected = Object.freeze({ slotIndex: player.slotIndex, position: freezeVector(aimPosition), distance: round(distance) });
     }
   }
 
@@ -960,7 +962,9 @@ const advanceBotCombat = ({ state, slotIndex, bot, nowMs, tick, blockers }) => {
   const playstyle = BOT_PLAYSTYLES[currentBot.playstyleId] ?? BOT_PLAYSTYLES.support;
   const effectiveReactionTicks = Math.max(1, currentBot.difficulty.reactionTicks + (playstyle.reactionTicksBonus ?? 0));
 
-  const origin = getControllerPosition(state.controllersBySlotIndex, slotIndex);
+  const baseOrigin = getControllerPosition(state.controllersBySlotIndex, slotIndex);
+  const shooterHeight = state.controllersBySlotIndex[slotIndex]?.movement?.height ?? PLAYER_MOVEMENT_DEFAULTS.standingHeight;
+  const origin = Object.freeze({ x: baseOrigin.x, y: baseOrigin.y + shooterHeight * 0.86, z: baseOrigin.z });
   let visibleTarget = chooseVisibleBotTarget({
     matchState,
     controllersBySlotIndex: state.controllersBySlotIndex,
@@ -978,7 +982,9 @@ const advanceBotCombat = ({ state, slotIndex, bot, nowMs, tick, blockers }) => {
         && state.controllersBySlotIndex[candidate.slotIndex])
       .map((candidate) => {
         const position = getControllerPosition(state.controllersBySlotIndex, candidate.slotIndex);
-        return { candidate, position, distance: distance2d(origin, position) };
+        const bodyHeight = state.controllersBySlotIndex[candidate.slotIndex]?.movement?.height ?? PLAYER_MOVEMENT_DEFAULTS.standingHeight;
+        const aimPosition = { x: position.x, y: position.y + bodyHeight * 0.56, z: position.z };
+        return { candidate, position: aimPosition, distance: distance2d(baseOrigin, position) };
       })
       .filter((entry) => entry.distance <= BOT_COMBAT_CHASE_RANGE)
       .sort((first, second) => first.distance - second.distance)[0];

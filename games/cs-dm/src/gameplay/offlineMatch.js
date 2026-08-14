@@ -258,8 +258,16 @@ export function applyOfflineLocalInput(state, {
         nowMs,
         seed,
         moving: Math.hypot(controller.velocity.x, controller.velocity.z) > 0.01,
-        origin: controller.position,
-        direction: Object.freeze({ x: -Math.sin(controller.view.yaw), y: 0, z: -Math.cos(controller.view.yaw) }),
+        origin: Object.freeze({
+          x: controller.position.x,
+          y: controller.position.y + (controller.movement?.height ?? PLAYER_MOVEMENT_DEFAULTS.standingHeight) * 0.86,
+          z: controller.position.z,
+        }),
+        direction: Object.freeze({
+          x: -Math.sin(controller.view.yaw) * Math.cos(controller.view.pitch),
+          y: Math.sin(controller.view.pitch),
+          z: -Math.cos(controller.view.yaw) * Math.cos(controller.view.pitch),
+        }),
         altFire,
       });
       matchState = result.matchState;
