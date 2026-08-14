@@ -34,11 +34,16 @@ async def main():
                 'autoRepeat': False,
             })
 
+        cursor_x, cursor_y = 640, 360
+
         async def move_mouse(delta_x, delta_y):
+            nonlocal cursor_x, cursor_y
+            next_x = max(80, min(1200, cursor_x + delta_x))
+            next_y = max(120, min(600, cursor_y + delta_y))
             await command('Input.dispatchMouseEvent', {
-                'type': 'mouseMoved', 'x': 640, 'y': 360, 'button': 'none', 'buttons': 0,
-                'deltaX': delta_x, 'deltaY': delta_y,
+                'type': 'mouseMoved', 'x': next_x, 'y': next_y, 'button': 'none', 'buttons': 0,
             })
+            cursor_x, cursor_y = next_x, next_y
 
         async def fire():
             await command('Input.dispatchMouseEvent', {
