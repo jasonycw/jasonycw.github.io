@@ -198,6 +198,19 @@ const addMapAccentGeometry = (THREE, scene, descriptor, materials) => {
     });
   }
 
+  if (descriptor.kind === 'door-panel') {
+    const panelMaterial = materials[MAP_MATERIALS.METAL.id];
+    const trim = materials[MAP_MATERIALS.CONCRETE.id];
+    for (let band = -2; band <= 2; band += 1) {
+      const slat = createBox(THREE, { x: descriptor.size.x * 0.88, y: 0.045, z: descriptor.size.z * 1.08 }, { x: descriptor.position.x, y: descriptor.position.y + band * descriptor.size.y * 0.15, z: descriptor.position.z - descriptor.size.z * 0.54 }, trim);
+      slat.name = `map-${descriptor.id}-slat-${band}`;
+      scene.add(slat);
+    }
+    const seam = createBox(THREE, { x: Math.max(0.025, descriptor.size.x * 0.06), y: descriptor.size.y * 0.84, z: descriptor.size.z * 1.1 }, { x: descriptor.position.x, y: descriptor.position.y, z: descriptor.position.z - descriptor.size.z * 0.55 }, trim);
+    seam.name = `map-${descriptor.id}-seam`;
+    scene.add(seam);
+  }
+
   if (descriptor.kind === 'cover') {
     const sideMaterial = materials[MAP_MATERIALS.WOOD.id];
     const side = createBox(THREE, { x: Math.max(0.04, descriptor.size.x * 0.08), y: descriptor.size.y * 0.82, z: descriptor.size.z * 0.92 }, { x: descriptor.position.x - descriptor.size.x * 0.42, y: descriptor.position.y, z: descriptor.position.z }, sideMaterial);
