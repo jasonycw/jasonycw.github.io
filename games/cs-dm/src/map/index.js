@@ -157,7 +157,7 @@ export const MAP_GEOMETRY_PRIMITIVES = Object.freeze([
 export const MAP_SPAWN_POINTS = Object.freeze(SPAWN_REFERENCES.map((spawnReference, index) => {
   const positions = [
     { x: 12, y: 0, z: 88 },
-    { x: 14, y: 0, z: 78 },
+    { x: 40, y: 0, z: 88 },
     { x: 26, y: 0, z: 88 },
     { x: 32, y: 0, z: 82 },
     { x: 72, y: 0, z: 86 },

@@ -57,7 +57,7 @@ const tests = [
     assert.equal(rendererSource.includes('cameraAlignment: VIEWMODEL_CAMERA_ALIGNMENT'), true);
     assert.equal(rendererSource.includes('child.material.depthTest = false'), true);
     assert.equal(rendererSource.includes('child.material.depthWrite = false'), true);
-    assert.equal(rendererSource.includes('player.visible = slot.lifeState === \'alive\''), true);
+    assert.equal(rendererSource.includes('player.visible = (slot.lifeState === \'alive\''), true);
     assert.equal(rendererSource.includes("new THREE.MeshStandardMaterial({ color: '#141514'"), false, 'world player guns must not be hard-coded placeholder bars');
   }],
 

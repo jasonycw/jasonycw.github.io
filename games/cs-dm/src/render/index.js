@@ -15,6 +15,33 @@ const setVisible = (element, visible) => {
   element.hidden = !visible;
 };
 
+const segmentIntersectsRect = (from, to, rect) => {
+  const minX = rect.center.x - rect.size.width / 2;
+  const maxX = rect.center.x + rect.size.width / 2;
+  const minZ = rect.center.z - rect.size.depth / 2;
+  const maxZ = rect.center.z + rect.size.depth / 2;
+  const dx = to.x - from.x;
+  const dz = to.z - from.z;
+  let tMin = 0;
+  let tMax = 1;
+  for (const [origin, delta, min, max] of [[from.x, dx, minX, maxX], [from.z, dz, minZ, maxZ]]) {
+    if (Math.abs(delta) < 1e-8) {
+      if (origin < min || origin > max) return false;
+      continue;
+    }
+    const near = (min - origin) / delta;
+    const far = (max - origin) / delta;
+    const entry = Math.min(near, far);
+    const exit = Math.max(near, far);
+    tMin = Math.max(tMin, entry);
+    tMax = Math.min(tMax, exit);
+    if (tMin > tMax) return false;
+  }
+  return tMax > 0.015 && tMin < 0.985;
+};
+
+const isOpponentOccluded = (from, to) => MAP_COLLISION_VOLUMES.some((volume) => segmentIntersectsRect(from, to, volume));
+
 const createWallMaterial = (THREE, baseColor, accentColor) => {
   const canvas = document.createElement('canvas');
   canvas.width = 96;
@@ -338,6 +365,10 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
       const slot = matchState.matchState?.players?.[slotIndex];
       if (!controller || !slot) return;
       const mapped = mapToScenePosition(controller.position);
+      const localPosition = localController?.position;
+      const occluded = localPosition && Math.hypot(localPosition.x - controller.position.x, localPosition.z - controller.position.z) > 2
+        ? isOpponentOccluded(localPosition, controller.position)
+        : false;
       const feedback = matchState.visualFeedbackBySlotIndex?.[slotIndex];
       const deathFlash = Number.isFinite(feedback?.recentDeathAtMs)
         ? matchState.nowMs - feedback.recentDeathAtMs
@@ -349,7 +380,7 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
       const deathAnimActive = deathFlash >= 0 && deathFlash < 350;
       player.position.set(mapped.x, mapped.y, mapped.z);
       player.rotation.y = controller.view?.yaw ?? player.rotation.y;
-      player.visible = slot.lifeState === 'alive' || deathAnimActive;
+      player.visible = (slot.lifeState === 'alive' || deathAnimActive) && !occluded;
       player.scale.setScalar(feedbackActive ? 1 : 0.9);
     });
 

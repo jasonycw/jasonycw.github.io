@@ -46,7 +46,7 @@ const replacePlayer = (matchState, slotIndex, fields) => withPlayers(matchState,
 
 const createControllersForPlayers = (players) => Object.freeze(Object.fromEntries(players.map((player) => [player.slotIndex, createPlayerControllerState({
   position: MAP_SPAWN_POINTS[player.slotIndex]?.position,
-  yaw: player.slotIndex === LOCAL_PLAYER_SLOT_INDEX ? -0.785398 : 0,
+    yaw: player.slotIndex === LOCAL_PLAYER_SLOT_INDEX ? 0 : 0,
   activeWeaponId: player.loadout?.activeWeaponId ?? DEFAULT_LOADOUT.activeWeaponId,
 })])));
 
@@ -134,7 +134,7 @@ export function switchOfflineWeaponSlot(state, slotId) {
         [LOCAL_PLAYER_SLOT_INDEX]: createPlayerControllerState({
           position: currentController?.position ?? MAP_SPAWN_POINTS[LOCAL_PLAYER_SLOT_INDEX].position,
           velocity: currentController?.velocity,
-          yaw: currentController?.view?.yaw ?? -0.785398,
+          yaw: currentController?.view?.yaw ?? 0,
           pitch: currentController?.view?.pitch ?? 0,
           activeWeaponId: weaponId,
           grounded: currentController?.movement?.grounded ?? true,
@@ -207,7 +207,7 @@ export function buyOfflineWeapon(state, weaponId) {
         [LOCAL_PLAYER_SLOT_INDEX]: createPlayerControllerState({
           position: currentController?.position ?? MAP_SPAWN_POINTS[LOCAL_PLAYER_SLOT_INDEX].position,
           velocity: currentController?.velocity,
-          yaw: currentController?.view?.yaw ?? -0.785398,
+          yaw: currentController?.view?.yaw ?? 0,
           pitch: currentController?.view?.pitch ?? 0,
           activeWeaponId: loadout.activeWeaponId,
           grounded: currentController?.movement?.grounded ?? true,
