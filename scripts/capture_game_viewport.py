@@ -75,7 +75,7 @@ async def main():
                 await fire()
             if frame in {8, 20, 32, 44, 56, 68, 80, 92, 104, 116, 128, 140, 152, 164, 176, 188, 200, 212, 224, 236}:
                 horizontal_delta = 82 if (frame // 12) % 2 == 0 else -82
-                vertical_delta = 56 if frame in {8, 20, 32} else (-18 if frame in {80, 92, 104} else 0)
+                vertical_delta = 12 if frame in {8, 20, 32} else (-8 if frame in {80, 92, 104} else 0)
                 await move_mouse(horizontal_delta, vertical_delta)
             result = await command('Page.captureScreenshot', {
                 'format': 'png', 'fromSurface': True, 'captureBeyondViewport': False,
