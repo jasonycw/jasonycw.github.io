@@ -78,7 +78,9 @@ export class Game {
     updateEconomy(dt) {
         this.incomeTimer += dt;
         if (this.incomeTimer >= 1) {
-            const baseIncome = Math.floor(Math.max(0, this.hsi) / 1000) * 2 + Config.PLAYER.PASSIVE_INCOME_BASE;
+            // Base income + Research bonus
+            const researchBonus = this.towers.filter(t => t.type === 'ResearchCenter').length * 20;
+            const baseIncome = Math.floor(Math.max(0, this.hsi) / 1000) * 2 + Config.PLAYER.PASSIVE_INCOME_BASE + researchBonus;
             this.funds += Math.floor(baseIncome * this.buffs.incomeMult);
             this.incomeTimer = 0;
             this.updateHUD();
@@ -147,7 +149,9 @@ export class Game {
 
     nextYear() {
         if (this.year >= Config.WAVE.MAX_YEARS) {
-            this.gameOver('won');
+            if (this.enemies.length === 0) {
+                this.gameOver('won');
+            }
             return;
         }
         this.year += 1;
@@ -271,6 +275,9 @@ export class Game {
         this.enemies = [];
         this.towers = [];
         this.year = 0;
+        this.yearTimer = 0;
+        this.spawnTimer = 0;
+        this.incomeTimer = 0;
         this.buffs = this.createEmptyBuffs();
         this.start();
     }
