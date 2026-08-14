@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typhoon Tycoon 2.5D | Manus Superior Edition</title>
+    <link rel="stylesheet" href="style.css?v=20260814-0610">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="recording-cursor" aria-hidden="true"></div>
+        <div id="recording-click-ring" aria-hidden="true"></div>
+        <div id="recording-action-label" aria-hidden="true"></div>
+        
+        <!-- HUD -->
+        <div id="hud">
+            <div class="hud-top">
+                <div class="stat-card year">
+                    <span class="label">YEAR</span>
+                    <span id="year-val" class="value">0</span>
+                </div>
+                <div class="stat-card hsi">
+                    <span class="label">HSI INDEX</span>
+                    <span id="hsi-val" class="value">5000</span>
+                </div>
+                <div class="stat-card money">
+                    <span class="label">FUNDS</span>
+                    <span class="currency">$</span><span id="money-val" class="value">2000</span>
+                </div>
+                <div class="stat-card power">
+                    <span class="label">POWER GRID</span>
+                    <div class="power-bar-container">
+                        <div id="power-fill" class="power-fill"></div>
+                    </div>
+                    <span id="power-text" class="power-text">0 / 10</span>
+                </div>
+            </div>
+            
+            <div id="event-log" class="event-log" aria-live="polite">
+                <span id="event-title" class="event-title">SYSTEM READY</span>
+                <span id="event-message" class="event-message">Select a blueprint, then click the map to deploy.</span>
+            </div>
+            <div id="toolbar" class="hud-bottom">
+                <!-- Tool buttons injected here -->
+            </div>
+        </div>
+
+        <!-- Start Overlay -->
+        <div id="start-overlay" class="overlay">
+            <div class="modal">
+                <h1>TYPHOON TYCOON</h1>
+                <p class="subtitle">MANUS SUPERIOR EDITION</p>
+                <div class="instructions">
+                    <p>Defend Hong Kong from incoming super typhoons.</p>
+                    <ul>
+                        <li>Build <strong>Power Plants</strong> on land to generate electricity.</li>
+                        <li>Build <strong>Defensive Towers</strong> at sea to intercept typhoons.</li>
+                        <li>Maintain the <strong>HSI Index</strong> to survive the years.</li>
+                        <li>Use <strong>University</strong> and <strong>Research Center</strong> to unlock advanced defenses.</li>
+                        <li>Watch for <strong>market swings</strong> and <strong>earthquakes</strong> that can damage your grid.</li>
+                    </ul>
+                </div>
+                <button id="start-btn" class="action-btn">INITIALIZE DEFENSE</button>
+            </div>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="game-over-overlay" class="overlay" style="display: none;">
+            <div class="modal">
+                <h1 id="game-over-title">CITY DESTROYED</h1>
+                <p>The HSI has collapsed. The city is in ruins.</p>
+                <button id="restart-btn" class="action-btn">RETRY DEFENSE</button>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="main.js?v=20260814-0610"></script>
+</body>
+</html>
