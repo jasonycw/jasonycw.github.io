@@ -5,7 +5,7 @@ import {
 } from '../map/index.js';
 
 export const MAP_SCENE_CENTER = 50;
-export const MAP_SCENE_SCALE = 4.5;
+export const MAP_SCENE_SCALE = 3;
 
 const round = (value) => Number(value.toFixed(6));
 

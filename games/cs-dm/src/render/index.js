@@ -50,12 +50,23 @@ const createWallMaterial = (THREE, baseColor, accentColor) => {
   context.fillStyle = baseColor;
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  for (let y = 0; y < canvas.height; y += 12) {
-    for (let x = 0; x < canvas.width; x += 16) {
-      context.fillStyle = (x + y) % 32 === 0 ? accentColor : 'rgba(255, 244, 205, 0.08)';
-      context.fillRect(x + 1, y + 1, 14, 10);
-      context.fillStyle = 'rgba(38, 28, 16, 0.16)';
-      context.fillRect(x, y + 10, 16, 1);
+  const isWood = baseColor.toLowerCase() === '#8e5a2b';
+  if (isWood) {
+    for (let y = 0; y < canvas.height; y += 18) {
+      context.fillStyle = 'rgba(56, 31, 15, 0.38)';
+      context.fillRect(0, y, canvas.width, 2);
+      context.fillStyle = 'rgba(232, 166, 86, 0.18)';
+      context.fillRect(0, y + 3, canvas.width, 1);
+    }
+  } else {
+    for (let y = 0; y < canvas.height; y += 16) {
+      for (let x = 0; x < canvas.width; x += 20) {
+        const shade = ((x * 13 + y * 7) % 5) * 0.025;
+        context.fillStyle = `rgba(255, 236, 180, ${0.04 + shade})`;
+        context.fillRect(x + 2, y + 2, 14, 9);
+        context.fillStyle = 'rgba(82, 49, 20, 0.08)';
+        context.fillRect(x + 5, y + 12, 9, 2);
+      }
     }
   }
 
