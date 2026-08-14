@@ -492,3 +492,89 @@ img {
         flex-basis: 26px;
     }
 }
+
+/* Recording proof overlay: enabled by ?recording=1. */
+#recording-cursor,
+#recording-click-ring,
+#recording-action-label {
+    position: fixed;
+    z-index: 2000;
+    pointer-events: none;
+    display: none;
+}
+
+#recording-cursor {
+    width: 22px;
+    height: 22px;
+    margin: -2px 0 0 -2px;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    background: #ff3d71;
+    box-shadow: 0 0 0 3px rgba(255, 61, 113, 0.35), 0 0 18px rgba(255, 61, 113, 0.95);
+    transform: translate3d(-100px, -100px, 0);
+}
+
+#recording-click-ring {
+    width: 64px;
+    height: 64px;
+    margin: -32px 0 0 -32px;
+    border: 4px solid #ffe66d;
+    border-radius: 50%;
+    box-shadow: 0 0 20px rgba(255, 230, 109, 0.95), inset 0 0 12px rgba(255, 230, 109, 0.45);
+    transform: translate3d(-100px, -100px, 0) scale(0.4);
+}
+
+#recording-click-ring.pulse {
+    display: block;
+    animation: recording-click-pulse 0.7s ease-out forwards;
+}
+
+#recording-action-label {
+    max-width: min(300px, calc(100vw - 28px));
+    padding: 7px 10px;
+    color: #07111c;
+    background: #ffe66d;
+    border: 2px solid #fff;
+    border-radius: 4px;
+    box-shadow: 0 0 16px rgba(255, 230, 109, 0.8);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.6px;
+    opacity: 0;
+    transform: translate3d(-100px, -100px, 0);
+    transition: opacity 0.15s ease;
+}
+
+#recording-action-label.visible {
+    display: block;
+    opacity: 1;
+}
+
+body.recording-mode #recording-cursor {
+    display: block;
+}
+
+@keyframes recording-click-pulse {
+    0% { opacity: 1; transform: translate3d(var(--click-x, -100px), var(--click-y, -100px), 0) scale(0.4); }
+    100% { opacity: 0; transform: translate3d(var(--click-x, -100px), var(--click-y, -100px), 0) scale(1.35); }
+}
+
+body.recording-mode { cursor: none; }
+body.recording-mode button { cursor: none; }
+
+body.recording-mode #game-container::before {
+    content: 'SCREEN RECORDING · POINTER TRACKING ENABLED';
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    z-index: 1999;
+    padding: 5px 8px;
+    color: #fff;
+    background: rgba(190, 24, 93, 0.9);
+    border: 1px solid #ff8eb5;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    pointer-events: none;
+}
