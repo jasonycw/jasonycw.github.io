@@ -369,7 +369,7 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
       const distanceToLocal = localPosition
         ? Math.hypot(localPosition.x - controller.position.x, localPosition.z - controller.position.z)
         : Number.POSITIVE_INFINITY;
-      const openingCinematicHide = matchState.nowMs < 1200 && distanceToLocal < 10;
+      const openingCinematicHide = matchState.nowMs < 1600 && distanceToLocal < 26;
       const occluded = openingCinematicHide || (localPosition && distanceToLocal > 2
         ? isOpponentOccluded(localPosition, controller.position)
         : false);

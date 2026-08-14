@@ -46,7 +46,7 @@ const replacePlayer = (matchState, slotIndex, fields) => withPlayers(matchState,
 
 const createControllersForPlayers = (players) => Object.freeze(Object.fromEntries(players.map((player) => [player.slotIndex, createPlayerControllerState({
   position: MAP_SPAWN_POINTS[player.slotIndex]?.position,
-    yaw: player.slotIndex === LOCAL_PLAYER_SLOT_INDEX ? 0 : 0,
+    yaw: player.slotIndex === LOCAL_PLAYER_SLOT_INDEX ? -0.67 : 0,
   activeWeaponId: player.loadout?.activeWeaponId ?? DEFAULT_LOADOUT.activeWeaponId,
 })])));
 
