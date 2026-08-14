@@ -1,13 +1,13 @@
-import { Assets } from './core/Assets.js';
 import { Engine } from './core/Engine.js';
 import { Game } from './core/Game.js';
 import { Map } from './world/Map.js';
 import { HUD } from './ui/HUD.js';
+import { Assets } from './core/Assets.js';
 
 /**
  * Typhoon Tycoon 2.5D: Superior Edition
  * Main Entry Point
- * LLM-Model: gpt-4.1-mini
+ * LLM-Model: deepseek-v4-flash-free
  */
 function initRecordingPointer() {
     const params = new URLSearchParams(window.location.search);
@@ -58,12 +58,13 @@ async function bootstrap() {
     const engine = new Engine();
     const map = new Map(engine.scene, assets);
     
+    let game;
     const ui = new HUD(
-        () => game.start(),
-        () => game.restart()
+        () => { if (game) game.start(); },
+        () => { if (game) game.restart(); }
     );
 
-    const game = new Game(engine, assets, map, ui);
+    game = new Game(engine, assets, map, ui);
 
     engine.onUpdate = (dt, currentTime) => game.update(dt, currentTime);
     engine.onInteraction = (event) => game.handleInteraction(event);
