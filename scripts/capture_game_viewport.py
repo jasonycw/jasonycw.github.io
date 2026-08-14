@@ -54,34 +54,21 @@ async def main():
         })
         os.makedirs('/home/ubuntu/cs16-pr17/capture-frames', exist_ok=True)
         held = set()
-        for frame in range(360):
+        for frame in range(120):
             if frame == 0:
                 await key('KeyW', 'w', True); held.add('KeyW')
-            if frame == 48:
+            if frame == 30:
                 await key('KeyW', 'w', False); held.discard('KeyW')
                 await key('KeyD', 'd', True); held.add('KeyD')
-            if frame == 96:
+            if frame == 60:
                 await key('KeyD', 'd', False); held.discard('KeyD')
                 await key('KeyA', 'a', True); held.add('KeyA')
-            if frame == 144:
+            if frame == 90:
                 await key('KeyA', 'a', False); held.discard('KeyA')
-                await key('KeyW', 'w', True); held.add('KeyW')
-            if (frame < 60 and frame % 4 == 0) or frame in {70, 78, 96, 102, 108, 114, 156, 162, 168, 174, 204, 210, 216, 222, 270, 276, 282}:
+            if frame in {18, 30, 42, 54, 66, 78, 90, 102, 114}:
                 await fire()
-            if frame in {72, 84, 106, 128, 150, 174, 198, 222, 246, 270, 294, 318}:
-                await move_mouse(46 if (frame // 22) % 2 == 0 else -62, -8 if frame % 44 == 0 else 3)
-            if frame == 80:
-                await key('KeyR', 'r', True); await key('KeyR', 'r', False)
-            if frame == 138:
-                await key('Digit2', '2', True); await key('Digit2', '2', False)
-            if frame == 188:
-                await key('Tab', 'Tab', True)
-            if frame == 212:
-                await key('Tab', 'Tab', False)
-            if frame == 216:
-                await key('KeyB', 'b', True); await key('KeyB', 'b', False)
-            if frame == 232:
-                await key('Escape', 'Escape', True); await key('Escape', 'Escape', False)
+            if frame in {16, 32, 48, 64, 80, 96, 112}:
+                await move_mouse(28 if (frame // 16) % 2 == 0 else -28, 2 if frame % 32 else -2)
             result = await command('Page.captureScreenshot', {
                 'format': 'png', 'fromSurface': True, 'captureBeyondViewport': False,
             })
