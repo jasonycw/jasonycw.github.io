@@ -63,7 +63,7 @@ async def main():
         await asyncio.sleep(2.5)
         os.makedirs('/home/ubuntu/cs16-pr17/capture-frames', exist_ok=True)
         held = set()
-        await asyncio.sleep(5.5)
+        await asyncio.sleep(1.2)
         for frame in range(240):
             if frame == 0:
                 await key('KeyW', 'w', True); held.add('KeyW')
