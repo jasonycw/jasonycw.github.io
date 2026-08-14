@@ -187,10 +187,16 @@ const buildWorldWeaponGroup = (THREE, weaponId, materials) => {
   descriptor.parts.forEach((part) => {
     weapon.add(createPartMesh(THREE, part, materials));
   });
-  weapon.scale.setScalar(0.62);
+  weapon.scale.setScalar(0.46);
   weapon.rotation.y = -Math.PI / 2;
-  weapon.position.set(0.42, 1.18, 0.42);
-  weapon.userData = Object.freeze({ weaponId: descriptor.weaponId, source: 'WEAPON_MODEL_LAYERS.WORLD' });
+  weapon.position.set(0.34, 1.08, 0.28);
+  weapon.traverse((child) => {
+    if (!child.material) return;
+    child.renderOrder = 0;
+    child.material.depthTest = true;
+    child.material.depthWrite = true;
+  });
+  weapon.userData = Object.freeze({ weaponId: descriptor.weaponId, source: 'WEAPON_MODEL_LAYERS.WORLD', depthMode: 'world-occluded' });
   return weapon;
 };
 
@@ -199,6 +205,12 @@ const createPlayerWithWeapon = (THREE, modelId, weaponId, position, scale = 1, w
   player.position.set(position.x, position.y, position.z);
   player.scale.setScalar(scale);
   player.add(buildWorldWeaponGroup(THREE, weaponId, weaponMaterials));
+  player.traverse((child) => {
+    if (!child.material) return;
+    child.renderOrder = 0;
+    child.material.depthTest = true;
+    child.material.depthWrite = true;
+  });
 
   return player;
 };
