@@ -214,7 +214,7 @@ const buildWorldWeaponGroup = (THREE, weaponId, materials) => {
   descriptor.parts.forEach((part) => {
     weapon.add(createPartMesh(THREE, part, materials));
   });
-  weapon.scale.setScalar(0.46);
+  weapon.scale.setScalar(0.34);
   weapon.rotation.y = -Math.PI / 2;
   weapon.position.set(0.34, 1.08, 0.28);
   weapon.traverse((child) => {
@@ -301,7 +301,7 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
     index % 2 === 0 ? PLAYER_MODEL_IDS.T_RAIDER : PLAYER_MODEL_IDS.CT_RANGER,
     index % 3 === 0 ? 'glock18' : 'ak47',
     { x: -2.25 + (index % 5) * 1.25, y: 0, z: -5.7 - Math.floor(index / 5) * 2.2 },
-    0.9,
+    0.72,
     weaponMaterials,
   ));
   players.forEach((player, index) => {
@@ -366,9 +366,13 @@ export function createRendererShell({ mount, pointerLockHelp, webglError }) {
       if (!controller || !slot) return;
       const mapped = mapToScenePosition(controller.position);
       const localPosition = localController?.position;
-      const occluded = localPosition && Math.hypot(localPosition.x - controller.position.x, localPosition.z - controller.position.z) > 2
+      const distanceToLocal = localPosition
+        ? Math.hypot(localPosition.x - controller.position.x, localPosition.z - controller.position.z)
+        : Number.POSITIVE_INFINITY;
+      const openingCinematicHide = matchState.nowMs < 1200 && distanceToLocal < 10;
+      const occluded = openingCinematicHide || (localPosition && distanceToLocal > 2
         ? isOpponentOccluded(localPosition, controller.position)
-        : false;
+        : false);
       const feedback = matchState.visualFeedbackBySlotIndex?.[slotIndex];
       const deathFlash = Number.isFinite(feedback?.recentDeathAtMs)
         ? matchState.nowMs - feedback.recentDeathAtMs
