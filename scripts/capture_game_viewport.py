@@ -59,6 +59,8 @@ async def main():
         await command('Emulation.setDeviceMetricsOverride', {
             'width': 1280, 'height': 720, 'deviceScaleFactor': 1, 'mobile': False,
         })
+        await command('Runtime.evaluate', {'expression': "document.querySelector('#offline-start')?.click()"})
+        await asyncio.sleep(2.5)
         os.makedirs('/home/ubuntu/cs16-pr17/capture-frames', exist_ok=True)
         held = set()
         await asyncio.sleep(5.5)
