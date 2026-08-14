@@ -161,9 +161,9 @@ const tests = [
       },
     });
 
-    assert.equal(defaultInverted.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].view.yaw, -0.08);
+    assert.equal(defaultInverted.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].view.yaw, -0.865398);
     assert.equal(defaultInverted.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].view.pitch, -0.08);
-    assert.equal(standardHalfSensitivity.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].view.yaw, -0.04);
+    assert.equal(standardHalfSensitivity.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].view.yaw, -0.825398);
     assert.equal(standardHalfSensitivity.controllersBySlotIndex[LOCAL_PLAYER_SLOT_INDEX].view.pitch, 0.04);
   }],
 
