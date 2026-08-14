@@ -54,6 +54,8 @@ async def main():
             })
 
         await command('Page.enable')
+        await command('Page.navigate', {'url': page['url']})
+        await asyncio.sleep(1.5)
         await command('Emulation.setDeviceMetricsOverride', {
             'width': 1280, 'height': 720, 'deviceScaleFactor': 1, 'mobile': False,
         })
