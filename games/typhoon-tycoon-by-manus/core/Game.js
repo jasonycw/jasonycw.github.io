@@ -113,6 +113,8 @@ export class Game {
     }
 
     updateWave(dt) {
+        if (this.state !== 'playing') return;
+        
         this.yearTimer -= dt;
         if (this.yearTimer <= 0) this.nextYear();
 
@@ -149,7 +151,9 @@ export class Game {
 
     nextYear() {
         if (this.year >= Config.WAVE.MAX_YEARS) {
-            if (this.enemies.length === 0) {
+            // Only declare victory if all enemies are spawned and defeated
+            const totalRequired = Config.WAVE.COUNT_FUNC(this.year);
+            if (this.enemiesSpawnedInYear >= totalRequired && this.enemies.length === 0) {
                 this.gameOver('won');
             }
             return;

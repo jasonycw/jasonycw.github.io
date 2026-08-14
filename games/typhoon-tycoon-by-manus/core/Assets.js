@@ -26,12 +26,8 @@ export class Assets {
         };
 
         const promises = Object.entries(paths).map(async ([key, path]) => {
-            try {
-                this.textures[key] = await this.loader.loadAsync(path);
-                console.log(`Asset loaded: ${key}`);
-            } catch (e) {
-                console.error(`Failed to load asset: ${key}`, e);
-            }
+            this.textures[key] = await this.loader.loadAsync(path);
+            console.log(`Asset loaded: ${key}`);
         });
 
         await Promise.all(promises);
