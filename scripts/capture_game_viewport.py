@@ -66,14 +66,17 @@ async def main():
         await asyncio.sleep(5.5)
         for frame in range(240):
             if frame == 0:
-                await key('KeyS', 's', True); held.add('KeyS')
+                await key('KeyW', 'w', True); held.add('KeyW')
             if frame == 36:
-                await key('KeyS', 's', False); held.discard('KeyS')
+                await key('KeyW', 'w', False); held.discard('KeyW')
                 await key('KeyD', 'd', True); held.add('KeyD')
             if frame == 72:
                 await key('KeyD', 'd', False); held.discard('KeyD')
-                await key('KeyA', 'a', True); held.add('KeyA')
+                await key('KeyW', 'w', True); held.add('KeyW')
             if frame == 108:
+                await key('KeyW', 'w', False); held.discard('KeyW')
+                await key('KeyA', 'a', True); held.add('KeyA')
+            if frame == 144:
                 await key('KeyA', 'a', False); held.discard('KeyA')
             if frame in {12, 20, 28, 46, 54, 62, 80, 88, 96, 114, 122, 130, 148, 156, 164, 182, 190, 198, 216, 224, 232}:
                 await fire()
